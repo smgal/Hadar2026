@@ -1,0 +1,35 @@
+
+include("const.cm2")
+
+variable(temp)
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (On(19, 10))
+		Select::Init()
+		Select::Add("LORE성에 들어가시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("town2.cm2")
+
+	if (On(16, 88))
+		Select::Init()
+		Select::Add("MENACE에 들어가시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("menace.cm2")
+	halt()
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Map::LoadFromFile("ground1.map")
+	Map::SetType(2)
+	Map::SetEncounter(1, 10)
+	Map::SetStartPos(50, 30)
+	Tile::CopyTile(2,0)
+
+halt()
