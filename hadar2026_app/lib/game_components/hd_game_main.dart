@@ -12,6 +12,8 @@ import '../scripting/hd_script_engine.dart';
 import 'hd_tile_properties.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // For Key events
+import 'hd_window_manager.dart';
+import '../models/hd_magic_window.dart';
 import 'package:flame/flame.dart'; // For image caching
 import 'package:bonfire/bonfire.dart';
 import '../models/hd_player.dart';
@@ -40,7 +42,7 @@ class HDMenu {
        enabledCount = (enabledCount == -1) ? items.length - 1 : enabledCount;
 }
 
-enum HDInputMode { map, dialogue, menu }
+enum HDInputMode { map, dialogue, menu, window }
 
 class HDGameMain with ChangeNotifier {
   static final HDGameMain _instance = HDGameMain._internal();
@@ -50,6 +52,7 @@ class HDGameMain with ChangeNotifier {
   int sessionId = 0;
 
   HDInputMode get currentInputMode {
+    if (HDWindowManager().windows.isNotEmpty) return HDInputMode.window;
     if (activeMenu != null) return HDInputMode.menu;
     if (isWaitingForKey) return HDInputMode.dialogue;
     return HDInputMode.map;
@@ -71,7 +74,29 @@ class HDGameMain with ChangeNotifier {
 
       final key = event.logicalKey;
 
-      // 1. Menu Handling (Highest Priority)
+      // 1. Window Handling (Top Priority)
+      if (currentInputMode == HDInputMode.window) {
+        final topWindow = HDWindowManager().windows.last;
+        if (topWindow is HDMagicSelectionWindow) {
+          if (key == LogicalKeyboardKey.arrowUp) {
+            topWindow.moveCursor(-1);
+            return true;
+          } else if (key == LogicalKeyboardKey.arrowDown) {
+            topWindow.moveCursor(1);
+            return true;
+          } else if (key == LogicalKeyboardKey.enter ||
+              key == LogicalKeyboardKey.space) {
+            topWindow.confirm();
+            return true;
+          } else if (key == LogicalKeyboardKey.escape) {
+            topWindow.cancel();
+            return true;
+          }
+        }
+        return true; // Consume all keys when windows are open
+      }
+
+      // 2. Menu Handling
       if (currentInputMode == HDInputMode.menu) {
         final menu = activeMenu!;
         if (key == LogicalKeyboardKey.arrowUp) {

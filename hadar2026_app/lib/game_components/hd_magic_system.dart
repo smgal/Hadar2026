@@ -1,6 +1,8 @@
 import '../models/hd_player.dart';
 import '../models/hd_magic.dart';
 import 'hd_game_main.dart';
+import 'hd_window_manager.dart';
+import '../models/hd_magic_window.dart';
 
 class HDMagicSystem {
   static Future<void> castSpell(HDPlayer player) async {
@@ -23,14 +25,84 @@ class HDMagicSystem {
       return;
     }
 
-    final choices = ["사용할 마법의 종류 ===>", "공격 마법", "치료 마법", "변화 마법"];
+    final window = HDMagicSelectionWindow(
+      player: player,
+      title: "사용할 마법의 종류 ===>",
+      magics: [],
+    );
+    HDWindowManager().addWindow(window);
 
-    int selected = await gameMain.showMenu(choices);
-    if (selected == 0) return;
+    int? magicId;
+    try {
+      while (true) {
+        int result = await window.result;
+        if (result == -1) break; // Cancel or ESC
 
-    if (selected == 1) await _castCategory(player, 1, 18, 5, "공격 마법");
-    if (selected == 2) await _castCategory(player, 19, 32, 5, "치료 마법");
-    if (selected == 3) await _castCategory(player, 33, 39, 10, "변화 마법");
+        if (window.mode == HDSelectionMode.magic) {
+          magicId = result;
+          break;
+        } else {
+          // If surprisingly it completed in categories, just reset result and continue
+          window.resetCompleter();
+        }
+      }
+    } finally {
+      HDWindowManager().removeWindow(window);
+    }
+
+    if (magicId == null) return;
+
+    final magic = HDMagicMap.getMagic(magicId);
+    int spCost = (magicId >= 33) ? 10 : 5;
+
+    if (player.sp < spCost) {
+      await gameMain.addLog("마법 지수가 충분하지 않습니다.", isDialogue: false);
+      await gameMain.waitForAnyKey();
+      gameMain.clearLogs();
+      return;
+    }
+
+    // Logic for Heal
+    if (magicId >= 19 && magicId <= 32) {
+      final pChoices = ["누구에게 사용할 것입니까?"];
+      for (var p in gameMain.party.players) {
+        if (p.isValid()) pChoices.add(p.name);
+      }
+      int tSel = await gameMain.showMenu(pChoices);
+      if (tSel == 0) return;
+
+      player.sp -= spCost;
+      var target = gameMain.party.players[tSel - 1];
+      await gameMain.addLog(
+        "${player.name}${player.josaSub1} ${target.name}에게 ${magic.name}${magic.josaObj} 시전했다!",
+        isDialogue: false,
+      );
+
+      if (magicId == 19) {
+        int recovery = (player.level[1] * 5);
+        target.hp += recovery;
+        if (target.hp > target.maxHp) target.hp = target.maxHp;
+        await gameMain.addLog("${target.name}의 건강이 회복되었다!", isDialogue: false);
+      }
+    } else if (magicId >= 33 && magicId <= 39) {
+      player.sp -= spCost;
+      if (magicId == 33) {
+        gameMain.party.magicTorch += 10;
+        await gameMain.addLog("주위가 횃불의 기운으로 밝아졌다.", isDialogue: false);
+      } else if (magicId == 34) {
+        gameMain.party.levitation = 1;
+        await gameMain.addLog("일행의 몸이 가벼워졌다.", isDialogue: false);
+      }
+    } else {
+      player.sp -= spCost;
+      await gameMain.addLog(
+        "${player.name}${player.josaSub1} ${magic.name}${magic.josaObj} 시전했다! (전투 외)",
+        isDialogue: false,
+      );
+    }
+
+    await gameMain.waitForAnyKey();
+    gameMain.clearLogs();
   }
 
   static Future<void> useESP(HDPlayer player) async {
@@ -53,16 +125,27 @@ class HDMagicSystem {
       return;
     }
 
-    final choices = ["사용할 초감각의 종류 ======>"];
-    for (int i = 41; i <= 45; i++) {
-      choices.add(HDMagicMap.getMagic(i).name);
+    final window = HDMagicSelectionWindow(
+      player: player,
+      title: "사용할 초감각의 종류 ======>",
+      magics: [],
+    );
+    // ESP starts from 41 to 45 (or 40-45)
+    window.selectCategory(40, 45, window.getAvailableSpells(player, 40, 45));
+    HDWindowManager().addWindow(window);
+
+    int? magicId;
+    try {
+      int result = await window.result;
+      if (result != -1) magicId = result;
+    } finally {
+      HDWindowManager().removeWindow(window);
     }
 
-    int selected = await gameMain.showMenu(choices);
-    if (selected == 0) return;
+    if (magicId == null) return;
 
     // 5 = 염력 (전투용)
-    if (selected == 5) {
+    if (magicId == 45) {
       final m = HDMagicMap.getMagic(45);
       await gameMain.addLog(
         "${m.name}${m.josaSub1} 전투 모드에서만 사용됩니다.",
@@ -82,105 +165,19 @@ class HDMagicSystem {
     }
 
     player.esp -= spCost;
-    final magic = HDMagicMap.getMagic(40 + selected);
+    final magic = HDMagicMap.getMagic(magicId);
 
-    if (selected == 1) {
+    if (magicId == 41) {
       // 41: 투시
       await gameMain.addLog(
         "${player.name}${player.josaSub1} ${magic.name}${magic.josaObj} 사용했다!",
         isDialogue: false,
       );
-      // Wait for logic
+
+      // Logic would go here
     } else {
       await gameMain.addLog(
         "${player.name}${player.josaSub1} ${magic.name}${magic.josaObj} 사용했다!",
-        isDialogue: false,
-      );
-    }
-
-    await gameMain.waitForAnyKey();
-    gameMain.clearLogs();
-  }
-
-  static Future<void> _castCategory(
-    HDPlayer player,
-    int minId,
-    int maxId,
-    int spCost,
-    String catName,
-  ) async {
-    final gameMain = HDGameMain();
-    int availableSpells = player.level[1];
-    if (availableSpells > (maxId - minId + 1))
-      availableSpells = (maxId - minId + 1);
-
-    if (availableSpells <= 0) {
-      await gameMain.addLog("사용가능한 마법이 없습니다.");
-      return;
-    }
-
-    final choices = ["사용할 $catName ===>"];
-    for (int i = 0; i < availableSpells; i++) {
-      choices.add(HDMagicMap.getMagic(minId + i).name);
-    }
-
-    int selected = await gameMain.showMenu(choices);
-    if (selected == 0) return;
-
-    if (player.sp < spCost) {
-      await gameMain.addLog("마법 지수가 충분하지 않습니다.", isDialogue: false);
-      await gameMain.waitForAnyKey();
-      gameMain.clearLogs();
-      return;
-    }
-
-    player.sp -= spCost;
-    final magic = HDMagicMap.getMagic(minId + selected - 1);
-
-    // For Heal spells, target a party member
-    if (minId == 19) {
-      final pChoices = ["누구에게 사용할 것입니까?"];
-      for (var p in gameMain.party.players) {
-        if (p.isValid()) pChoices.add(p.name);
-      }
-      int tSel = await gameMain.showMenu(pChoices);
-      if (tSel == 0) {
-        // Refund SP
-        player.sp += spCost;
-        return;
-      }
-      var target = gameMain.party.players[tSel - 1];
-
-      await gameMain.addLog(
-        "${player.name}${player.josaSub1} ${target.name}에게 ${magic.name}${magic.josaObj} 시전했다!",
-        isDialogue: false,
-      );
-
-      // Heal Logic Example
-      if (magic.index == 19) {
-        // Single Heal
-        int recovery = (player.level[1] * 5);
-        target.hp += recovery;
-        if (target.hp > target.maxHp) target.hp = target.maxHp;
-        await gameMain.addLog("${target.name}의 건강이 회복되었다!", isDialogue: false);
-      }
-    } else if (minId == 33) {
-      // Phenomenon Spells
-      if (magic.index == 33) {
-        gameMain.party.magicTorch += 10;
-        await gameMain.addLog("주위가 횃불의 기운으로 밝아졌다.", isDialogue: false);
-      } else if (magic.index == 34) {
-        gameMain.party.levitation = 1;
-        await gameMain.addLog("일행의 몸이 가벼워졌다.", isDialogue: false);
-      } else {
-        await gameMain.addLog(
-          "${player.name}${player.josaSub1} ${magic.name}${magic.josaObj} 시전했다!",
-          isDialogue: false,
-        );
-      }
-    } else {
-      await gameMain.addLog(
-        "${player.name}${player.josaSub1} ${magic.name}${magic.josaObj} 시전했다! (전투 외)",
         isDialogue: false,
       );
     }

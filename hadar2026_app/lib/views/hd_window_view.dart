@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/hd_window.dart';
 import '../models/hd_message_window.dart';
+import '../models/hd_magic_window.dart';
 import '../game_components/hd_window_manager.dart';
 
 class HDWindowLayer extends StatelessWidget {
@@ -70,6 +71,83 @@ class HDWindowWidget extends StatelessWidget {
         ),
       );
     }
+    if (window is HDMagicSelectionWindow) {
+      return _buildMagicSelection(window);
+    }
     return const SizedBox.shrink();
+  }
+
+  Widget _buildMagicSelection(HDMagicSelectionWindow window) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade900,
+            border: Border.all(color: Colors.blue.shade400),
+          ),
+          width: double.infinity,
+          child: Text(
+            window.title,
+            style: const TextStyle(
+              color: Colors.yellow,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: ListView.builder(
+            itemCount: window.mode == HDSelectionMode.category
+                ? 4 // Attack, Heal, Phenomenon, Cancel
+                : window.currentOptions.length + 1,
+            itemBuilder: (context, index) {
+              String label = "";
+              bool isSelected = (index == window.selectedIndex);
+
+              if (window.mode == HDSelectionMode.category) {
+                if (index == 0) label = "공격 마법";
+                if (index == 1) label = "치료 마법";
+                if (index == 2) label = "변화 마법";
+                if (index == 3) label = "취소";
+              } else {
+                if (index < window.currentOptions.length) {
+                  label = window.currentOptions[index].name;
+                } else {
+                  label = "취소";
+                }
+              }
+
+              return Container(
+                color: isSelected ? Colors.white.withOpacity(0.2) : null,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      isSelected ? Icons.play_arrow : null,
+                      color: Colors.yellow,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: isSelected ? Colors.yellow : Colors.white,
+                        fontSize: 16,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 }
