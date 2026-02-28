@@ -16,8 +16,7 @@ jobs:
       - name: Setup Flutter 🚀
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.10.4'
-          channel: 'stable'
+          channel: 'stable' # 'stable' 채널의 최신 버전 사용
           cache: true
 
       - name: Install Dependencies 📦
