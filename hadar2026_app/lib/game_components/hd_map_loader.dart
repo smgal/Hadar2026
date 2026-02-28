@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../models/map_model.dart';
 
@@ -8,7 +9,7 @@ class HDMapLoader {
     ByteData byteData;
 
     try {
-      if (await File(assetPath).exists()) {
+      if (!kIsWeb && await File(assetPath).exists()) {
         final bytes = await File(assetPath).readAsBytes();
         byteData = ByteData.view(bytes.buffer);
       } else {
@@ -16,7 +17,7 @@ class HDMapLoader {
         byteData = bytes;
       }
     } catch (e) {
-      throw Exception("File not found or unreadable: $assetPath");
+      throw Exception("File not found or unreadable: $assetPath ($e)");
     }
 
     int offset = 0;

@@ -1,0 +1,35 @@
+name: Deploy Web
+
+on:
+  workflow_dispatch: # 수동 트리거
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter 🚀
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.4'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies 📦
+        working-directory: hadar2026_app
+        run: flutter pub get
+
+      - name: Build Web 🏗️
+        working-directory: hadar2026_app
+        run: flutter build web --base-href "/Hadar2026/" --release
+
+      - name: Deploy 🚀
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./hadar2026_app/build/web
