@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/foundation.dart'; // For kIsWeb
 import 'package:flutter/services.dart';
 import '../game_components/hd_battle.dart';
 import '../game_components/hd_select.dart';
@@ -50,10 +51,12 @@ class HDScriptEngine {
   // Basic parsing logic
   Future<void> loadScript(String assetPath) async {
     String content;
+    // On Web, File(path).exists() throws an exception. We should use rootBundle for assets.
     try {
-      if (await File(assetPath).exists()) {
+      if (!kIsWeb && await File(assetPath).exists()) {
         content = await File(assetPath).readAsString();
       } else {
+        // For assets, rootBundle is the correct way on all platforms
         content = await rootBundle.loadString(assetPath);
       }
     } catch (e) {

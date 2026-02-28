@@ -11,6 +11,7 @@ import 'hd_battle.dart';
 import '../scripting/hd_script_engine.dart';
 import 'hd_tile_properties.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // For kIsWeb
 import 'package:flutter/services.dart'; // For Key events
 import 'hd_window_manager.dart';
 import '../models/hd_magic_window.dart';
@@ -788,7 +789,13 @@ class HDGameMain with ChangeNotifier {
       final menu = ["정말로 끝내겠습니까 ?", "       << 아니오 >>", "       <<   예   >>"];
       int res = await showMenu(menu);
       if (res == 2) {
-        exit(0);
+        if (!kIsWeb) {
+          exit(0);
+        } else {
+          // Fallback for Web: maybe just reload or show a closing screen
+          await addLog("게임을 종료합니다. 브라우저 창을 닫아주세요.", isDialogue: false);
+          await waitForAnyKey();
+        }
       }
       return;
     }
@@ -801,7 +808,9 @@ class HDGameMain with ChangeNotifier {
       if (await selectLoadMenu()) {
         throw GameReloadException();
       }
-      exit(0);
+      if (!kIsWeb) {
+        exit(0);
+      }
     }
 
     if (exitCode == 2) {
@@ -817,7 +826,9 @@ class HDGameMain with ChangeNotifier {
           throw GameReloadException();
         }
       }
-      exit(0);
+      if (!kIsWeb) {
+        exit(0);
+      }
     }
   }
 
