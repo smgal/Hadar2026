@@ -1,0 +1,534 @@
+
+include("const.cm2")
+include("flag4ep1.cm2")
+
+############################
+
+variable(temp)        
+variable(temp_x)
+variable(temp_y)
+variable(flag_event_hit)
+
+# 상수 설정
+variable(TILE_GROUND)
+variable(TILE_PASS)
+variable(TILE_BLOCK)
+TILE_GROUND.assign(43)
+TILE_PASS.assign(42)
+TILE_BLOCK.assign(40)
+
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	if (On(17,20))
+		if (Not(Flag::IsSet(GFD4_FELT_STRANGE)))
+			DisplayMap()
+			Talk("@7그다지 육감이 좋은 편은 아니지만 이곳은 뭔가 다르다는 느낌을 받을 수는 있었다.");
+			PressAnyKey();
+			Flag::Set(GFD4_FELT_STRANGE)
+
+			Select::Init()
+			Select::Add("어떤 행동을 하시겠습니까?")
+			Select::Add("소리를 지른다")
+			Select::Add("한 곳을 응시한다")
+			Select::Run()
+			temp.assign(Select::Result())
+			if (Equal(temp, 0))
+				Talk("@7당신은 그냥 무시하기로 했다.");
+			if (Equal(temp, 1))
+				Talk("@7당신이 지른 소리는 동굴 벽을 울리며 메아리 친다.");
+			if (Equal(temp, 2))
+				Talk("@7열심히 노려 보았지만 눈만 아파올 뿐이다.");
+
+	if (On(13,17))
+		## 물의 정령과 합류하지 않았으면서 불을 켠 상태 
+		if (Not(Flag::IsSet(GFD4_JOINNED_SOUL_OF_WATER)))
+			if (Party::CheckIf(CHECKIF_MAGICTORCH))
+				Talk("@7이 앞에 뭔가 있는 듯 보이지만 주위가 밝아 도리어 확인하기가 어렵다");
+
+	if (On(12,16))
+		## 물의 정령과 합류하지 않았으면서 불을 끈 상태 
+		if (Not(Flag::IsSet(GFD4_JOINNED_SOUL_OF_WATER)))
+			if (Not(Party::CheckIf(CHECKIF_MAGICTORCH)))
+				DisplayMap()
+				Talk("@7불이 꺼진 상태이지만 희미하게 스스로 빛을 내는 물체가 있다. 물 속에 사는 정령이 아닌가 생각된다.");
+				PressAnyKey();
+
+				Select::Init()
+				Select::Add("당신 앞에는 물의 정령이 있습니다.")
+				Select::Add("물의 정령에게 호의를 보낸다")
+				Select::Add("무시한다")
+				Select::Run()
+				temp.assign(Select::Result())
+				if (Equal(temp, 1))
+					Talk("@7당신은 물의 정령에 대해 경계심을 완전히 버렸다. 당신의 호의를 알아챈 물의 정령은 당신의 곁을 따라 다니게 되었다.");
+					Player::AssignFromEnemyData(2,7)
+					Player::ChangeAttribute(2, "name", "물의 정령")
+					Player::ChangeAttribute(2, "class", 9)
+					Player::ChangeAttribute(2, "level(magic)", 4)
+					Player::ChangeAttribute(2, "accuracy(magic)", 15)
+					DisplayStatus()
+					Flag::Set(GFD4_JOINNED_SOUL_OF_WATER)
+
+					## 빛나는 부분을 제거
+					Map::ResetLightArea(12,16, 12,16)
+					DisplayMap()
+
+	## 벽 밀기 트릭
+	if (OnArea(16,11,16,14))
+
+		## 제일 위의 벽
+		if (On(16,11))
+			DisplayMap()
+			Select::Init()
+			Select::Add("바닥에는 레버가 놓여 있습니다.")
+			Select::Add("왼쪽으로 민다")
+			Select::Add("오른쪽으로 민다")
+			Select::Run()
+			temp.assign(Select::Result())
+			if (Equal(temp, 1))
+				if (Flag::IsSet(GFD4_LEVER1_RIGHT))
+					Talk("@7굉음이 울리며 앞 쪽의 벽이 움직인다")
+
+					## 벽의 왼쪽 이동
+					temp_x.assign(Add(Party::PosX(),-5))
+					temp_y.assign(Party::PosY())
+					Map::ChangeTile(Add(temp_x,0), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,1), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,2), temp_y, TILE_PASS)
+					Map::ChangeTile(Add(temp_x,3), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,4), temp_y, TILE_GROUND)
+					DisplayMap()
+
+					Flag::Reset(GFD4_LEVER1_RIGHT)
+				else
+					Talk("@7아무런 변화도 일어나지 않았다")
+			if (Equal(temp, 2))
+				if (Not(Flag::IsSet(GFD4_LEVER1_RIGHT)))
+					Talk("@7굉음이 울리며 앞 쪽의 벽이 움직인다")
+
+					## 벽의 오른쪽 이동
+					temp_x.assign(Add(Party::PosX(),-5))
+					temp_y.assign(Party::PosY())
+					Map::ChangeTile(Add(temp_x,0), temp_y, TILE_GROUND)
+					Map::ChangeTile(Add(temp_x,1), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,2), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,3), temp_y, TILE_PASS)
+					Map::ChangeTile(Add(temp_x,4), temp_y, TILE_BLOCK)
+					DisplayMap()
+
+					Flag::Set(GFD4_LEVER1_RIGHT)
+				else
+					Talk("@7아무런 변화도 일어나지 않았다")
+
+		## 위에서 2번 째 벽
+		if (On(16,12))
+			DisplayMap()
+			Select::Init()
+			Select::Add("바닥에는 레버가 놓여 있습니다.")
+			Select::Add("왼쪽으로 민다")
+			Select::Add("오른쪽으로 민다")
+			Select::Run()
+			temp.assign(Select::Result())
+			if (Equal(temp, 1))
+				if (Flag::IsSet(GFD4_LEVER2_RIGHT))
+					Talk("@7굉음이 울리며 앞 쪽의 벽이 움직인다")
+
+					## 벽의 왼쪽 이동
+					temp_x.assign(Add(Party::PosX(),-5))
+					temp_y.assign(Party::PosY())
+					Map::ChangeTile(Add(temp_x,0), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,1), temp_y, TILE_PASS)
+					Map::ChangeTile(Add(temp_x,2), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,3), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,4), temp_y, TILE_GROUND)
+					DisplayMap()
+
+					Flag::Reset(GFD4_LEVER2_RIGHT)
+				else
+					Talk("@7아무런 변화도 일어나지 않았다")
+			if (Equal(temp, 2))
+				if (Not(Flag::IsSet(GFD4_LEVER2_RIGHT)))
+					Talk("@7굉음이 울리며 앞 쪽의 벽이 움직인다")
+
+					## 벽의 오른쪽 이동
+					temp_x.assign(Add(Party::PosX(),-5))
+					temp_y.assign(Party::PosY())
+					Map::ChangeTile(Add(temp_x,0), temp_y, TILE_GROUND)
+					Map::ChangeTile(Add(temp_x,1), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,2), temp_y, TILE_PASS)
+					Map::ChangeTile(Add(temp_x,3), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,4), temp_y, TILE_BLOCK)
+					DisplayMap()
+
+					Flag::Set(GFD4_LEVER2_RIGHT)
+				else
+					Talk("@7아무런 변화도 일어나지 않았다")
+
+		## 위에서 3번 째 벽
+		if (On(16,13))
+			DisplayMap()
+			Select::Init()
+			Select::Add("바닥에는 레버가 놓여 있습니다.")
+			Select::Add("왼쪽으로 민다")
+			Select::Add("오른쪽으로 민다")
+			Select::Run()
+			temp.assign(Select::Result())
+			if (Equal(temp, 1))
+				if (Not(Flag::IsSet(GFD4_LEVER3_LEFT)))
+					Talk("@7굉음이 울리며 앞 쪽의 벽이 움직인다")
+
+					## 벽의 왼쪽 이동
+					temp_x.assign(Add(Party::PosX(),-5))
+					temp_y.assign(Party::PosY())
+					Map::ChangeTile(Add(temp_x,0), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,1), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,2), temp_y, TILE_PASS)
+					Map::ChangeTile(Add(temp_x,3), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,4), temp_y, TILE_GROUND)
+					DisplayMap()
+
+					Flag::Set(GFD4_LEVER3_LEFT)
+				else
+					Talk("@7아무런 변화도 일어나지 않았다")
+			if (Equal(temp, 2))
+				if (Flag::IsSet(GFD4_LEVER3_LEFT))
+					Talk("@7굉음이 울리며 앞 쪽의 벽이 움직인다")
+
+					## 벽의 오른쪽 이동
+					temp_x.assign(Add(Party::PosX(),-5))
+					temp_y.assign(Party::PosY())
+					Map::ChangeTile(Add(temp_x,0), temp_y, TILE_GROUND)
+					Map::ChangeTile(Add(temp_x,1), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,2), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,3), temp_y, TILE_PASS)
+					Map::ChangeTile(Add(temp_x,4), temp_y, TILE_BLOCK)
+					DisplayMap()
+
+					Flag::Reset(GFD4_LEVER3_LEFT)
+				else
+					Talk("@7아무런 변화도 일어나지 않았다")
+
+		## 위에서 4번 째 벽
+		if (On(16,14))
+			DisplayMap()
+			Select::Init()
+			Select::Add("바닥에는 레버가 놓여 있습니다.")
+			Select::Add("왼쪽으로 민다")
+			Select::Add("오른쪽으로 민다")
+			Select::Run()
+			temp.assign(Select::Result())
+			if (Equal(temp, 1))
+				if (Not(Flag::IsSet(GFD4_LEVER4_LEFT)))
+					Talk("@7굉음이 울리며 앞 쪽의 벽이 움직인다")
+
+					## 벽의 왼쪽 이동
+					temp_x.assign(Add(Party::PosX(),-5))
+					temp_y.assign(Party::PosY())
+					Map::ChangeTile(Add(temp_x,0), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,1), temp_y, TILE_PASS)
+					Map::ChangeTile(Add(temp_x,2), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,3), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,4), temp_y, TILE_GROUND)
+					DisplayMap()
+
+					Flag::Set(GFD4_LEVER4_LEFT)
+				else
+					Talk("@7아무런 변화도 일어나지 않았다")
+			if (Equal(temp, 2))
+				if (Flag::IsSet(GFD4_LEVER4_LEFT))
+					Talk("@7굉음이 울리며 앞 쪽의 벽이 움직인다")
+
+					## 벽의 오른쪽 이동
+					temp_x.assign(Add(Party::PosX(),-5))
+					temp_y.assign(Party::PosY())
+					Map::ChangeTile(Add(temp_x,0), temp_y, TILE_GROUND)
+					Map::ChangeTile(Add(temp_x,1), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,2), temp_y, TILE_PASS)
+					Map::ChangeTile(Add(temp_x,3), temp_y, TILE_BLOCK)
+					Map::ChangeTile(Add(temp_x,4), temp_y, TILE_BLOCK)
+					DisplayMap()
+
+					Flag::Reset(GFD4_LEVER4_LEFT)
+				else
+					Talk("@7아무런 변화도 일어나지 않았다")
+
+	## 트릭 '아래' 방향
+	if (On(24,10))
+		if (Not(Flag::IsSet(GFD4_BLOCK_MOVED_DOWN)))
+			DisplayMap()
+			Select::Init()
+			Select::Add("아래 쪽은 벽에는 레일이 깔려 있어서 밀 수 있을 것 같다.")
+			Select::Add("아래 쪽으로 민다")
+			Select::Add("그냥 둔다")
+			Select::Run()
+			temp.assign(Select::Result())
+			if (Equal(temp, 1))
+				## 벽을 아래로 이동
+				temp_x.assign(Party::PosX())
+				temp_y.assign(Party::PosY())
+				Map::ChangeTile(temp_x, Add(temp_y,1), TILE_GROUND)
+				Map::ChangeTile(temp_x, Add(temp_y,3), TILE_BLOCK)
+				DisplayMap()
+
+				Flag::Set(GFD4_BLOCK_MOVED_DOWN)
+
+	## 트릭 '-> 방향'
+	if (On(17,16))
+		if (Not(Flag::IsSet(GFD4_BLOCK_MOVED_RIGHT)))
+			DisplayMap()
+			Select::Init()
+			Select::Add("벽에는 무언가를 작동시키기 위한 스위치가 있다.")
+			Select::Add("스위치를 작동 시킨다")
+			Select::Add("그냥 둔다")
+			Select::Run()
+			temp.assign(Select::Result())
+			if (Equal(temp, 1))
+				if (Not(Flag::IsSet(GFD4_BLOCK_MOVED_DOWN)))
+					Talk("@7아무런 변화도 일어나지 않았다")
+				else
+					Talk("@7북동쪽 어디에선가 굉음이 일어 났다.")
+
+					## 벽을 오른쪽으로 이동
+					temp_x.assign(24)
+					temp_y.assign(10)
+					Map::ChangeTile(Add(temp_x,-2), Add(temp_y,1), TILE_GROUND)
+					Map::ChangeTile(temp_x, Add(temp_y,1), TILE_BLOCK)
+					DisplayMap()
+
+					Flag::Set(GFD4_BLOCK_MOVED_RIGHT)
+
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (On(25,28))
+		Select::Init()
+		Select::Add("윗층으로 올라가시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("L1_ep1d3.cm2", 25, 27)
+
+	if (On(19,18))
+		Select::Init()
+		Select::Add("윗층으로 올라가시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("L1_ep1d3.cm2", 18, 18)
+
+	if (On(24,6))
+		Select::Init()
+		Select::Add("윗층으로 올라가시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("L1_ep1d3.cm2", 23, 6)
+
+	if (On(39,39))
+		Select::Init()
+		Select::Add("윗층으로 올라가시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("L1_ep1d3.cm2", 38, 39)
+
+	if (On(12,35))
+		Select::Init()
+		Select::Add("윗층으로 올라가시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("L1_ep1d3.cm2", 13, 35)
+
+	## 지하 5층으로 가는 유일한 길
+	if (On(10,26))
+		Select::Init()
+		Select::Add("아래 층으로 내려 가시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("L1_ep1d5.cm2", 11, 26)
+
+if (FLAG_MAP.Equal(ScriptMode()))
+	Map::Init(50, 50)
+	Map::SetType(3)
+	Map::SetEncounter(1, 0)
+	Map::SetStartPos(25, 31)
+
+	Map::SetTile("★", 52)
+	Map::SetTile("☆", 0)
+	Map::SetTile("━", 1)
+	Map::SetTile("┃", 2)
+	Map::SetTile("╋", 3)
+	Map::SetTile("┛", 4)
+	Map::SetTile("┓", 5)
+	Map::SetTile("┗", 6)
+	Map::SetTile("┏", 7)
+	Map::SetTile("→", 8)
+	Map::SetTile("←", 9)
+	Map::SetTile("↓",10)
+	Map::SetTile("↑",11)
+	Map::SetTile("┣",12)
+	Map::SetTile("┻",13)
+	Map::SetTile("┫",14)
+	Map::SetTile("┳",15)
+
+	Map::SetTile("‡",36)
+	Map::SetTile("↔",37)
+	Map::SetTile("↕",38)
+
+	# 흙 바닥
+	Map::SetTile("　",43)
+	# 나무 타일 바닥
+	Map::SetTile("Ｌ",42)
+
+	# 일반 벽
+	Map::SetTile("▦",39)
+	# 움직일 수 있는 블럭
+	Map::SetTile("▩",40)
+	# water
+	Map::SetTile("▒",48)
+
+	Map::SetTile("▤",31)
+
+	# 나중에 사라지는 장애물
+	Map::SetTile("◆",51)
+
+	Map::SetTile("┘",17)
+	Map::SetTile("┐",18)
+	Map::SetTile("└",19)
+	Map::SetTile("┌",22)
+	Map::SetTile("┝",23)
+	Map::SetTile("┸",24)
+	Map::SetTile("┥",25)
+	Map::SetTile("┰",26)
+
+
+	Map::SetTile("┵",28)
+	Map::SetTile("┶",30)
+
+	Map::SetTile("☎",54)
+	Map::SetTile("☏",54)
+
+# ─│├┬┤┴┼ 
+
+
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▦▦▦▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▦▦▦▦▦▦　　▦▦▦▦▦▦▦▦▦▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▦　　　　　　　　　　▦☎　　　　▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▦▦▦　　　　　　　▦▦▦▦　　　▦▦▦▦▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▦▦▦　　　　　▦▦　　　　▦▦　　▦▦　　▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▦　　　　　　▦▦▦　▦▦▦▦　　　　▦　　　▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▦▦　　　▦▦▦▦▦▦　　▦☆　　　　　▦　　　▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▦▩▩Ｌ▩　☆　　　▦▦▩▩▩▦▦▦　　▦　　　▦▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▦▩Ｌ▩▩　☆　　　　▦　　▩　　▦▦▦▦　　　　▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▦　▩▩Ｌ▩☆　　　　▦　▦　▦　　　　　　　　　▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▦　▩Ｌ▩▩☆　　　　▦　▦▦▦　　　　　　　　　▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▦▦　　　▦▦▦▦　　▦　　　　　　▦▦　　　▦▦▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▦▦▒★　　　　☆▦▦　▦▦▦　　　　　▦▦　　▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▦▒▒▒☆▦▦▦▦▦　　　▦　　　▦　　　▦　　▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▦▦▒▦　　　　　▦☎　　▦▦▦　▦　　　▦　　▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▦▦▦　　　　　▦▦▦▦▦　▦▦▦▦▦　▦　　▦▦▦▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▦▦▦▦▦☆▦▦▦　　　　　▦　▦▦▦　　　　▦▦▦▦▦▦▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▦　　▦　　　　　　　　　▦　　　　　　　　　　　　　▦▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▦▦▦▦▦　　▦▦▦▦▦▦▦　　　▦　　　　　　　　　　　　　▦▦▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▦　　　　　　　　　　　　▦　　　▦▦▦　　　　　　　　　　　　▦▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▦　　　　　　　　　　▦▦▦　▦　　　▦▦▦　▦　　　　　　　　▦▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▦　　　▦　　▦▦▦▦▦　　　▦　▦　　　▦▦▦　　　　　　　▦▦▦▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▦☏　　▦　　　　　　▦　▦▦▦　▦▦▦　▦　　　　　　　▦▦▦　▦▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▦　　　▦　　　　　　▦▦▦　　　　　▦▦▦▦▦▦　　　　▦　▦　▦▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▦▦▦▦▦▦　　▦▦　　　　▦　▩☎▩　▦▦▦　　▦　　　　▦　　　▦▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤┥　　　　▦　　　▦　　　▦▦　▩▩▩　　　▦▦▦▦▦　　　▦▦▦　▦▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤┥　　　　▦　　　　　▦▦▦　　▩▩▩　　　　　▦　　　　　　　　　▦▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤┥　　　　▦▦　　　▦▦　　　　　　　　　　　　▦▦▦▦　　　　　　▦▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤┥　　▦　　　　　　▦　　　　　　　　　　　　　▦　　　　　　　　　▦▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤┥　　▦　　　　　　▦　　　　　　　　　　　　　▦　▦▦▦　　▦　▦▦▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤┥　　▦　　　▦▦▦▦▦　　　　　　　　　　　　▦　▦　　　　▦　▦▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤┥　　▦☎　　　　　　▦　　　┌┰┰┰┐　　　　▦　▦　　　　▦▦▦▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤┵┐　▦▦　　　　　　▦　　┌┶▤▤▤┵┐　　▦▦　▦▦▦　▦▦▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤┥　　　　↑　┌┐　▦　　┝▤▤▤▤▤┥　　▦　　　　▦　▦▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤┵┰┰┰┰▤┰┶┵┰┰┰┰┶▤▤▤▤▤┵┰┰▦▦▦　　▦　▦▦▦▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▦　　▦　　☎▦▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▦　　▦▦▦▦▦▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▦　　▦▦▦▦▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▦▦　　　　▦▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▦▦▦▦▦▦▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+
+	## 물의 정령과 합류하지 않았다면 불을 꺼도 스스로 빛을 내는 구역이 있음 
+	if (Not(Flag::IsSet(GFD4_JOINNED_SOUL_OF_WATER)))
+		Map::SetLightArea(12,16, 12,16)
+
+	## 제일 위의 벽
+	if (Flag::IsSet(GFD4_LEVER1_RIGHT))
+		temp_x.assign(11)
+		temp_y.assign(11)
+		Map::ChangeTile(Add(temp_x,0), temp_y, TILE_GROUND)
+		Map::ChangeTile(Add(temp_x,1), temp_y, TILE_BLOCK)
+		Map::ChangeTile(Add(temp_x,2), temp_y, TILE_BLOCK)
+		Map::ChangeTile(Add(temp_x,3), temp_y, TILE_PASS)
+		Map::ChangeTile(Add(temp_x,4), temp_y, TILE_BLOCK)
+
+	## 위에서 2번 째 벽
+	if (Flag::IsSet(GFD4_LEVER2_RIGHT))
+		temp_x.assign(11)
+		temp_y.assign(12)
+		Map::ChangeTile(Add(temp_x,0), temp_y, TILE_GROUND)
+		Map::ChangeTile(Add(temp_x,1), temp_y, TILE_BLOCK)
+		Map::ChangeTile(Add(temp_x,2), temp_y, TILE_PASS)
+		Map::ChangeTile(Add(temp_x,3), temp_y, TILE_BLOCK)
+		Map::ChangeTile(Add(temp_x,4), temp_y, TILE_BLOCK)
+
+	## 위에서 3번 째 벽
+	if (Flag::IsSet(GFD4_LEVER3_LEFT))
+		temp_x.assign(11)
+		temp_y.assign(13)
+		Map::ChangeTile(Add(temp_x,0), temp_y, TILE_BLOCK)
+		Map::ChangeTile(Add(temp_x,1), temp_y, TILE_BLOCK)
+		Map::ChangeTile(Add(temp_x,2), temp_y, TILE_PASS)
+		Map::ChangeTile(Add(temp_x,3), temp_y, TILE_BLOCK)
+		Map::ChangeTile(Add(temp_x,4), temp_y, TILE_GROUND)
+
+	## 위에서 4번 째 벽
+	if (Flag::IsSet(GFD4_LEVER4_LEFT))
+		temp_x.assign(11)
+		temp_y.assign(14)
+		Map::ChangeTile(Add(temp_x,0), temp_y, TILE_BLOCK)
+		Map::ChangeTile(Add(temp_x,1), temp_y, TILE_PASS)
+		Map::ChangeTile(Add(temp_x,2), temp_y, TILE_BLOCK)
+		Map::ChangeTile(Add(temp_x,3), temp_y, TILE_BLOCK)
+		Map::ChangeTile(Add(temp_x,4), temp_y, TILE_GROUND)
+
+	## 트릭 '아래' 방향
+	if (Flag::IsSet(GFD4_BLOCK_MOVED_DOWN))
+		temp_x.assign(24)
+		temp_y.assign(10)
+		Map::ChangeTile(temp_x, Add(temp_y,1), TILE_GROUND)
+		Map::ChangeTile(temp_x, Add(temp_y,3), TILE_BLOCK)
+
+	## 트릭 '아래' 방향
+	if (Flag::IsSet(GFD4_BLOCK_MOVED_RIGHT))
+		temp_x.assign(24)
+		temp_y.assign(10)
+		Map::ChangeTile(Add(temp_x,-2), Add(temp_y,1), TILE_GROUND)
+		Map::ChangeTile(temp_x, Add(temp_y,1), TILE_BLOCK)

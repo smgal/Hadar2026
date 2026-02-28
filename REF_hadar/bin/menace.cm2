@@ -1,0 +1,93 @@
+
+# 상수 읽기
+include("const.cm2")
+
+# 변수 정의
+variable(temp)
+variable(flag_press)
+variable(party_x)
+variable(party_y)
+
+# 스크립트 시작
+if (Equal(ScriptMode(), FLAG_EVENT))
+	if (OnArea(24,45,25,45))
+		DisplayMap()
+		Select::Init()
+		Select::Add("여기서 나가기를 원합니까 ?")
+		Select::Add("예, 그렇습니다.")
+		Select::Add("아니오, 원하지 않습니다.")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("ground1.cm2", 17, 88)
+		else
+			WarpPrevPos()
+			DisplayMap()
+
+	halt()
+
+if (Equal(ScriptMode(), FLAG_TALK))
+	flag_press.assign(1)
+
+	if (On(27,41))
+		Talk("@7무엇인가에 의해 공격을 받아 심한 상처를 입고 있는 사람을 발견하였다. 하지만 아직 숨이 끊어지지는 않았기 때문에 어쩌면 살릴 수 있을 것 같다.@@")
+		PressAnyKey()
+
+		Select::Init()
+		Select::Add("쓰러진 사람을 데리고 가겠습니까?")
+		Select::Add("예, 그렇습니다.")
+		Select::Add("아니오, 이미 늦었습니다.")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			Player::AssignFromEnemyData(6,1)
+			Player::ChangeAttribute(6, "name", "쓰러진사람")
+			Player::ChangeAttribute(6, "class", 8)
+			Player::ChangeAttribute(6, "weapon", 0)
+			Player::ChangeAttribute(6, "shield", 0)
+			Player::ChangeAttribute(6, "armor", 0)
+			Player::ChangeAttribute(6, "pow_of_weapon", 0)
+			Player::ChangeAttribute(6, "pow_of_shield", 0)
+			Player::ChangeAttribute(6, "pow_of_armor", 0)
+			Player::ChangeAttribute(6, "ac", 0)
+			Player::ChangeAttribute(6, "endurance", 1)
+			Player::ReviseAttribute(6)
+			Map::ChangeTile(39, 14, 47)
+			DisplayMap()
+			DisplayStatus()
+			Flag::Set(10)
+			Map::ChangeTile(27,41,43)
+
+		flag_press.assign(0)
+
+	if (flag_press)
+		PressAnyKey()
+
+	DisplayMap()
+	halt()
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Map::LoadFromFile("den1.map")
+	Map::SetType(3)
+
+#	Map::SetHandicap(HANDICAP_TILECHANGING)
+#	Map::SetHandicap(HANDICAP_TELEPORT)
+#	Map::SetHandicap(HANDICAP_SEETHROUGH)
+#	Map::SetHandicap(HANDICAP_CLAIRVOYANCE)
+
+	Map::SetEncounter(1, 0)
+	Map::SetStartPos(24, 44)
+	Tile::CopyTile(44,0)
+
+	# 쓰러진 사람
+	if (Not(Flag::IsSet(10)))
+		Map::ChangeTile(27,41,21)
+
+halt()
+
+이벤트 정리
+
+- var
+
+- flag
+10: 쓰러진 사람을 데려감
