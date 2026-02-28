@@ -1,0 +1,587 @@
+
+include("const.cm2")
+include("flag4ep1.cm2")
+
+############################
+
+variable(temp)
+variable(temp_x)
+variable(temp_y)
+
+# 이 값이 0이 아니면 특별 이벤트 임
+variable(special_event)
+special_event.assign(0)
+
+# 특별 이벤트용 상수 정의
+variable(SP_EVENT_NONE)
+SP_EVENT_NONE.assign(0)
+
+variable(SP_EVENT_AGAINST_GUARD)
+SP_EVENT_AGAINST_GUARD.assign(1)
+
+variable(SP_EVENT_SNEAKED_AND_CAUGHT)
+SP_EVENT_SNEAKED_AND_CAUGHT.assign(2)
+
+if (Equal(ScriptMode(), FLAG_TALK))
+	# 여관
+	if (On(14,30))
+		if (Not(Flag::IsSet(GFD0_RENT_ROOM)))
+			Talk("여기는 여행자들을 위한 여관입니다.")
+			PressAnyKey()
+			Select::Init()
+			Select::Add("방을 하나 빌리겠습니까?")
+			Select::Add("방을 하나 주시게")
+			Select::Add("괜찮소만")
+			Select::Run()
+			temp.assign(Select::Result())
+			if (Equal(temp, 1))
+				Talk("마침 좋은 위치의 방이 하나 남아 있습니다. 04호 방으로 가시면 됩니다.")
+				Talk("이용해 주셔서 감사합니다.")
+				Talk("")
+				Talk("@B[GOLD -50]@@")
+				## 돈이 50만큼 줄어 들고
+				Party::PlusGold(-50)
+				## 04번 방의 문이 열린다
+				Map::ChangeTile(18,36,30)
+				Flag::Set(GFD0_RENT_ROOM)
+		else
+			Talk("안녕하십니까. 불편한 점이 있으시면 항상 말씀해 주세요.")
+
+	# 주점
+	if (On(10,8))
+		Talk("@A[쉐용님의 멘트]")
+	if (On(18,8))
+		Talk("@A[음식을 파는 사람]")
+	if (On(23,15))
+		Talk("아직 주점 쪽은 스크립트 구성이 되지 않았습니다.")
+	if (On(10,12))
+		Talk("주점의 남자1")
+		Talk("@D<지형 변화의 아이템 얻음>@@")
+		Flag::Set(GFD0_GET_WALL_REMOVER)
+	if (On(14,15))
+		Talk("@A[태욱님의 멘트]")
+	if (On(18,20))
+		Talk("@A[희승님의 멘트]")
+	if (On(19,12))
+		Talk("주점의 남자2")
+	if (On(9,19))
+		Talk("@A[용맨님의 멘트]")
+	if (On(16,16))
+		Talk("주점의 여자1")
+	if (On(23,20))
+		Talk("주점의 여자2")
+
+	# 무기고
+	if (Not(Flag::IsSet(GFD0_IN_WANTED_LIST)))
+		if (On(42,31))
+			Talk("여기는 로어성의 무기고 입니다. 허락받지 않은 자는 들어 갈 수 없습니다.")
+			if (Not(Flag::IsSet(GFD0_GET_KEY_FOR_D1)))
+				PressAnyKey()
+				Talk("@7경비병의 허리에는 이 안 어디에선가 사용될 것 같은 열쇠가 달려 있는 것이 보였다@@")
+				Flag::Set(GFD0_MET_GUARD_A)
+
+		if (On(42,35))
+			Talk("로어성의 무기고는 허락받지 않은 자의 출입이 허용되지 않습니다.")
+			## 열쇠를 훔지지 않았지만 경비병의 열쇠를 보았고, 건물 진입을 저지 당한 경우
+			if (And(And(Not(Flag::IsSet(GFD0_GET_KEY_FOR_D1)),Flag::IsSet(GFD0_MET_GUARD_A)),Flag::IsSet(GFD0_CHECKED_BY_GUARD)))
+				PressAnyKey()
+				Select::Init()
+				Select::Add("난동을 부리겠습니까?")
+				Select::Add("난동을 부린다")
+				Select::Add("그냥 간다")
+				Select::Run()
+				temp.assign(Select::Result())
+				if (Equal(temp, 1))
+					## 경비병A가 아래로 내려 옴
+					# 53: 기사, 44: 포장 바닥
+					temp_x.assign(42)
+					temp_y.assign(31)
+					# step 1
+					Map::ChangeTile(temp_x,Add(temp_y,0),44)
+					Map::ChangeTile(temp_x,Add(temp_y,1),53)
+					Wait(400)
+					DisplayMap()
+					# step 2
+					Map::ChangeTile(temp_x,Add(temp_y,1),44)
+					Map::ChangeTile(temp_x,Add(temp_y,2),53)
+					Wait(400)
+					DisplayMap()
+					# step 3
+					Map::ChangeTile(temp_x,Add(temp_y,2),44)
+					Map::ChangeTile(temp_x,Add(temp_y,3),53)
+					Wait(400)
+					DisplayMap()
+
+					Talk("이러시면 안됩니다. 물러 나십시오.")
+					Talk("공무 집행 방해입니다.")
+					PressAnyKey()
+
+					Party::Move(1, 0)
+					DisplayMap()
+					Wait(300)
+					Party::Move(1, 0)
+					DisplayMap()
+
+					Talk("@C[Map이 Fade out 되어야 함]@@")
+					PressAnyKey()
+
+					Talk("@7당신은 경비병에게 떠밀려 나갔다.@@")
+					Talk("@7하지만 혼란을 틈타 경비병의 허리에 있는 열쇠를 낚아 채었다.@@")
+					Talk("")
+					Talk("@B[경비병이 가지고 있던 열쇠+1]@@")
+					PressAnyKey()
+
+					Flag::Set(GFD0_GET_KEY_FOR_D1)
+
+					## 원상 복구
+					Map::ChangeTile(temp_x,Add(temp_y,0),53)
+					Map::ChangeTile(temp_x,Add(temp_y,1),0)
+					Map::ChangeTile(temp_x,Add(temp_y,2),0)
+					Map::ChangeTile(temp_x,Add(temp_y,3),0)
+
+					Talk("@C[Map이 Fade in 되어야 함]@@")
+					PressAnyKey()
+					DisplayMap()
+	else
+		if (Or(On(42,31),On(42,35)))
+			special_event.assign(SP_EVENT_AGAINST_GUARD)
+
+	if (Equal(special_event,SP_EVENT_NONE))
+		halt()
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+
+	TextAlign(ALIGN_CENTER)
+
+	## 임시
+	if (On(49,26))
+		Talk("@C이 표지판은 임시임")
+		Talk("")
+		Talk("@7- 수배중으로 설정")
+		Talk("@7- 주인공의 능력 상승")
+		Talk("@7- 동료가 늘어남")
+		Flag::Set(GFD0_IN_WANTED_LIST)
+		Player::ChangeAttribute(1, "armor", 3)
+		Player::ChangeAttribute(1, "pow_of_armor", 4)
+		Player::ChangeAttribute(1, "shield", 5)
+		Player::ChangeAttribute(1, "pow_of_shield", 5)
+		Player::ChangeAttribute(1, "weapon", 3)
+		Player::ChangeAttribute(1, "pow_of_weapon", 100)
+		Player::ChangeAttribute(2, "accuracy", 20)
+		Player::AssignFromEnemyData(2,60)
+		Player::AssignFromEnemyData(3,61)
+		Player::AssignFromEnemyData(4,62)
+		DisplayStatus()
+
+	if (On(47,26))
+		Talk("여기는 로어 성")
+		Talk("")
+		Talk("")
+		Talk("")
+		if (Not(Flag::IsSet(GFD0_IN_WANTED_LIST)))
+			Talk("@D공지@@")
+			Talk("")
+			Talk("현재 수배 중인 사람은 없습니다.")
+		else
+			Talk("@D공지@@")
+			Talk("")
+			PushString("수배자 명단: ")
+			PushString(Player::GetName(1))
+			Talk(PopString(2))
+			Talk("")
+			Talk("위의 사람을 절도죄로 수배합니다.")
+
+	if (On(47,13))
+		Talk("왼쪽: 로어 주점")
+		Talk("아래쪽: 로어 성 입구")
+
+	if (On(26,11))
+		Talk("로어 성의 주점입니다")
+
+	# 여관 내 표지판
+	if (On(16,27))
+		Talk("로어 성의 여관입니다")
+
+	if (On(13,32))
+		Talk("01번 방")
+	if (On(13,38))
+		Talk("02번 방")
+	if (On(17,30))
+		Talk("03번 방")
+	if (On(17,35))
+		Talk("04번 방")
+	if (On(17,40))
+		Talk("05번 방")
+
+	TextAlign(ALIGN_LEFT)
+
+	if (Equal(special_event,SP_EVENT_NONE))
+		halt()
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	if (OnArea(42,32,42,34))
+		if (Not(Flag::IsSet(GFD0_IN_WANTED_LIST)))
+			DisplayMap()
+			WarpPrevPos()
+			if (Equal(Party::PosX(),43))
+				# 밖에서부터 진입 시도
+				Talk("@7건물로 들어가려 했지만 경비병들에 의해 저지 당했다.@@")
+				PressAnyKey()
+				DisplayMap()
+				Flag::Set(GFD0_CHECKED_BY_GUARD)
+			else
+				# 안에서 나왔을 때
+				special_event.assign(SP_EVENT_SNEAKED_AND_CAUGHT)
+		else
+			DisplayMap()
+			special_event.assign(SP_EVENT_AGAINST_GUARD)
+
+	if (Equal(special_event,SP_EVENT_NONE))
+		halt()
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	# 여관 1
+	if (On(19,29))
+		Select::Init()
+		Select::Add("아래 층으로 내려 가시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("L1_ep1d1.cm2", 9, 7)
+
+	# 여관 2
+	if (On(19,34))
+		Select::Init()
+		Select::Add("아래 층으로 내려 가시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("L1_ep1d1.cm2", 9, 12)
+
+	# 여관 3
+	if (On(19,39))
+		Select::Init()
+		Select::Add("아래 층으로 내려 가시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("L1_ep1d1.cm2", 9, 17)
+
+	if (On(28,37))
+		Select::Init()
+		Select::Add("아래 층으로 내려 가시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("L1_ep1d1.cm2", 18, 13)
+
+	if (On(28,29))
+		Select::Init()
+		Select::Add("아래 층으로 내려 가시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("L1_ep1d1.cm2", 18, 7)
+
+	if (Equal(special_event,SP_EVENT_NONE))
+		halt()
+
+if (Not(special_event.Equal(SP_EVENT_NONE)))
+	## 현재는 경비병 전투 이벤트가 유일하므로...
+
+	if (special_event.Equal(SP_EVENT_AGAINST_GUARD))
+		## 검문에 걸렸을 경우
+		Select::Init()
+		Select::Add("당신... 지난 번에 저희와 만난 적이 있지요? 잠시 검문을 하겠습니다.")
+		Select::Add("검문에 응한다")
+		Select::Add("도망간다")
+		Select::Run()
+		temp.assign(Select::Result())
+	else
+		## 잡입후 나오다가 들켰을 때
+		Select::Init()
+		Select::Add("앗. 침입자다!!!")
+		Select::Add("순순히 투항한다")
+		Select::Add("도망간다")
+		Select::Run()
+		temp.assign(Select::Result())
+
+	## 원래의 경비병은 그 위치에 없음
+	Map::ChangeTile(42,31,44)
+	Map::ChangeTile(42,35,44)
+
+	Battle::Init()
+
+	## 경비병 2명 할당
+	Battle::RegisterEnemy(26)
+	Enemy::ChangeAttribute(1, "name", "경비병1")
+	Enemy::ChangeAttribute(1, "special", 0)
+	Enemy::ChangeAttribute(1, "castlevel", 0)
+	Enemy::ChangeAttribute(1, "E_number", 1)
+
+	Battle::RegisterEnemy(26)
+	Enemy::ChangeAttribute(2, "name", "경비병2")
+	Enemy::ChangeAttribute(2, "special", 0)
+	Enemy::ChangeAttribute(2, "castlevel", 0)
+	Enemy::ChangeAttribute(2, "E_number", 1)
+
+	Battle::ShowEnemy()
+
+	if (special_event.Equal(SP_EVENT_AGAINST_GUARD))
+		if (Equal(temp, 1))
+			Talk("@7경비병은 당신에게서 열쇠를 찾아 내었다.@@")
+			PressAnyKey()
+			Talk("무기고의 열쇠를 가져간 것은 역시 당신이었군요. 당신을 체포하겠습니다.")
+		else
+			Talk("@7경비병들은 익숙한 솜씨로 당신 앞을 막아섰다@@")
+	else
+		if (Equal(temp, 1))
+			Talk("로어성의 무기고에 침입한 죄는 아주 큽니다. 각오 하십시오.")
+		else
+			Talk("@7경비병들은 익숙한 솜씨로 당신 앞을 막아섰다@@")
+
+	PressAnyKey()
+	# 경비병이 먼저 공격
+	Battle::Start(0)
+	temp.assign(Battle::Result())
+
+	if (Equal(temp, BATTLERESULT_LOSE))
+		halt();
+
+	if (Equal(temp, BATTLERESULT_EVADE))
+		Talk("@7도망가려 했지만 이미 다른 경비 병들이 가세했다@@")
+
+	PressAnyKey()
+
+	Battle::Init()
+
+	## 경비병 7명 할당
+	Battle::RegisterEnemy(26)
+	Enemy::ChangeAttribute(1, "name", "경비병1")
+	Enemy::ChangeAttribute(1, "special", 0)
+	Enemy::ChangeAttribute(1, "castlevel", 0)
+	Enemy::ChangeAttribute(1, "E_number", 1)
+
+	Battle::RegisterEnemy(26)
+	Enemy::ChangeAttribute(2, "name", "경비병2")
+	Enemy::ChangeAttribute(2, "special", 0)
+	Enemy::ChangeAttribute(2, "castlevel", 0)
+	Enemy::ChangeAttribute(2, "E_number", 1)
+
+	Battle::RegisterEnemy(26)
+	Enemy::ChangeAttribute(3, "name", "경비병3")
+	Enemy::ChangeAttribute(3, "special", 0)
+	Enemy::ChangeAttribute(3, "castlevel", 0)
+	Enemy::ChangeAttribute(3, "E_number", 1)
+
+	Battle::RegisterEnemy(26)
+	Enemy::ChangeAttribute(4, "name", "경비병4")
+	Enemy::ChangeAttribute(4, "special", 0)
+	Enemy::ChangeAttribute(4, "castlevel", 0)
+	Enemy::ChangeAttribute(4, "E_number", 1)
+
+	Battle::RegisterEnemy(26)
+	Enemy::ChangeAttribute(5, "name", "경비병5")
+	Enemy::ChangeAttribute(5, "special", 0)
+	Enemy::ChangeAttribute(5, "castlevel", 0)
+	Enemy::ChangeAttribute(5, "E_number", 1)
+
+	Battle::RegisterEnemy(26)
+	Enemy::ChangeAttribute(6, "name", "경비병6")
+	Enemy::ChangeAttribute(6, "special", 0)
+	Enemy::ChangeAttribute(6, "castlevel", 0)
+	Enemy::ChangeAttribute(6, "E_number", 1)
+
+	Battle::RegisterEnemy(26)
+	Enemy::ChangeAttribute(7, "name", "경비병7")
+	Enemy::ChangeAttribute(7, "special", 0)
+	Enemy::ChangeAttribute(7, "castlevel", 0)
+	Enemy::ChangeAttribute(7, "E_number", 1)
+
+	Battle::ShowEnemy()
+
+	if (Equal(temp, BATTLERESULT_LOSE))
+		halt();
+
+	if (Equal(temp, BATTLERESULT_WIN))
+		## 정상적인 전투 종료
+		Talk("@7하지만 싸우고 있는 동안에 이미 다른 경비병들이 도착해 있었다@@")
+	else
+		## 도망
+		Talk("@7도망가려 했지만 이미 다른 경비 병들이 가세했다@@")
+
+	PressAnyKey()
+
+	Battle::Start(1)
+	temp.assign(Battle::Result())
+
+	if (Equal(temp, BATTLERESULT_LOSE))
+		halt();
+
+	if (Equal(temp, BATTLERESULT_WIN))
+		## 정상적인 전투 종료
+		PressAnyKey()
+		Talk("@7비록 당신이 경비병들을 물리치긴했으나 이미 주위에는 로어성의 병사들로 가득 채워져 있었다.@@")
+	else
+		## 도망
+		Talk("@7도망치려해도 이미 주위에는 로어성의 병사들로 가득 채워져 있었다.@@")
+	Talk("")
+	Talk("@7이미 이 싸움은 승산이 없다고 생각하고 들고 있던 무기를 내려 놓았다. 모든 것은 로드안의 자비로은 판결에 달려 있다. 그는 현명하고 지혜롭다고 알고 있다.@@")
+	PressAnyKey()
+
+	## 게임을 강제로 끝냄
+	GameOver();
+
+	halt()
+
+
+if (FLAG_MAP.Equal(ScriptMode()))
+	Map::Init(55, 50)
+	Map::SetType(MAPTYPE_TOWN)
+	Map::SetEncounter(1, 0)
+	Map::SetStartPos(25, 31)
+
+	## 이벤트용
+	Map::SetTile("★", 0)
+	Map::SetTile("☆", 0)
+
+	## 흙바닥
+	Map::SetTile("　",47)
+	## 베벨 바닥
+	Map::SetTile("▒",35)
+	## 포장 바닥
+	Map::SetTile("┐",44)
+	## 가게 바닥
+	Map::SetTile("└",30)
+
+	## 칸막이?
+	Map::SetTile("↔",5)
+	Map::SetTile("↕",6)
+	Map::SetTile("‡",16)
+
+	## 침대 좌우
+	Map::SetTile("［",3)
+	Map::SetTile("］",4)
+
+	## 금고
+	Map::SetTile("◈",15)
+	## 화분
+	Map::SetTile("♧",15)
+	## 나무
+	Map::SetTile("♣",2)
+
+	## 무기와 갑옷
+	Map::SetTile("ㅋ",20)
+	Map::SetTile("ㄱ",21)
+
+	## 벽
+	Map::SetTile("▦",7)
+	Map::SetTile("▤",16)
+
+	## 잠긴문
+	Map::SetTile("∏",16)
+
+	## 표지판
+	Map::SetTile("¶",23)
+
+	## 해골
+	Map::SetTile("Ａ",48)
+	## 우민(男)
+	Map::SetTile("Ｂ",49)
+	## 우민(女)
+	Map::SetTile("Ｃ",50)
+	## 장사치
+	Map::SetTile("Ｄ",51)
+	## 마법사
+	Map::SetTile("Ｅ",52)
+	## 기사
+	Map::SetTile("Ｆ",53)
+	## 군주
+	Map::SetTile("Ｇ",54)
+
+## 미정의
+
+	Map::SetTile("▩",40)
+
+	# 나중에 사라지는 장애물
+	Map::SetTile("◆",51)
+
+	Map::SetTile("☎",22)
+	Map::SetTile("☏",22)
+
+
+
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦　　　　　　　　　　　　　　　　　　　　　　　　　▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦└└└└└└└└└└└└└└└└└▦　　　　　　　　　　　　　　　　　　　　　　　　　▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦└└└Ｄ└└└└└└└Ｄ└└└└└▦　　　　　　　　　　　　　　　　　　　　　　　　　▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦└└↔↔↔↔↔↔↔↔↔↔↔↔↔└└▦　　　　　　　　　　　　　　　　　　　　　　　　　▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦　　　　　　　　　　　　　　　　　▦　　　　　　　　　　　　　　　　　　　　　　　　　▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦　　　　　　　　　　　　　　　　　▦　¶　　　　　　　　　　　　　　　　　　　　　　　▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦　　　Ｂ　　　　　　　　Ｂ　　　┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦　　　　　　　　　　　　　　　　┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐¶┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦　　　　　　　　　　　　　　　　┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦　　　　　　　Ｂ　　　　　　　　Ｆ▦　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦　　　　　　　　　Ｃ　　　　　　　▦　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦　　　　　　　　　　　　　　　　　▦　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦　　　　　　　　　　　　　　　　　▦　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦　　Ｃ　　　　　　　　　　　　　　▦　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦　　　　　　　　　　　Ｂ　　　　Ｃ▦　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦　　　　　　　　　　　　　　　　　▦　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦　　　　　　　　　　　　　　　　　▦　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　　　　　　　　┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　　　　　　　　┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐¶┐¶▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　　　　　　　　┐┐┐¶┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦▦▦▦▦▦▦▦└└▦▦▦▦▦▦▦▦▦　▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦♧└└└♧▦└└└└└▦☏└└♧♧▦　▦▦☏▒▒▒▒▒▒▒▒▒▒▒▦▦　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦┐┐┐┐┐▦└Ｄ└└¶▦┐┐┐┐┐▦　▦▒▒▒▒▒▒▒▒▒▒▒▒▒▒▦┐┐┐┐┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦┐┐┐┐┐∏└└└└└∏┐┐┐┐┐▦　▦▒▒ㅋㄱㅋㄱㅋㄱㅋㄱㅋㄱ▒▒▦Ｆ┐┐┐┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦┐┐┐┐┐▦¶└♧└└▦┐┐┐［］▦　▦▒▒ㅋㄱㅋㄱㅋㄱㅋㄱㅋㄱ▒▒▒★┐┐┐┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦［］◈└└▦└└└└└▦▦▦▦▦▦▦　▦▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒★┐┐┐┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦▦▦▦▦▦▦└└└└└▦☏└└♧♧▦　▦▒▒ㅋㄱㅋㄱㅋㄱㅋㄱㅋㄱ▒▒▒★┐┐┐┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦♧└└└♧▦└└└└¶▦┐┐┐┐┐▦　▦▒▒ㅋㄱㅋㄱㅋㄱㅋㄱㅋㄱ▒▒▦Ｆ┐┐┐┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦┐┐┐┐┐▦└└♧└└∏┐┐┐┐┐▦　▦▒▒▒▒▒▒▒▒▒▒▒▒▒▒▦♣┐┐┐┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦┐┐┐┐┐∏└└└└└▦┐┐┐［］▦　▦▦☏▒▒▒▒▒▒▒▒▒▒▒▦▦　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦┐┐┐┐┐▦¶└└└└▦▦▦▦▦▦▦　▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦［］◈└└▦└└└└└▦☏┐┐［］▦　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦▦▦▦▦▦▦└└♧└¶▦┐┐┐┐┐▦　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦♧└└└└└└└└└└∏┐┐┐┐┐▦　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦♧└└└└└└└└└└▦└└└♧♧▦　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　┐┐┐┐▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+	Map::SetRow("▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤▤")
+
+
+	## 최초로 실행을 할 때 주인공의 status를 보정한다
+	## 최초는 디폴트 값이다.
+	if (Not(Flag::IsSet(GFD0_IS_FIRST)))
+		Player::ChangeAttribute(1, "name", "슴갈")
+		Player::ChangeAttribute(1, "class", 8)
+		Player::ChangeAttribute(1, "level", 3)
+		Player::ApplyAttribute(1)
+		Flag::Set(GFD0_IS_FIRST)
+
+	## 여관에서 방을 빌렸을 경우
+	if (Flag::IsSet(GFD0_RENT_ROOM))
+		Map::ChangeTile(18,36,30)

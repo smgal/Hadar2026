@@ -1,0 +1,570 @@
+
+# 상수 읽기
+include("const.cm2")
+
+# 변수 정의
+variable(temp)
+variable(flag_press)
+variable(party_x)
+variable(party_y)
+
+# 스크립트 시작
+
+if (Equal(ScriptMode(), FLAG_TALK))
+	flag_press.assign(1)
+
+	if (On(8, 63))
+		Talk("당신이 모험을 시작한다면, 많은 괴물들을 만날 것이오. 무엇보다도, Serpent와 Insects와 Python은 맹독이 있으니 주의 하시기 바라오.")
+	if (On(71, 72))
+		Talk("Orc는 가장 하급 괴물이오.")
+	if (On(50, 71))
+		if (Not(Flag::IsSet(51)))
+			Tile::CopyToDefaultTile(44)
+			Tile::CopyToDefaultSprite(24)
+			Map::ChangeTile(50, 71, 55)
+			DisplayMap()
+			Talk("당신이 Necromancer에 진정으로 대항하고자한다면, 이 성의 바로위에 있는 피라밋에 가보도록하시오. 그곳은 Necromancer와 동시에 바다에서 떠오른 '@B또다른 지식의 성전@@'이기 때문이오. 당신이 어느 수준이 되어 그 곳에 들어간다면 진정한 이 세계의 진실을 알수 있을것이오.")
+			Map::ChangeTile(50, 71, 53)
+			Flag::Set(51)
+		else
+			Talk("'MENACE'' 속에는 Dwarf, Giant, Wolf, Python같은 괴물들이 살고 있소.")
+
+	if (On(57, 73))
+		Talk("나의 부모님은 Python 의 독에 의해 돌아 가셨습니다. Python은 정말 위험한 존재입니다.")
+	if (On(62, 26))
+		Talk("단지 Lord Ahn 만이 능력 상으로 Necromancer 에게 도전할 수 있습니다. 하지만 Lord Ahn 자신이 대립을 싫어해서, 현재는 Necromancer 에게 대항할 자가 없습니다.")
+	if (On(89, 81))
+		Talk("우리는 Ancient Evil을 배척하고 Lord Ahn님을 받들어야 합니다.")
+	if (On(93, 67))
+		Talk("우리는 MENACE의 동쪽에 있는 나무로부터 많은 식량을 얻은적이 있습니다.")
+	if (On(18, 52))
+		Talk("이 세계의 창시자는 안영기님 이시며, 그는 위대한 프로그래머 입니다.")
+	if (Or(On(12, 26), On(17, 26)))
+		Talk("어서 오십시오. 여기는 LORE 주점입니다.")
+		if (Equal(Random(2), 0)
+			PushString("거기 ")
+			PushString(Player::GetGenderName(1))
+			PushString("분 어서 오십시오.")
+			Talk(PopString(3))
+		else
+			Talk("위스키에서 칵테일까지 마음껏 선택하십시오.")
+
+	if (On(20,32))
+		Talk("...")
+	if (On(9,29))
+		Talk("요새 무덤쪽에서 유령이 떠돈다던데...")
+	if (On(12,31))
+		Talk("하하하, 자네도 한번 마셔보게나.")
+	if (On(14,34))
+		Talk("이제 Lord Ahn의 시대도 끝나가는가 ? 그까짓 Necromancer라는 작자에게 쩔쩔 매는 꼴이라니... 차라리 내가 나가서 그 놈과 싸우는게 났겠다.")
+	if (On(17,32))
+		Talk("당신은 Skeleton족의 한 명이 우리와 함께 생활하려 한다는 것에 대해서 어떻게 생각하십니까? 저는 그 말을 들었을때 너무 혐오스러웠습니다. 어서 빨리 그 살아있는 뼈다귀를 여기서 쫓아냈으면 좋겠습니다.")
+
+	if (On(20,35))
+		Talk("... 끄~~윽 ... ...")
+	if (On(17,37))
+		Talk("이보게 자네, 내말 좀 들어 보게나. 나의 친구들은 이제 이 세상에 없다네. 그들은 너무나도 용감하고 믿음직스런 친구들이었는데... 내가 다리를 다쳐 병원에 있을 동안 그들은 모두 이 대륙의 평화를 위해 LORE 특공대에 지원 했다네. 하지만 그들은 아무도 다시는 돌아오지 못했어. 그런 그들에게 이렇게 살아있는 나로서는 미안할 뿐이네. 그래서 술로 나날을 보내고 있지. 죄책감을 잊기위해서 말이지...")
+
+	if (On(71,77))
+		Talk("물러나십시오. 여기는 용사의 유골들을 안치해 놓은 곳입니다.")
+	if (On(62,75))
+		if (Not(Flag::IsSet(50)))
+			Talk("당신이 한 유골 앞에 섰을때 이상한 느낌과 함께 먼 곳으로 부터 어떤 소리가 들려왔다.")
+			PressAnyKey()
+			Talk("안녕하시오. 대담한 용사여.")
+			Talk("당신이 나의 잠을 깨웠소 ? 나는 고대에 이 곳을 지키다가 죽어간 기사 Jr. Antares 라고하오. 저의 아버지는 Red Antares라고 불리웠던 최강의 마법사였소. 그는 말년에 어떤 동굴로 은신을 한 후 아무에게도 모습을 나타내지 않았소. 하지만 당신의 운명은 나의 아버지를 만나야만하는 운명이라는 것을 알 수 있소. 반드시 나의 아버지를 만나서 당신이 알지 못했던 새로운 능력들을 배우시오. 그리고 나의 아버지를 당신의 동행으로 참가시키도록 하시오. 물론 좀 어렵겠지만 ...")
+			Talk("아참, 그리고 내가 죽기 전에 여기에 뭔가를 여기에 숨겨 두었는데 당신에게 도움이 될지 모르겠소. 그럼, 나는 다시 오랜 잠으로 들어가야 겠소.")
+
+			Map::ChangeTile(61, 78, 44)
+			Map::ChangeTile(61, 79, 44)
+			Map::ChangeTile(61, 80, 44)
+			Map::ChangeTile(61, 81, 0)
+			Map::ChangeTile(61, 82, 14)
+			Flag::Set(50)
+			DisplayMap()
+
+	if (On(23,49))
+		PushString("힘내게, ")
+		PushString(Player::GetName(1))
+		PushString(" 자네라면 충분히 Necromancer를 무찌를수 있을 걸세. 자네만 믿겠네.")
+		Talk(PopString(3))
+	if (On(23,53))
+		Talk("위의 저 친구로부터 당신 얘기 많이 들었습니다. 저는 우리성에서 당신같은 용감한 사람이 있다는걸 자랑스럽게 생각합니다.")
+	if (On(12,54))
+		Talk("만약, 당신들이 그 일을 해내기가 어렵다고 생각되시면 LASTDITCH 성에서 성문을 지키고 있는 Polaris란 청년을 일행에 참가시켜 주십시오. 분명 그 사람이라면 쾌히 승락할 겁니다.")
+	if (On(49,10))
+		Talk("이 안에 갇혀있는 사람들에게는 일체 면회가허용되지 않습니다. 나가 주십시오.")
+
+	if (On(52,10))
+		Talk("여기는 Lord Ahn의 체제에 대해서 깊은 반감을 가지고 있는 자들을 수용하고 있습니다.")
+		Talk("아마 그들은 죽기전에는 이곳을 나올수 없을 겁니다.")
+
+	if (On(40,9))
+		Talk("나는 이곳의 기사로서 이 세계의 모든 대륙을 탐험하고 돌아왔었습니다. 내가 마지막 대륙을 돌았을때 나는 새로운 존재를 발견했습니다. 그는 바로 예전까지도 Lord Ahn과 대립하던 Ancient Evil이라는 존재였습니다. 지금 우리의 성에서는 철저하게 배격하도록 어릴 때부터 가르침 받아온 그 Ancient Evil이었습니다. 하지만 그곳에서 본 그는 우리가 알고있는 그와는 전혀 다른 인간미를 가진 말 그대로 신과같은 존재였습니다. 내가 그의 신앙 아래 있는 어느 도시를 돌면서 내가 느낀 것은 정말 Lord Ahn에게서는 찾아볼수가 없는 그런 자애와 따뜻한 정이었습니다. 그리고 여태껏 내가 알고 있는 그에 대한 지식이 정말 잘 못되었다는 것과 이런 사실을 다른 사람에게도 알려주고 싶다는 이유로 그의 사상을 퍼뜨리다 이렇게 잡히게 된것입니다.")
+		PressAnyKey()
+		Talk("하지만 더욱 이상한것은 Lord Ahn 자신도 그에 대한 사실을 인정하면서도 왜 우리에게는 그를 배격하도록만 교육시키는 가를 알고 싶을뿐입니다. Lord Ahn께서는 나를 이해한다고 하셨지만 사회 혼란을 방지하기 위해 나를 이렇게 밖에 할수 없다고 말씀하시더군요. 그리고 이것은 선을 대표하는 자기로서는 이 방법 밖에는 없다고 하시더군요.")
+		Talk("")
+		Talk("하지만 Lord Ahn의 마음은 사실 이렇지 않다는 걸 알수 있었습니다. Ancient Evil의 말로는 사실 서로가 매우 절친한 관계임을 알수가 있었기 때문입니다.")
+
+	if (On(39,14))
+		Talk("히히히... 위대한 용사님. 낄낄낄.. 내가 당신들의 일행에 끼이면 안될까요 ? 우히히히..")
+
+		Select::Init()
+		Select::Add("히히히... 위대한 용사님. 낄낄낄.. 내가 당신들의 일행에 끼이면 안될까요 ? 우히히히..")
+		Select::Add("그렇다면 당신을 받아들이지요")
+		Select::Add("당신은 이곳에 그냥 있는게 낫겠소")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			Player::AssignFromEnemyData(6,1)
+			Player::ChangeAttribute(6, "name", "Mad Joe")
+			Player::ChangeAttribute(6, "class", 8)
+			Player::ChangeAttribute(6, "weapon", 0)
+			Player::ChangeAttribute(6, "shield", 0)
+			Player::ChangeAttribute(6, "armor", 0)
+			Player::ChangeAttribute(6, "pow_of_weapon", 0)
+			Player::ChangeAttribute(6, "pow_of_shield", 0)
+			Player::ChangeAttribute(6, "pow_of_armor", 0)
+			Player::ChangeAttribute(6, "ac", 0)
+			Map::ChangeTile(39, 14, 47)
+			DisplayMap()
+			DisplayStatus()
+			Flag::Set(52)
+			flag_press.assign(0)
+		else
+			Talk("당신이 바란다면...")
+
+	if (On(62,9))
+		Talk("안녕하시오. 나는 한때 이 곳의 유명한 도둑이었던 사람이오. 결국 그 때문에 나는 잡혀서 평생 여기에 있게 되었지만...")
+		Talk("그건 그렇고, 내가 LORE 성의 보물인 '@B황금의 방패@@'를 훔쳐 달아나다. 그만 그것을 MENACE라는 금광에 숨겨 놓은채 잡혀 버리고 말았소.")
+		Talk("나는 이제 그것을 가져봤자 쓸때도 없으니 차라리 당신이 그걸 가지시오. 가만있자... 어디였더라... 그래 ! MENACE의 가운데쯤에 벽으로 사방이 둘러 싸여진 곳이었는데.. 당신들이라면 지금 여기에 들어온것과 같은 방법으로 들어가서 방패를 찾을수 있을것이오. 행운을 빌겠소.")
+
+	if (On(59,14))
+		Talk("당신들에게 경고해 두겠는데 건너편 방에 있는 Joe는 오랜 수감생활 끝에 미쳐 버리고 말았소. 그의 말에 속아서 당신네 일행에 참가시키는 그런 실수는 하지마시오.")
+
+	if (Or(On(41,77), On(41,79)))
+		if (Not(Flag::IsSet(54)))
+			Talk("Lord Ahn 님의 명령에 의해서 당신들에게 한가지의 무기를 드리겠습니다. 들어가셔서 무기를 선택해 주십시오.")
+		else
+			Talk("여기서 가져가신 무기를 잘 사용하셔서 세계의 적인 Necromancer를 무찔러 주십시오.")
+
+	if (On(50,13))
+		Talk("MENACE 에는 금덩이가 많다던데...")
+	if (On(82,26))
+		Talk("MENACE 는 한때 금광이었습니다.")
+
+	if (Or(On(86,72), On(90,64)))
+		Talk("### Grocery")
+	if (Or(Or(On(7,70), On(13,68)), On(13,72)))
+		Talk("### Weapon_Shop")
+	if (Or(On(86,13), On(85,11)))
+		Talk("### hospital")
+	if (Or(On(20,11), On(24,12)))
+		Talk("### train_center")
+
+	if (Or(On(49,50),On(51,50)))
+		if (Flag::IsSet(31))
+			Talk("행운을 빌겠소 !!!")
+		else
+			if (Less(Variable::Get(10), 3))
+				Talk("저희 성주님을 만나 보십시오.")
+			else
+				Select::Init()
+				Select::Add("당신은 이 게임 세계에 도전하고 싶습니까?")
+				Select::Add("예")
+				Select::Add("아니오")
+				Select::Run()
+				temp.assign(Select::Result())
+				if (Equal(temp, 1))
+					Talk("이제부터 당신은 진정한 이 세계에 발을 디디게 되는 것입니다.")
+
+					Map::ChangeTile(48,51,47)
+					Map::ChangeTile(49,51,44)
+					Map::ChangeTile(50,51,44)
+					Map::ChangeTile(51,51,44)
+					Map::ChangeTile(52,51,47)
+					Map::ChangeTile(48,52,47)
+					Map::ChangeTile(49,52,44)
+					Map::ChangeTile(50,52,44)
+					Map::ChangeTile(51,52,44)
+					Map::ChangeTile(52,52,45)
+					Flag::Set(31)
+					DisplayMap()
+				else
+					Talk("다시 생각 해보십시오.")
+
+	if (On(50,86))
+		if (Not(Flag::IsSet(32)))
+			PushString("난 당신을 믿소, ")
+			PushString(Player::GetName(1))
+			Talk(PopString(2))
+
+			Map::ChangeTile(48,87,44)
+			Map::ChangeTile(49,87,44)
+			Map::ChangeTile(50,87,44)
+			Map::ChangeTile(51,87,44)
+			Map::ChangeTile(52,87,44)
+
+			Flag::Set(32)
+			DisplayMap()
+		else
+			PushString("힘내시오, ")
+			PushString(Player::GetName(1))
+			Talk(PopString(2))
+
+	if (OnArea(47,30,53,36))
+		if (Less(Variable::Get(10), 1))
+			Talk("저희 성주님을 만나십시오.")
+		else
+			Talk("당신이 성공하기를 빕니다.")
+
+	if (On(50,27))
+		if (Less(Variable::Get(10), 4))
+			if (Equal(Variable::Get(10), 0))
+				Talk("나는 '@BLord Ahn@@' 이오.")
+				Talk("")
+				Talk("이제부터 당신은 이 게임에서 새로운 인물로서 생을 시작하게 될것이오. 그럼 나의 이야기를 시작하겠소.")
+				Variable::Add(10)
+			else
+				if (Equal(Variable::Get(10), 1))
+					Talk("이 세계는 내가 통치하는 동안에는 무척 평화로운 세상이 진행되어 왔었소.  그러나 그것은 한 운명의 장난으로 무참히 깨어져 버렸소.")
+					Talk("")
+					Talk("한날, 대기의 공간이 진동하며 난데없는 푸른 번개가 대륙들 중의 하나를 강타했소.  공간은 휘어지고 시간은 진동하며  이 세계를 공포 속으로 몰고 갔소.  그 번개의 위력으로 그 불운한 대륙은  황폐화된 용암 대지로 변하고 말았고, 다른 하나의 대륙은 충돌시의 진동에 의해 바다 깊이 가라앉아 버렸소.")
+					Talk("")
+					Talk("그런 일이 있은 한참 후에,  이상하게도 용암 대지의 대륙으로부터 강한 생명의 기운이 발산되기 시작 했소.  그래서, 우리들은 그 원인을 알아보기 위해 'LORE 특공대'를 조직하기로 합의를 하고 이곳에 있는 거의 모든 용사들을 모아서 용암 대지로 변한 그 대륙으로 급히 그들을 파견하였지만 여태껏 아무 소식도 듣지못했소. 그들이 생존해 있는지 조차도 말이오.")
+					Talk("")
+					PressAnyKey();
+					Talk("이런 저런 방법을 통하여 그들의 생사를 알아려던 중 우연히 우리들은 '@ANecromancer@@'라고 불리우는  용암 대지속의  새로운 세력의 존재를 알아내었고,  그때의 그들은 이미 막강한 세력으로 성장해가고 있는중 이었소.  그때의 번개는 그가 이 공간으로 이동하는 수단이었소. 즉 그는 이 공간의 인물이 아닌 다른 차원을 가진 공간에서 왔던 것이오.")
+					Talk("")
+					Talk("그는 현재 이 세계의 반을  그의 세력권 안에 넣고 있소. 여기서 당신의 궁극적인 임무는 바로 'Necromancer 의 야심을 봉쇄 시키는 것'이라는 걸 명심해 두시오.")
+					Talk("")
+					Variable::Add(10)
+				else
+					if (Equal(Variable::Get(10), 2))
+						Talk("Necromancer 의 영향력은 이미 LORE 대륙까지 도달해있소.  또한 그들은 이 대륙의 남서쪽에 '@BMENACE@@' 라고 불리우는 지하 동굴을 얼마전에구축했소.  그래서, 그 동굴의 존재 때문에 우리들은 그에게 위협을 당하게 되었던 것이오.")
+						Talk("")
+						Talk("하지만, LORE 특공대가 이 대륙을 떠난후로는 그 일당들에게 대적할 용사는  이미  남아있지 않았소. 그래서 부탁하건데, 그 동굴을 중심부까지 탐사해 주시오.")
+						Talk("")
+						Talk("나는 당신들에게 Necromancer에 대한 일을 맡기고 싶지만, 아직은 당신들의  확실한 능력을 모르는 상태이지요.  그래서 이 일은 당신들의 잠재력을 증명해 주는 좋은 기회가 될것이오.")
+						Talk("")
+						PressAnyKey();
+						Talk("만약 당신들이 무기가 필요하다면 무기고에서 약간의 무기를 가져가도록 허락하겠소.")
+						Talk("")
+						Variable::Add(10)
+					else
+						if (Equal(Variable::Get(10), 3))
+							Talk("대륙의 남서쪽에 있는 '@BMENACE@@'를 탐사해 주시오.")
+		else
+			Talk("## 이 부분은 MENACE 탐사가 끝나면 발생함")
+
+
+	if (flag_press)
+		PressAnyKey()
+
+	DisplayMap()
+	halt()
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+
+	TextAlign(ALIGN_CENTER)
+
+	if (On(50,83))
+		Talk("여기는 'CASTLE LORE'성")
+		Talk("여러분을 환영합니다")
+		Talk("")
+		Talk("")
+		Talk("")
+		TextAlign(ALIGN_RIGHT)
+		Talk("Lord Ahn     ")
+	if (On(23,30))
+		Talk("")
+		Talk("여기는 LORE 주점")
+		Talk("여러분 모두를 환영합니다 !!")
+	if (Or(On(50,17), On(51,17)))
+		Talk("")
+		Talk("LORE 왕립  죄수 수용소")
+
+	TextAlign(ALIGN_LEFT)
+
+	halt()
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	if (On(61,81))
+		Talk("일행은 상자 속에서 약간의 금을 발견했다.")
+		Party::PlusGold(1000)
+		Map::ChangeTile(61,81,44)
+
+	if (Or(On(50,11), On(51,11)))
+		if (Flag::IsSet(52))
+			if (Flag::IsSet(53))
+				PushString("다시 돌아오다니, ")
+				PushString(Player::GetGenderName(1))
+				Talk(PopString(2))
+				Talk("이번에는 기어이 네놈들을 해치우고야 말겠다. 나의 친구들도 이번에 거들것이다.")
+				temp.assign(1)
+			else
+				Talk("아니! 당신이 우리들을 배신하고 죄수를 풀어주다니... 그렇다면 우리들은 결투로서 당신들과 승부할수 밖에 없군요.")
+				Flag::Set(53)
+				temp.assign(0)
+
+			Battle::Init()
+
+			Battle::RegisterEnemy(26)
+			Enemy::ChangeAttribute(1, "name", "Soldier1")
+			Enemy::ChangeAttribute(1, "special", 0)
+			Enemy::ChangeAttribute(1, "castlevel", 0)
+			Enemy::ChangeAttribute(1, "E_number", 1)
+
+			Battle::RegisterEnemy(26)
+			Enemy::ChangeAttribute(2, "name", "Soldier2")
+			Enemy::ChangeAttribute(2, "special", 0)
+			Enemy::ChangeAttribute(2, "castlevel", 0)
+			Enemy::ChangeAttribute(2, "E_number", 1)
+
+			if (temp)
+				Battle::RegisterEnemy(26)
+				Enemy::ChangeAttribute(3, "name", "Soldier3")
+				Enemy::ChangeAttribute(3, "special", 0)
+				Enemy::ChangeAttribute(3, "castlevel", 0)
+				Enemy::ChangeAttribute(3, "E_number", 1)
+
+				Battle::RegisterEnemy(26)
+				Enemy::ChangeAttribute(4, "name", "Soldier4")
+				Enemy::ChangeAttribute(4, "special", 0)
+				Enemy::ChangeAttribute(4, "castlevel", 0)
+				Enemy::ChangeAttribute(4, "E_number", 1)
+
+				Battle::RegisterEnemy(26)
+				Enemy::ChangeAttribute(5, "name", "Soldier5")
+				Enemy::ChangeAttribute(5, "special", 0)
+				Enemy::ChangeAttribute(5, "castlevel", 0)
+				Enemy::ChangeAttribute(5, "E_number", 1)
+
+				Battle::RegisterEnemy(26)
+				Enemy::ChangeAttribute(6, "name", "Soldier6")
+				Enemy::ChangeAttribute(6, "special", 0)
+				Enemy::ChangeAttribute(6, "castlevel", 0)
+				Enemy::ChangeAttribute(6, "E_number", 1)
+
+				Battle::RegisterEnemy(26)
+				Enemy::ChangeAttribute(7, "name", "Soldier7")
+				Enemy::ChangeAttribute(7, "special", 0)
+				Enemy::ChangeAttribute(7, "castlevel", 0)
+				Enemy::ChangeAttribute(7, "E_number", 1)
+
+			Battle::ShowEnemy()
+
+			if (Equal(Player::GetAttribute(6, "name"), "Mad Joe"))
+				PressAnyKey()
+				Talk("우리들 뒤에 있던  Mad Joe가 전투가 일어나자마자 도망을 가버렸다.")
+				Player::ChangeAttribute(6, "name", "")
+				DisplayStatus()
+
+			PressAnyKey()
+
+			Battle::Start(0)
+
+			temp.assign(Battle::Result())
+			if (Equal(temp, 1))
+				Talk("당신들은 수감소 병사들을 물리쳤다.")
+				Map::ChangeTile(50,11,44)
+				Map::ChangeTile(51,11,44)
+				Map::ChangeTile(49,10,44)
+				Map::ChangeTile(52,10,44)
+				DisplayMap()
+				PressAnyKey()
+
+	if (On(40,78))
+		if (Not(Flag::IsSet(54)))
+			DisplayMap()
+
+			Wait(500)
+			Party::Move(-1, 0)
+			DisplayMap()
+
+			Wait(500)
+			Party::Move(-1, 0)
+			DisplayMap()
+
+			Wait(500)
+			Party::Move(-1, 0)
+			DisplayMap()
+
+			Map::ChangeTile(40,78,44)
+			Talk("일행은 가장 기본적인 무기로  모두  무장을 하였다.")
+
+			temp.assign(1)
+			if (Player::IsAvailable(temp))
+				if (Equal(Player::GetAttribute(temp, "weapon"), 0))
+					if (Not(Equal(Player::GetAttribute(temp, "class"), 5)))
+						Player::ChangeAttribute(temp, "weapon", 1)
+						Player::ChangeAttribute(temp, "pow_of_weapon", 5)
+			temp.assign(2)
+			if (Player::IsAvailable(temp))
+				if (Equal(Player::GetAttribute(temp, "weapon"), 0))
+					if (Not(Equal(Player::GetAttribute(temp, "class"), 5)))
+						Player::ChangeAttribute(temp, "weapon", 1)
+						Player::ChangeAttribute(temp, "pow_of_weapon", 5)
+			temp.assign(3)
+			if (Player::IsAvailable(temp))
+				if (Equal(Player::GetAttribute(temp, "weapon"), 0))
+					if (Not(Equal(Player::GetAttribute(temp, "class"), 5)))
+						Player::ChangeAttribute(temp, "weapon", 1)
+						Player::ChangeAttribute(temp, "pow_of_weapon", 5)
+			temp.assign(4)
+			if (Player::IsAvailable(temp))
+				if (Equal(Player::GetAttribute(temp, "weapon"), 0))
+					if (Not(Equal(Player::GetAttribute(temp, "class"), 5)))
+						Player::ChangeAttribute(temp, "weapon", 1)
+						Player::ChangeAttribute(temp, "pow_of_weapon", 5)
+			temp.assign(5)
+			if (Player::IsAvailable(temp))
+				if (Equal(Player::GetAttribute(temp, "weapon"), 0))
+					if (Not(Equal(Player::GetAttribute(temp, "class"), 5)))
+						Player::ChangeAttribute(temp, "weapon", 1)
+						Player::ChangeAttribute(temp, "pow_of_weapon", 5)
+			temp.assign(6)
+			if (Player::IsAvailable(temp))
+				if (Equal(Player::GetAttribute(temp, "weapon"), 0))
+					if (Not(Equal(Player::GetAttribute(temp, "class"), 5)))
+						Player::ChangeAttribute(temp, "weapon", 1)
+						Player::ChangeAttribute(temp, "pow_of_weapon", 5)
+
+			Flag::Set(54)
+
+	if (OnArea(48,95,52,95))
+		DisplayMap()
+		Select::Init()
+		Select::Add("여기서 나가기를 원합니까 ?")
+		Select::Add("예, 그렇습니다.")
+		Select::Add("아니오, 원하지 않습니다.")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			if (Not(Flag::IsSet(55)))
+				Talk("당신이 LORE 성을 떠나려는 순간 누군가가 당신을 불렀다.")
+				PressAnyKey()
+
+				party_x.assign(Party::PosX())
+				party_y.assign(Party::PosY())
+				party_y.add(-5)
+
+				Map::ChangeTile(party_x,party_y,44)
+				party_y.add(1)
+				Map::ChangeTile(party_x,party_y,48)
+				DisplayMap()
+				Wait(300)
+
+				Map::ChangeTile(party_x,party_y,44)
+				party_y.add(1)
+				Map::ChangeTile(party_x,party_y,48)
+				DisplayMap()
+				Wait(300)
+
+				Map::ChangeTile(party_x,party_y,44)
+				party_y.add(1)
+				Map::ChangeTile(party_x,party_y,48)
+				DisplayMap()
+				Wait(300)
+
+				Map::ChangeTile(party_x,party_y,44)
+				party_y.add(1)
+				Map::ChangeTile(party_x,party_y,48)
+				DisplayMap()
+				Wait(300)
+
+				Talk("나는 Skeleton이라 불리는 종족의 사람이오.")
+				Talk("")
+				Talk("우리 종족의 사람들은 나를 제외하고는 모두 Necromancer에게 굴복하여 그의 부하가 되었지만 나는 그렇지 않소. 나는 Necromancer 의 영향을 피해서 이곳 LORE 성으로 왔지만 나의 혐오스런 생김새 때문에 이곳 사람들에게 배척되어서 지금은 어디로도 갈 수 없는 존재가 되었소. 이제 나에게 남은 것은 Necromancer 의 타도 밖에 없소. 그래서 당신들의 일행에 끼고싶소.")
+				Talk("")
+				PressAnyKey()
+
+				Select::Init()
+				Select::Add("")
+				Select::Add("당신을 환영하오.")
+				Select::Add("미안하지만 안되겠소.")
+				Select::Run()
+				temp.assign(Select::Result())
+				if (Equal(temp, 1))
+					Player::AssignFromEnemyData(6,19)
+					DisplayStatus()
+
+				Flag::Set(55)
+
+			LoadScript("ground1.cm2", 19, 11)
+		else
+			WarpPrevPos()
+			DisplayMap()
+
+	halt()
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (On(25, 23))
+		Select::Init()
+		Select::Add("새로운 스크립트를 로드하시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("town1.cm2")
+
+if (FLAG_MAP.Equal(ScriptMode()))
+	Map::LoadFromFile("town1.map")
+	Map::SetType(0)
+	Map::SetEncounter(1, 0)
+	Map::SetStartPos(49, 83)
+	Tile::CopyTile(44,0)
+
+	Map::ChangeTile(40,77,6)
+	Map::ChangeTile(40,78,16)
+	Map::ChangeTile(40,79,6)
+
+	if (Flag::IsSet(31))
+		Map::ChangeTile(48,51,47)
+		Map::ChangeTile(49,51,44)
+		Map::ChangeTile(50,51,44)
+		Map::ChangeTile(51,51,44)
+		Map::ChangeTile(52,51,47)
+		Map::ChangeTile(48,52,47)
+		Map::ChangeTile(49,52,44)
+		Map::ChangeTile(50,52,44)
+		Map::ChangeTile(51,52,44)
+		Map::ChangeTile(52,52,45)
+
+	if (Flag::IsSet(32))
+		Map::ChangeTile(48,87,44)
+		Map::ChangeTile(49,87,44)
+		Map::ChangeTile(50,87,44)
+		Map::ChangeTile(51,87,44)
+		Map::ChangeTile(52,87,44)
+
+halt()
+
+
+이벤트 정리
+
+- var
+10: 로드 안과 대화
+
+- flag
+31: 로어성의 왕궁이 열림
+32: 로어성의 성문이 열림
+50: Jr. Antares를 만나서 대화
+51: 로어성 사거리의 병사가 의문의 인물로 변한 후 '또 다른 지식의 성전'의 존재를 알려 줌
+52: Mad joe를 일행으로 풀어 줌
+53: Mad joe를 풀어 주다가 경비병과 싸운 적이 있음
+54: 로어성의 기본 무기로 무장
+55: skeleton 조우 이벤트
+
+
+미구현
+
+4개의 가게
+
+
+
+
+안녕하시오. 나는 한때 이 곳의 유명한 도둑이었던 사람이오. 결국 그 때문에 나는 잡혀서 평생 여기에 있게 되었지만...
+그건 그렇고, 내가 LORE 성의 보물인 황금의 방패를 훔쳐 달아나다. 그만 그것을 MENACE라는 금광에 숨겨 놓은채 잡혀 버리고 말았소.
+나는 이제 그것을 가져봤자 쓸때도 없으니 차라리 당신이 그걸 가지시오. 가만있자... 어디였더라... 그래 ! MENACE의 가운데쯤에 벽으로 사방이 둘러 싸여진 곳이었는데.. 당신들이라면 지금 여기에 들어온것과 같은 방법으로 들어가서 방패를 찾을수 있을것이오. 행운을 빌겠소.

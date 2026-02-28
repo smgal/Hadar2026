@@ -1,0 +1,68 @@
+
+####### 스크립트 상수 정의 ########
+
+# align 정의
+variable(ALIGN_LEFT)
+variable(ALIGN_CENTER)
+variable(ALIGN_RIGHT)
+
+ALIGN_LEFT.assign(0)
+ALIGN_CENTER.assign(1)
+ALIGN_RIGHT.assign(2)
+
+# hadicap 상수 정의
+variable(HANDICAP_TILECHANGING)
+variable(HANDICAP_TELEPORT)
+variable(HANDICAP_SEETHROUGH)
+variable(HANDICAP_CLAIRVOYANCE)
+
+HANDICAP_TILECHANGING.assign(0)
+HANDICAP_TELEPORT.assign(1)
+HANDICAP_SEETHROUGH.assign(2)
+HANDICAP_CLAIRVOYANCE.assign(3)
+
+# Map::SetType() 상수 정의
+variable(MAPTYPE_TOWN)
+variable(MAPTYPE_KEEP)
+variable(MAPTYPE_GROUND)
+variable(MAPTYPE_DEN)
+
+MAPTYPE_TOWN.assign(0)
+MAPTYPE_KEEP.assign(1)
+MAPTYPE_GROUND.assign(2)
+MAPTYPE_DEN.assign(3)
+
+# Party::CheckIf() 상수 정의
+variable(CHECKIF_MAGICTORCH)
+variable(CHECKIF_LEVITATION)
+variable(CHECKIF_WALKONWATER)
+variable(CHECKIF_WALKONSWAMP)
+variable(CHECKIF_MINDCONTROL)
+
+CHECKIF_MAGICTORCH.assign(0)
+CHECKIF_LEVITATION.assign(1)
+CHECKIF_WALKONWATER.assign(2)
+CHECKIF_WALKONSWAMP.assign(3)
+CHECKIF_MINDCONTROL.assign(4)
+
+# Battle::Result()() 상수 정의
+variable(BATTLERESULT_EVADE)
+variable(BATTLERESULT_WIN)
+variable(BATTLERESULT_LOSE)
+
+BATTLERESULT_EVADE.assign(0)
+BATTLERESULT_WIN.assign(1)
+BATTLERESULT_LOSE.assign(2)
+
+# flag 상수 정의
+variable(FLAG_MAP)
+variable(FLAG_TALK)
+variable(FLAG_SIGN)
+variable(FLAG_EVENT)
+variable(FLAG_ENTER)
+
+FLAG_MAP.assign(0)
+FLAG_TALK.assign(1)
+FLAG_SIGN.assign(2)
+FLAG_EVENT.assign(3)
+FLAG_ENTER.assign(4)
