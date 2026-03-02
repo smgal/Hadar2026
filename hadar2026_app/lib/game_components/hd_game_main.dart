@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
@@ -12,9 +13,7 @@ import '../scripting/hd_script_engine.dart';
 import 'hd_tile_properties.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // For kIsWeb
-import 'package:flutter/services.dart'; // For Key events
 import 'hd_window_manager.dart';
-import '../models/hd_magic_window.dart';
 import 'package:flame/flame.dart'; // For image caching
 import 'package:bonfire/bonfire.dart';
 import '../models/hd_player.dart';
@@ -68,56 +67,53 @@ class HDGameMain with ChangeNotifier {
     HardwareKeyboard.instance.addHandler((KeyEvent event) {
       if (event is! KeyDownEvent) return false;
 
-      // 0. If in Map mode, let other listeners (e.g. Bonfire) handle it
-      if (currentInputMode == HDInputMode.map) return false;
-
-      print("Global Handler: key=${event.logicalKey} mode=$currentInputMode");
-
       final key = event.logicalKey;
+      final mode = currentInputMode;
 
       // 1. Window Handling (Top Priority)
-      if (currentInputMode == HDInputMode.window) {
+      if (mode == HDInputMode.window) {
+        if (HDWindowManager().handleInput(event)) {
+          return true;
+        }
+
+        // Fallback for windows that don't implement handleInput manually
+        // This handles cases where a window might not explicitly consume a key,
+        // but we still want to close it on Escape/Q.
+        // This should be the *last* check in window handling.
         final topWindow = HDWindowManager().windows.last;
-        if (topWindow is HDMagicSelectionWindow) {
-          if (key == LogicalKeyboardKey.arrowUp) {
-            topWindow.moveCursor(-1);
-            return true;
-          } else if (key == LogicalKeyboardKey.arrowDown) {
-            topWindow.moveCursor(1);
-            return true;
-          } else if (key == LogicalKeyboardKey.enter ||
-              key == LogicalKeyboardKey.space) {
-            topWindow.confirm();
-            return true;
-          } else if (key == LogicalKeyboardKey.escape) {
-            topWindow.cancel();
-            return true;
-          }
+        if (key == LogicalKeyboardKey.escape ||
+            key == LogicalKeyboardKey.keyQ) {
+          topWindow.isVisible = false;
+          HDWindowManager().notifyListeners();
+          return true;
         }
         return true; // Consume all keys when windows are open
       }
 
       // 2. Menu Handling
-      if (currentInputMode == HDInputMode.menu) {
+      if (mode == HDInputMode.menu) {
         final menu = activeMenu!;
-        if (key == LogicalKeyboardKey.arrowUp) {
+        if (key == LogicalKeyboardKey.arrowUp ||
+            key == LogicalKeyboardKey.keyW) {
           menu.selectedIndex--;
           if (menu.selectedIndex < 1) menu.selectedIndex = menu.enabledCount;
           notifyListeners();
           return true;
-        } else if (key == LogicalKeyboardKey.arrowDown) {
+        } else if (key == LogicalKeyboardKey.arrowDown ||
+            key == LogicalKeyboardKey.keyS) {
           menu.selectedIndex++;
           if (menu.selectedIndex > menu.enabledCount) menu.selectedIndex = 1;
           notifyListeners();
           return true;
         } else if (key == LogicalKeyboardKey.enter ||
-            key == LogicalKeyboardKey.space) {
+            key == LogicalKeyboardKey.keyE) {
           final result = menu.selectedIndex;
           activeMenu = null;
           menu.completer.complete(result);
           notifyListeners();
           return true;
-        } else if (key == LogicalKeyboardKey.escape) {
+        } else if (key == LogicalKeyboardKey.escape ||
+            key == LogicalKeyboardKey.keyQ) {
           activeMenu = null;
           menu.completer.complete(0); // 0 = Cancel
           notifyListeners();
@@ -126,14 +122,18 @@ class HDGameMain with ChangeNotifier {
         return true; // Consume all keys while menu is active
       }
 
-      // 2. "Any Key" Handling for Dialogue
-      if (currentInputMode == HDInputMode.dialogue) {
-        // Exclude Arrows and Modifiers
-        bool isArrow =
+      // 3. "Any Key" Handling for Dialogue
+      if (mode == HDInputMode.dialogue) {
+        // Exclude Arrows/WASD and Modifiers
+        bool isDirectional =
             key == LogicalKeyboardKey.arrowUp ||
             key == LogicalKeyboardKey.arrowDown ||
             key == LogicalKeyboardKey.arrowLeft ||
-            key == LogicalKeyboardKey.arrowRight;
+            key == LogicalKeyboardKey.arrowRight ||
+            key == LogicalKeyboardKey.keyW ||
+            key == LogicalKeyboardKey.keyA ||
+            key == LogicalKeyboardKey.keyS ||
+            key == LogicalKeyboardKey.keyD;
 
         bool isModifier =
             key == LogicalKeyboardKey.shiftLeft ||
@@ -145,11 +145,24 @@ class HDGameMain with ChangeNotifier {
             key == LogicalKeyboardKey.metaLeft ||
             key == LogicalKeyboardKey.metaRight;
 
-        if (!isArrow && !isModifier) {
+        if (!isDirectional && !isModifier) {
           dismissKeyWait();
           return true; // Consume event
         }
       }
+
+      // 4. Map Mode - Menu Trigger
+      if (mode == HDInputMode.map) {
+        if (key == LogicalKeyboardKey.escape ||
+            key == LogicalKeyboardKey.keyQ ||
+            key == LogicalKeyboardKey.space) {
+          // Open main menu
+          showMainMenu();
+          return true;
+        }
+        // Action (Enter/E) is handled by HDPlayer for now to know facing/position
+      }
+
       return false;
     });
   }
@@ -830,24 +843,6 @@ class HDGameMain with ChangeNotifier {
         exit(0);
       }
     }
-  }
-
-  Future<void> onSpacePressed() async {
-    // 1. If we are waiting for a key to continue dialogue, this takes priority
-    if (isWaitingForKey) {
-      dismissKeyWait();
-      return;
-    }
-
-    // 2. If a menu is already active, escape it (ESC handled by global handler, but Space usually selects)
-    if (activeMenu != null) return;
-
-    // 3. If a script is already executing (and NOT waiting for a key), prevent overlap
-    if (_isScriptRunning) return;
-
-    // 4. Check Window Manager (Higher priority than global menu if any window blocks input)
-    // For now, Main Menu is top priority when in Map mode
-    await showMainMenu();
   }
 
   Future<void> checkTileEvent(

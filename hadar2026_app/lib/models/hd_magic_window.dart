@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'hd_window.dart';
 import 'hd_magic.dart';
 import 'hd_player.dart';
@@ -45,9 +46,25 @@ class HDMagicSelectionWindow extends HDWindow {
 
   @override
   bool handleInput(dynamic event) {
-    if (event is! double) {
-      // Placeholder for key events if we use a different type, but HDGameMain uses LogicalKeyboardKey
-      // For now, let's assume we pass LogicalKeyboardKey
+    if (event is! KeyEvent) return false;
+    final key = event.logicalKey;
+
+    if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.keyW) {
+      moveCursor(-1);
+      return true;
+    } else if (key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.keyS) {
+      moveCursor(1);
+      return true;
+    } else if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.space ||
+        key == LogicalKeyboardKey.keyE) {
+      confirm();
+      return true;
+    } else if (key == LogicalKeyboardKey.escape ||
+        key == LogicalKeyboardKey.keyQ) {
+      cancel();
+      return true;
     }
     return false;
   }

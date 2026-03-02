@@ -47,7 +47,10 @@ class _HDMapViewportState extends State<HDMapViewport> {
             Keyboard(
               config: KeyboardConfig(
                 enableDiagonalInput: false,
-                directionalKeys: [KeyboardDirectionalKeys.arrows()],
+                directionalKeys: [
+                  KeyboardDirectionalKeys.arrows(),
+                  KeyboardDirectionalKeys.wasd(),
+                ],
               ),
             ),
           ],

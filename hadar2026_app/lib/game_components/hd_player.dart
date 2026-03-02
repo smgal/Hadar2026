@@ -22,6 +22,7 @@ class HDPlayer extends SimplePlayer with BlockMovementCollision {
   Completer<void>? _scriptMoveCompleter;
   int _scriptDx = 0;
   int _scriptDy = 0;
+  String? _lastMoveLog;
 
   HDPlayer(this.party)
     : super(
@@ -88,7 +89,7 @@ class HDPlayer extends SimplePlayer with BlockMovementCollision {
     idle();
   }
 
-  bool _spacePressed = false;
+  bool _actionPressed = false;
 
   bool _isProcessingMove = false;
 
@@ -110,18 +111,21 @@ class HDPlayer extends SimplePlayer with BlockMovementCollision {
     gameRef.camera.stop();
     gameRef.camera.position = position + Vector2(16, 16);
 
-    // Check for interaction key (Space)
+    // Check for interaction keys (Enter, E)
     final mode = HDGameMain().currentInputMode;
-    if (mode == HDInputMode.map &&
+    bool isActionKeyPressed =
         HardwareKeyboard.instance.isLogicalKeyPressed(
-          LogicalKeyboardKey.space,
-        )) {
-      if (!_spacePressed) {
-        _spacePressed = true;
-        HDGameMain().onSpacePressed();
+          LogicalKeyboardKey.enter,
+        ) ||
+        HardwareKeyboard.instance.isLogicalKeyPressed(LogicalKeyboardKey.keyE);
+
+    if (mode == HDInputMode.map && isActionKeyPressed) {
+      if (!_actionPressed) {
+        _actionPressed = true;
+        _interactWithFacingTile();
       }
     } else {
-      _spacePressed = false;
+      _actionPressed = false;
     }
 
     if (_isMoving && _targetPosition != null) {
@@ -251,9 +255,29 @@ class HDPlayer extends SimplePlayer with BlockMovementCollision {
         }
       }
     }
-    print(
-      "Move Attempt: ($nextX, $nextY) tileId=$tileIdAtNext passable=$isPassable",
-    );
+
+    // Log movement/interaction attempt
+    if (map != null && tileIdAtNext != null) {
+      final action = HDTileProperties.getAction(
+        tileIdAtNext,
+        HDGameMain().gameOption.mapType,
+      );
+
+      String flags = "";
+      if (action == HDTileProperties.ACTION_TALK) flags += "Tak";
+      if (action == HDTileProperties.ACTION_SIGN) flags += "Sig";
+      if (action == HDTileProperties.ACTION_EVENT) flags += "Evt";
+      if (action == HDTileProperties.ACTION_ENTER) flags += "Ent";
+      if (action == HDTileProperties.ACTION_WATER) flags += "Wtr";
+      if (action == HDTileProperties.ACTION_SWAMP) flags += "Swm";
+      if (action == HDTileProperties.ACTION_LAVA) flags += "Lav";
+
+      final currentLog = "MOVE: ($nextX, $nextY) - id($tileIdAtNext) [$flags]";
+      if (flags.isNotEmpty && currentLog != _lastMoveLog) {
+        print(currentLog);
+        _lastMoveLog = currentLog;
+      }
+    }
 
     if (isPassable) {
       _lastInteractedX = null;
@@ -299,20 +323,25 @@ class HDPlayer extends SimplePlayer with BlockMovementCollision {
       }
 
       // If blocked, check if it's an interactive tile (Talk, Sign, Enter)
-      // Original logic: Interaction happens when attempting to move into a blocking event tile.
-      final tileId = map!.getTile(nextX, nextY);
-      final action = HDTileProperties.getAction(
-        tileId,
-        HDGameMain().gameOption.mapType,
-      );
-      if (action == HDTileProperties.ACTION_TALK ||
-          action == HDTileProperties.ACTION_SIGN ||
-          action == HDTileProperties.ACTION_ENTER) {
-        // Only trigger if we haven't interacted with THIS tile in THIS press session
-        if (_lastInteractedX != nextX || _lastInteractedY != nextY) {
-          await HDGameMain().checkTileEvent(nextX, nextY, isInteraction: true);
-          _lastInteractedX = nextX;
-          _lastInteractedY = nextY;
+      if (map != null) {
+        final tileId = map.getTile(nextX, nextY);
+        final action = HDTileProperties.getAction(
+          tileId,
+          HDGameMain().gameOption.mapType,
+        );
+        if (action == HDTileProperties.ACTION_TALK ||
+            action == HDTileProperties.ACTION_SIGN ||
+            action == HDTileProperties.ACTION_ENTER) {
+          // Only trigger if we haven't interacted with THIS tile in THIS press session
+          if (_lastInteractedX != nextX || _lastInteractedY != nextY) {
+            await HDGameMain().checkTileEvent(
+              nextX,
+              nextY,
+              isInteraction: true,
+            );
+            _lastInteractedX = nextX;
+            _lastInteractedY = nextY;
+          }
         }
       }
 
@@ -322,6 +351,33 @@ class HDPlayer extends SimplePlayer with BlockMovementCollision {
         _scriptMoveCompleter = null;
       }
     }
+  }
+
+  void _interactWithFacingTile() {
+    int dx = 0;
+    int dy = 0;
+    switch (lastDirection) {
+      case Direction.left:
+        dx = -1;
+        break;
+      case Direction.right:
+        dx = 1;
+        break;
+      case Direction.up:
+        dy = -1;
+        break;
+      case Direction.down:
+        dy = 1;
+        break;
+      default:
+        return;
+    }
+
+    int targetX = party.x + dx;
+    int targetY = party.y + dy;
+
+    // Trigger manual interaction
+    HDGameMain().checkTileEvent(targetX, targetY, isInteraction: true);
   }
 
   /// Forces the player to move via script, awaiting the completion of the physical movement
