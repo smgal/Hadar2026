@@ -100,7 +100,7 @@ class HDConsolePanel extends StatelessWidget {
                 return Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
-                    "아무키나 누르십시오 ...",
+                    "계속하려면 누르십시오 ...",
                     style: TextStyle(
                       color: Colors.yellow.shade600,
                       fontSize: HDConfig.consoleFontSize,

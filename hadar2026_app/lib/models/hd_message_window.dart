@@ -27,7 +27,10 @@ class HDMessageWindow extends HDWindow {
   bool handleInput(dynamic event) {
     if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.space ||
-          event.logicalKey == LogicalKeyboardKey.enter) {
+          event.logicalKey == LogicalKeyboardKey.enter ||
+          event.logicalKey == LogicalKeyboardKey.keyE ||
+          event.logicalKey == LogicalKeyboardKey.escape ||
+          event.logicalKey == LogicalKeyboardKey.keyQ) {
         close();
         return true;
       }
