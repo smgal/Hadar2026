@@ -22,32 +22,32 @@ class HDConsolePanel extends StatelessWidget {
             child: ListenableBuilder(
               listenable: HDGameMain(),
               builder: (context, child) {
-                final activeMenu = HDGameMain().activeMenu;
-                final logs = HDGameMain().logs;
+                final main = HDGameMain();
+                final bool isEventMode = main.isEventMode;
+                final activeMenu = main.activeMenu;
 
                 final List<InlineSpan> combinedItems;
                 int menuStartIndex = -1;
 
-                if (activeMenu != null) {
-                  // Parse menu items since they can also have @ tags
-                  final parsedMenuItems = activeMenu.items
-                      .map(
-                        (item) => HDTextUtils.parseRichText(
-                          item,
-                          baseStyle: HDGameMain.consoleStyle,
-                        ),
-                      )
-                      .toList();
+                if (isEventMode) {
+                  final eventLogs = main.eventLogs;
+                  if (activeMenu != null) {
+                    final parsedMenuItems = activeMenu.items
+                        .map(
+                          (item) => HDTextUtils.parseRichText(
+                            item,
+                            baseStyle: HDGameMain.consoleStyle,
+                          ),
+                        )
+                        .toList();
 
-                  if (activeMenu.clearLogs) {
-                    combinedItems = parsedMenuItems;
-                    menuStartIndex = 0;
+                    combinedItems = [...eventLogs, ...parsedMenuItems];
+                    menuStartIndex = eventLogs.length;
                   } else {
-                    combinedItems = [...logs, ...parsedMenuItems];
-                    menuStartIndex = logs.length;
+                    combinedItems = [...eventLogs];
                   }
                 } else {
-                  combinedItems = logs;
+                  combinedItems = [...main.progressLogs];
                 }
 
                 return ListView.builder(

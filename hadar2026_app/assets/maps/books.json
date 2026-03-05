@@ -1,0 +1,70 @@
+{
+	"weapon":
+	[
+		{
+			"id"        :   1,
+			"name"      :   "맨손",
+			"type"      :   "NONE",
+			"power"     :   1.0,
+			"etc_data"  :   [1, 2, 3, 4],
+			"etc_description":
+			{
+				"brief":
+				[
+					{"image": "img_fist", "text": "무기를 장착하지 않은 상태이다. 일반적으로는 무기가 없는 상태라면 전투에 불리하지만 맨손 격투에 자신이 있다면 맨손도 좋을 것이다."}
+				]
+			}
+		},
+		{
+			"id"       : 2,
+			"name"     : "단도",
+			"type"     : "STAB",
+			"power"    : 5.0,
+			"etc_data" : [1, 2, 3, 4],
+			"etc_description": { "brief": [ {"image": "img", "text": "txt"} ] }
+		},
+		{
+			"id"       : 3,
+			"name"     : "단검",
+			"type"     : "WIELD",
+			"power"    : 15.0,
+			"etc_data" : [1, 2, 3, 4],
+			"etc_description": { "brief": [ {"image": "img", "text": "txt"} ] }
+		},
+		{
+			"id"       : 4,
+			"name"     : "단창",
+			"type"     : "STAB",
+			"power"    : 20.0,
+			"etc_data" : [1, 2, 3, 4],
+			"etc_description": { "brief": [ {"image": "img", "text": "txt"} ] }
+		},
+		{
+			"id"       : 5,
+			"name"     : "작은도끼",
+			"type"     : "CHOP",
+			"power"    : 22.0,
+			"etc_data" : [1, 2, 3, 4],
+			"etc_description": { "brief": [ {"image": "img", "text": "txt"} ] }
+		}
+	],
+
+	"armor":
+	[
+		{
+			"id"       : 0,
+			"name"     : "맨몸",
+			"ac"       : 0.0
+		},
+		{
+			"id"       : 1,
+			"name"     : "두꺼운옷",
+			"ac"       : 10.0
+		},
+		{
+			"id"       : 2,
+			"name"     : "가죽갑옷",
+			"ac"       : 20.0
+		}
+	]
+}
