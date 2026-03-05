@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'dart:convert';
 import '../models/map_model.dart';
 import '../models/hd_party.dart';
 import '../models/hd_game_option.dart';
@@ -10,6 +11,7 @@ import 'hd_save_manager.dart';
 import 'hd_battle.dart';
 // import '../views/hd_window_view.dart'; // No longer needed for HDMessageWindow type
 import '../scripting/hd_script_engine.dart';
+import '../scripting/hd_native_script_runner.dart';
 import 'hd_tile_properties.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // For kIsWeb
@@ -180,10 +182,12 @@ class HDGameMain with ChangeNotifier {
   String? errorMessage;
   int mapVersion = 0;
   BonfireGameInterface? mapViewGameRef;
-  final List<TextSpan> logs = [];
+  final List<TextSpan> progressLogs = [];
+  final List<TextSpan> eventLogs = [];
+  bool get isEventMode => activeMenu != null || eventLogs.isNotEmpty;
   final HDParty party = HDParty();
   final HDGameOption gameOption = HDGameOption();
-  final HDMapLoader _mapLoader = HDMapLoader();
+  final HDMapLoader mapLoader = HDMapLoader();
   bool _isScriptRunning = false;
   bool get isScriptRunning => _isScriptRunning;
 
@@ -203,20 +207,23 @@ class HDGameMain with ChangeNotifier {
     );
 
     for (var line in newLines) {
-      if (logs.length >= maxLinesPerPage) {
-        if (isDialogue) {
+      if (isDialogue) {
+        if (eventLogs.length >= maxLinesPerPage) {
           // Dialogue: Wait for key and clear all
           await waitForAnyKey();
           clearLogs();
           // Wait for one frame to let UI clear
           await Future.delayed(Duration.zero);
-        } else {
-          // Log: Auto-scroll by removing the first line
-          logs.removeAt(0);
         }
+        eventLogs.add(line);
+      } else {
+        if (progressLogs.length >= maxLinesPerPage) {
+          // Log: Auto-scroll by removing the first line
+          progressLogs.removeAt(0);
+        }
+        progressLogs.add(line);
       }
 
-      logs.add(line);
       notifyListeners();
       // Allow UI to render the added line
       await Future.delayed(const Duration(milliseconds: 10));
@@ -240,7 +247,7 @@ class HDGameMain with ChangeNotifier {
   }
 
   void clearLogs() {
-    logs.clear();
+    eventLogs.clear();
     notifyListeners();
   }
 
@@ -270,9 +277,11 @@ class HDGameMain with ChangeNotifier {
     // Load Script
     await HDScriptEngine().loadScript(HDConfig.startupScript);
 
-    // Init Map (ScriptMode = 0 / flag_map)
+    // Ensure backwards compat if cm2 triggers something, but mainly we use Native
     HDScriptEngine().setScriptMode(0);
-    await HDScriptEngine().run();
+
+    // Start native dart scripts
+    await HDNativeScriptRunner().startNewGame();
   }
 
   void update(double dt) {
@@ -855,8 +864,7 @@ class HDGameMain with ChangeNotifier {
 
     _isScriptRunning = true;
     try {
-      int tileId = map!.getTile(x, y);
-      int action = HDTileProperties.getAction(tileId, gameOption.mapType);
+      int action = HDTileProperties.getUnitAction(map!.getUnit(x, y));
 
       if (isInteraction) {
         // ONLY clear and run if the tile has a scriptable interaction action
@@ -866,9 +874,12 @@ class HDGameMain with ChangeNotifier {
           clearLogs();
           await Future.delayed(Duration.zero);
 
-          HDScriptEngine().setTargetPos(x, y);
-          HDScriptEngine().setScriptMode(action); // Match mode to tile action
-          await HDScriptEngine().run();
+          await HDNativeScriptRunner().processMapEvent(action, x, y);
+          if (HDNativeScriptRunner().currentMapScript == null) {
+            HDScriptEngine().setTargetPos(x, y);
+            HDScriptEngine().setScriptMode(action); // Match mode to tile action
+            await HDScriptEngine().run();
+          }
         }
       } else {
         // Step-On (Automatic)
@@ -878,11 +889,12 @@ class HDGameMain with ChangeNotifier {
           clearLogs();
           await Future.delayed(Duration.zero);
 
-          HDScriptEngine().setTargetPos(x, y);
-          HDScriptEngine().setScriptMode(
-            action,
-          ); // Match mode to tile action (EVENT=3, ENTER=4)
-          await HDScriptEngine().run();
+          await HDNativeScriptRunner().processMapEvent(action, x, y);
+          if (HDNativeScriptRunner().currentMapScript == null) {
+            HDScriptEngine().setTargetPos(x, y);
+            HDScriptEngine().setScriptMode(action); // Match mode to tile action
+            await HDScriptEngine().run();
+          }
         }
 
         // 2. Internal Engine Events (Swamp, Lava)
@@ -890,6 +902,11 @@ class HDGameMain with ChangeNotifier {
           await addLog("일행은 독이 있는 늪에 들어갔다 !!!", isDialogue: false);
         } else if (action == HDTileProperties.ACTION_LAVA) {
           await addLog("일행은 용암지대로 들어섰다 !!!", isDialogue: false);
+        } else if (action == HDTileProperties.ACTION_WATER) {
+          if (party.walkOnWater > 0) {
+            party.walkOnWater--;
+            notifyListeners();
+          }
         }
       }
     } finally {
@@ -904,7 +921,29 @@ class HDGameMain with ChangeNotifier {
   Future<bool> loadMapFromFile(String fileName) async {
     try {
       errorMessage = null;
-      final newMap = await _mapLoader.loadMap(fileName);
+
+      // Ensure fileName acts as the internal map name without the extension
+      String searchName = fileName.replaceAll('.json', '');
+      String resolvedFileName = '$searchName.json'; // Fallback
+
+      try {
+        final mapInfosStr = await rootBundle.loadString(
+          'assets/maps/MapInfos.json',
+        );
+        final List<dynamic> mapInfos = jsonDecode(mapInfosStr);
+        for (var info in mapInfos) {
+          if (info != null && info['name'] == searchName) {
+            final int id = info['id'];
+            resolvedFileName = 'Map${id.toString().padLeft(3, '0')}.json';
+            break;
+          }
+        }
+      } catch (e) {
+        print("Could not load MapInfos.json for resolution: $e");
+      }
+
+      final mapPath = 'assets/maps/$resolvedFileName';
+      final newMap = await mapLoader.loadMap(mapPath);
       setNewMap(newMap);
       return true;
     } catch (e) {

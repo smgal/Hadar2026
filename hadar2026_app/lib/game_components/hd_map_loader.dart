@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../models/map_model.dart';
@@ -6,52 +7,92 @@ import '../models/map_model.dart';
 class HDMapLoader {
   Future<MapModel> loadMap(String assetPath) async {
     final map = MapModel();
-    ByteData byteData;
+    String jsonString = "";
 
     try {
       if (!kIsWeb && await File(assetPath).exists()) {
-        final bytes = await File(assetPath).readAsBytes();
-        byteData = ByteData.view(bytes.buffer);
+        jsonString = await File(assetPath).readAsString();
       } else {
-        final bytes = await rootBundle.load(assetPath);
-        byteData = bytes;
+        jsonString = await rootBundle.loadString(assetPath);
       }
     } catch (e) {
       throw Exception("File not found or unreadable: $assetPath ($e)");
     }
 
-    int offset = 0;
+    final Map<String, dynamic> jsonData = jsonDecode(jsonString);
 
-    // Read Header: Width (1 byte), Height (1 byte)
-    if (byteData.lengthInBytes < 2) {
-      throw Exception("File too short");
-    }
+    map.width = jsonData['width'] ?? 0;
+    map.height = jsonData['height'] ?? 0;
 
-    map.width = byteData.getUint8(offset++);
-    map.height = byteData.getUint8(offset++);
+    // Parse the data array
+    final List<dynamic> rawData = jsonData['data'] ?? [];
 
-    // Initialize data array
     int size = map.width * map.height;
-    map.data = Uint8List(size);
+    map.init(map.width, map.height);
 
-    print(
-      "MapLoader: Dimensions ${map.width}x${map.height}, attempting to read $size bytes. Available: ${byteData.lengthInBytes - offset}",
-    );
+    for (int y = 0; y < map.height; y++) {
+      for (int x = 0; x < map.width; x++) {
+        int index = y * map.width + x;
+        // Layers
+        // 0: tile
+        // 1: ?
+        // 2: obj0
+        // 3: obj1
+        // 4: shadow
+        // 5: event region
 
-    // Read Data
-    for (int i = 0; i < size; i++) {
-      if (offset < byteData.lengthInBytes) {
-        map.data[i] = byteData.getUint8(offset++);
-      } else {
-        map.data[i] = 0;
+        map.data[index].ixTile = _getLayerData(rawData, 0, index, size);
+        map.data[index].ixObj0 = _getLayerData(rawData, 2, index, size);
+        map.data[index].ixObj1 = _getLayerData(rawData, 3, index, size);
+        map.data[index].shadow = _getLayerData(rawData, 4, index, size);
+        map.data[index].ixEvent = _getLayerData(rawData, 5, index, size);
       }
     }
 
-    // Debug print
+    // Parse events
+    final List<dynamic> rawEvents = jsonData['events'] ?? [];
+    for (var ev in rawEvents) {
+      if (ev != null) {
+        final parsedEvent = MapEvent.fromJson(ev);
+        map.events.add(parsedEvent);
+
+        final unit = map.getUnit(parsedEvent.x, parsedEvent.y);
+        if (unit != null) {
+          int eventType = 0;
+          if (parsedEvent.type == "EVENT")
+            eventType = 0x00010000;
+          else if (parsedEvent.type == "TALK")
+            eventType = 0x00020000;
+          else if (parsedEvent.type == "SIGN")
+            eventType = 0x00030000;
+          else if (parsedEvent.type == "ENTER")
+            eventType = 0x00040000;
+
+          unit.ixEvent = eventType | parsedEvent.id;
+          print(
+            "MapLoader -> Event at (${parsedEvent.x}, ${parsedEvent.y}) type: ${parsedEvent.type}, id: ${parsedEvent.id}, lines: ${parsedEvent.dialogLines.length}",
+          );
+        }
+      }
+    }
+
     print(
       "Loaded map: ${map.width}x${map.height}, total ${map.data.length} tiles.",
     );
 
     return map;
+  }
+
+  int _getLayerData(List<dynamic> rawData, int layer, int index, int size) {
+    int dataIndex = layer * size + index;
+    if (dataIndex < rawData.length) {
+      int d = rawData[dataIndex] as int;
+      if (layer == 0) {
+        // Base tile subtraction
+        d = (d < 0x600) ? d : d - 0x600;
+      }
+      return d;
+    }
+    return 0;
   }
 }

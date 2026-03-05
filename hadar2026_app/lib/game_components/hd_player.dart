@@ -247,9 +247,9 @@ class HDPlayer extends SimplePlayer with BlockMovementCollision {
         isPassable = false;
       } else {
         tileIdAtNext = map.getTile(nextX, nextY);
-        if (!HDTileProperties.isPassable(
-          tileIdAtNext,
-          HDGameMain().gameOption.mapType,
+        if (!HDTileProperties.isUnitPassable(
+          map.getUnit(nextX, nextY),
+          walkOnWater: HDGameMain().party.walkOnWater,
         )) {
           isPassable = false;
         }
@@ -258,10 +258,7 @@ class HDPlayer extends SimplePlayer with BlockMovementCollision {
 
     // Log movement/interaction attempt
     if (map != null && tileIdAtNext != null) {
-      final action = HDTileProperties.getAction(
-        tileIdAtNext,
-        HDGameMain().gameOption.mapType,
-      );
+      final action = HDTileProperties.getUnitAction(map.getUnit(nextX, nextY));
 
       String flags = "";
       if (action == HDTileProperties.ACTION_TALK) flags += "Tak";
@@ -324,10 +321,8 @@ class HDPlayer extends SimplePlayer with BlockMovementCollision {
 
       // If blocked, check if it's an interactive tile (Talk, Sign, Enter)
       if (map != null) {
-        final tileId = map.getTile(nextX, nextY);
-        final action = HDTileProperties.getAction(
-          tileId,
-          HDGameMain().gameOption.mapType,
+        final action = HDTileProperties.getUnitAction(
+          map.getUnit(nextX, nextY),
         );
         if (action == HDTileProperties.ACTION_TALK ||
             action == HDTileProperties.ACTION_SIGN ||

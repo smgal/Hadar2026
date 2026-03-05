@@ -99,8 +99,12 @@ class _HDMapViewportState extends State<HDMapViewport> {
 
 class HDWorldMap extends WorldMap {
   final MapModel mapModel;
-  SpriteSheet? _tileSheet;
+
+  SpriteSheet? _tileSheetA5;
+  SpriteSheet? _tileSheetB;
+
   static const double renderTileSize = 32.0;
+  static const double srcTileSize = 48.0;
 
   HDWorldMap(this.mapModel) : super([]);
 
@@ -110,32 +114,71 @@ class HDWorldMap extends WorldMap {
   @override
   Future<void> onLoad() async {
     try {
-      final image = await Flame.images.load('lore_tile.bmp');
-      int columns = (image.width / 24).floor();
-      int rows = (image.height / 24).floor();
+      final imageA5 = await Flame.images.load('Lore_A5.png');
+      int colsA5 = (imageA5.width / srcTileSize).floor();
+      int rowsA5 = (imageA5.height / srcTileSize).floor();
 
-      _tileSheet = SpriteSheet.fromColumnsAndRows(
-        image: image,
-        columns: columns,
-        rows: rows,
+      _tileSheetA5 = SpriteSheet.fromColumnsAndRows(
+        image: imageA5,
+        columns: colsA5,
+        rows: rowsA5,
+      );
+
+      final imageB = await Flame.images.load('Lore_B.png');
+      int colsB = (imageB.width / srcTileSize).floor();
+      int rowsB = (imageB.height / srcTileSize).floor();
+
+      _tileSheetB = SpriteSheet.fromColumnsAndRows(
+        image: imageB,
+        columns: colsB,
+        rows: rowsB,
       );
     } catch (e) {
-      print("Error loading tile sheet: $e");
+      print("Error loading tile sheets: $e");
     }
-    // DO NOT add tiles as components anymore. We will render them manually for performance.
     return super.onLoad();
+  }
+
+  Sprite? _getA5Sprite(int id) {
+    if (_tileSheetA5 == null) return null;
+    int cols = _tileSheetA5!.columns;
+    if (cols <= 0) return null;
+    int row = id ~/ cols;
+    int col = id % cols;
+    if (row >= _tileSheetA5!.rows) return null;
+    return _tileSheetA5!.getSprite(row, col);
+  }
+
+  Sprite? _getBSprite(int id) {
+    if (_tileSheetB == null) return null;
+    if (id <= 0) return null;
+
+    // RPG Maker MZ direct global ID mapping:
+    // Left half of the image (cols 0~7, rows 0~15) has 128 items
+    // Right half of the image (cols 8~15, rows 0~15) has the next 128 items
+    int row;
+    int col;
+    if (id < 128) {
+      row = id ~/ 8;
+      col = id % 8;
+    } else {
+      int localId = id - 128;
+      row = localId ~/ 8;
+      col = 8 + (localId % 8);
+    }
+
+    if (row >= _tileSheetB!.rows || col >= _tileSheetB!.columns) return null;
+    return _tileSheetB!.getSprite(row, col);
   }
 
   @override
   void render(Canvas canvas) {
-    if (_tileSheet == null) return;
+    if (_tileSheetA5 == null || _tileSheetB == null) return;
 
     // Viewport Culling for performance
     final camera = gameRef.camera;
     final viewport = camera.viewport.size;
 
-    // If camera is not yet centered on player (e.g. first frame),
-    // Use player position as a fallback for culling to avoid black screen.
     Vector2 cameraPos = camera.position;
     if (cameraPos.x == 0 &&
         cameraPos.y == 0 &&
@@ -159,21 +202,47 @@ class HDWorldMap extends WorldMap {
 
     for (int y = startY; y <= endY; y++) {
       for (int x = startX; x <= endX; x++) {
-        int logicalTileId = mapModel.getTile(x, y);
+        final unit = mapModel.getUnit(x, y);
+        if (unit == null) continue;
+
+        // Base tile
+        int logicalTileId = unit.ixTile;
         int tileId = mapModel.tileOverrides[logicalTileId] ?? logicalTileId;
 
-        int mapType = HDGameMain().gameOption.mapType;
-        if (tileId >= 0 &&
-            tileId < _tileSheet!.columns &&
-            mapType < _tileSheet!.rows) {
-          final sprite = _tileSheet!.getSprite(mapType, tileId);
-          // nearest neighbor look
-          sprite.paint.filterQuality = FilterQuality.low;
-          sprite.render(
+        final a5Sprite = _getA5Sprite(tileId);
+        if (a5Sprite != null) {
+          a5Sprite.paint.filterQuality = FilterQuality.low;
+          a5Sprite.render(
             canvas,
             position: Vector2(x * renderTileSize, y * renderTileSize),
             size: Vector2(renderTileSize, renderTileSize),
           );
+        }
+
+        // Lower Object Layer
+        if (unit.ixObj0 > 0) {
+          final lowerSprite = _getBSprite(unit.ixObj0);
+          if (lowerSprite != null) {
+            lowerSprite.paint.filterQuality = FilterQuality.low;
+            lowerSprite.render(
+              canvas,
+              position: Vector2(x * renderTileSize, y * renderTileSize),
+              size: Vector2(renderTileSize, renderTileSize),
+            );
+          }
+        }
+
+        // Upper Object Layer
+        if (unit.ixObj1 > 0) {
+          final upperSprite = _getBSprite(unit.ixObj1);
+          if (upperSprite != null) {
+            upperSprite.paint.filterQuality = FilterQuality.low;
+            upperSprite.render(
+              canvas,
+              position: Vector2(x * renderTileSize, y * renderTileSize),
+              size: Vector2(renderTileSize, renderTileSize),
+            );
+          }
         }
       }
     }
