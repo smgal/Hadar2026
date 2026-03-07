@@ -78,7 +78,25 @@ class HDPlayer {
 
   bool isValid() => name.isNotEmpty;
 
-  bool isConscious() => isValid() && unconscious == 0 && dead == 0 && hp > 0;
+  bool isAvailable() => isValid() && unconscious == 0 && dead == 0 && hp > 0;
+
+  bool isConscious() => isAvailable();
+
+  void damaged(int damage) {
+    if (damage <= 0) return;
+    if (hp > 0) {
+      hp -= damage;
+      if (hp <= 0) {
+        hp = 0;
+        if (dead == 0) unconscious = 1;
+      }
+    }
+  }
+
+  void damagedByPoison() {
+    // 20 ~ 39 damage
+    damaged(20 + (DateTime.now().millisecondsSinceEpoch % 20));
+  }
 
   String getGenderName() {
     return gender == 0 ? "남성" : "여성";
