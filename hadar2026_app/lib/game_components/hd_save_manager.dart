@@ -1,16 +1,18 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/hd_game_option.dart';
 import '../models/map_model.dart';
 import '../scripting/hd_script_engine.dart';
 import 'hd_game_main.dart';
 
 class HDSaveManager {
+  static const String _savePrefix = 'hadar_save_';
+
   static Future<bool> saveGame(int index) async {
     final gameMain = HDGameMain();
     try {
-      final saveFile = File('save_data_$index.json');
+      final prefs = await SharedPreferences.getInstance();
 
       final Map<String, dynamic> data = {
         'version': 1,
@@ -20,7 +22,7 @@ class HDSaveManager {
       };
 
       final jsonString = jsonEncode(data);
-      await saveFile.writeAsString(jsonString);
+      await prefs.setString('${_savePrefix}$index', jsonString);
       return true;
     } catch (e) {
       if (kDebugMode) {
@@ -33,13 +35,13 @@ class HDSaveManager {
   static Future<bool> loadGame(int index) async {
     final gameMain = HDGameMain();
     try {
-      final saveFile = File('save_data_$index.json');
+      final prefs = await SharedPreferences.getInstance();
+      final String? jsonString = prefs.getString('${_savePrefix}$index');
 
-      if (!await saveFile.exists()) {
+      if (jsonString == null || jsonString.isEmpty) {
         return false;
       }
 
-      final jsonString = await saveFile.readAsString();
       final Map<String, dynamic> data = jsonDecode(jsonString);
 
       // 1. Restore Party (includes position)
