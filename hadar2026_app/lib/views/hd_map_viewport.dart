@@ -5,6 +5,7 @@ import '../models/hd_party.dart';
 import '../game_components/hd_game_main.dart';
 import '../game_components/hd_player.dart';
 import 'hd_battle_overlay.dart';
+import '../scripting/hd_native_script_runner.dart';
 
 class HDMapViewport extends StatefulWidget {
   final MapModel mapModel;
@@ -75,6 +76,34 @@ class _HDMapViewportState extends State<HDMapViewport> {
             builder: (context, child) {
               return Text(
                 "( ${widget.party.x}, ${widget.party.y})",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black,
+                      offset: Offset(1, 1),
+                      blurRadius: 2,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        // Time overlay (Top-right)
+        Positioned(
+          top: 4,
+          right: 4,
+          child: ListenableBuilder(
+            listenable: widget.party,
+            builder: (context, child) {
+              final h = widget.party.hour.toString().padLeft(2, '0');
+              final m = widget.party.min.toString().padLeft(2, '0');
+              final s = widget.party.sec.toString().padLeft(2, '0');
+              return Text(
+                "$h:$m:$s",
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -244,7 +273,156 @@ class HDWorldMap extends WorldMap {
             );
           }
         }
+
+        // Shadow / Night Layer
+        _renderShadow(canvas, x, y, unit.shadow);
       }
     }
+  }
+
+  void _renderShadow(Canvas canvas, int x, int y, int shadowVal) {
+    if (shadowVal <= 0) return;
+
+    int sightRange = _getSightRange();
+    if (sightRange >= 5) return;
+
+    // Grid-aligned light origin by default
+    int pX = HDGameMain().party.x;
+    int pY = HDGameMain().party.y;
+
+    final game = HDGameMain().mapViewGameRef;
+    if (game != null && game.player != null) {
+      double valX = game.player!.position.x / renderTileSize;
+      double valY = game.player!.position.y / renderTileSize;
+
+      // When moving (+), use ceil to see ahead. When moving (-), use floor.
+      // This provides instant feedback for the direction of movement.
+      pX = (valX > HDGameMain().party.x) ? valX.ceil() : valX.floor();
+      pY = (valY > HDGameMain().party.y) ? valY.ceil() : valY.floor();
+    }
+
+    bool inMoonlight = _isInMoonlight();
+    int lightBit = _computeLightBit(x, y, pX, pY, sightRange);
+    int ix = ((shadowVal ^ 15) | lightBit) ^ 15;
+
+    bool isThisTileBackOut = !inMoonlight && (ix == 15);
+
+    if (ix > 0) {
+      int shadowSpriteId = 240 + ix;
+      final shadowSprite = _getBSprite(shadowSpriteId);
+      if (shadowSprite != null) {
+        shadowSprite.paint.filterQuality = FilterQuality.low;
+
+        // Draw shadow
+        shadowSprite.render(
+          canvas,
+          position: Vector2(x * renderTileSize, y * renderTileSize),
+          size: Vector2(renderTileSize, renderTileSize),
+        );
+
+        // Double draw for full darkness outside moonlight
+        if (isThisTileBackOut) {
+          shadowSprite.render(
+            canvas,
+            position: Vector2(x * renderTileSize, y * renderTileSize),
+            size: Vector2(renderTileSize, renderTileSize),
+          );
+        }
+      }
+    }
+  }
+
+  int _computeLightBit(
+    int mapX,
+    int mapY,
+    int playerX,
+    int playerY,
+    int sightRange,
+  ) {
+    if (sightRange >= 5) return 15;
+
+    const int mag = 2;
+    int bit = 0;
+    double sqrRadius = mag * sightRange + 0.3;
+    sqrRadius *= sqrRadius;
+
+    for (int sy = 0; sy < mag; sy++) {
+      for (int sx = 0; sx < mag; sx++) {
+        double fx = (mapX - playerX) * mag + sx - 0.5;
+        double fy = (mapY - playerY) * mag + sy - 0.5;
+
+        if ((fx * fx + fy * fy) <= sqrRadius) {
+          int shift = sx + 2 * sy;
+          bit |= (1 << shift);
+        }
+      }
+    }
+    return bit;
+  }
+
+  int _getSightRange() {
+    final party = HDGameMain().party;
+    int time = party.hour * 100 + party.min;
+
+    int sightRange = 5;
+    if (time < 600)
+      sightRange = 1;
+    else if (time < 620)
+      sightRange = 2;
+    else if (time < 640)
+      sightRange = 3;
+    else if (time < 700)
+      sightRange = 4;
+    else if (time < 1800)
+      sightRange = 5;
+    else if (time < 1820)
+      sightRange = 4;
+    else if (time < 1840)
+      sightRange = 3;
+    else if (time < 1900)
+      sightRange = 2;
+    else
+      sightRange = 1;
+
+    String mapName = HDNativeScriptRunner().currentMapScript?.mapName ?? "";
+    bool isDen = mapName.toUpperCase().contains('DEN');
+    if (isDen) {
+      sightRange = 1;
+    }
+
+    bool inDark = isDen || !(party.hour >= 7 && party.hour < 17);
+
+    if (inDark && party.magicTorch > 0) {
+      if (party.magicTorch >= 1 && party.magicTorch <= 2) {
+        sightRange = sightRange > 2 ? sightRange : 2;
+      } else if (party.magicTorch >= 3 && party.magicTorch <= 4) {
+        sightRange = sightRange > 3 ? sightRange : 3;
+      } else {
+        sightRange = sightRange > 3 ? sightRange : 3;
+      }
+    }
+
+    return sightRange;
+  }
+
+  bool _isInMoonlight() {
+    final party = HDGameMain().party;
+    String mapName = HDNativeScriptRunner().currentMapScript?.mapName ?? "";
+    bool isDen = mapName.toUpperCase().contains('DEN');
+    bool isTown =
+        mapName.toUpperCase().contains('TOWN') ||
+        mapName.toUpperCase().contains('CASTLE');
+
+    bool inMoonlight = (party.day ~/ 12) >= 10 && (party.day ~/ 12) <= 20;
+    inMoonlight &= !isDen;
+    inMoonlight |= isTown;
+
+    if (isDen) return false;
+
+    bool inDark = isDen || !(party.hour >= 7 && party.hour < 17);
+    if (inDark && party.magicTorch > 4) {
+      inMoonlight = true;
+    }
+    return inMoonlight;
   }
 }

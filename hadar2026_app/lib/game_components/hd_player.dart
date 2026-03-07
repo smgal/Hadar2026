@@ -155,11 +155,22 @@ class HDPlayer extends SimplePlayer with BlockMovementCollision {
           (position.y / tileSize).round() - party.y,
         );
 
+        final mapType = HDGameMain().gameOption.mapType;
+        if (mapType == HDTileProperties.TYPE_GROUND) {
+          party.passTime(0, 2, 0); // 2 minutes on ground map
+        } else {
+          party.passTime(0, 0, 5); // 5 seconds on other maps
+        }
+        
+        // Status effect timers (Levitation, MindControl, Poison, etc)
+        party.timeGoes();
+
         // Trigger tile events (Event, Enter)
         // Fire-and-forget so we don't deadlock the next movement frame inside update(dt)
         HDGameMain().checkTileEvent(party.x, party.y, isInteraction: false);
 
         _isMoving = false;
+        party.isMoving = false;
         _targetPosition = null;
         _moveAccumulator = 0.0;
         idle();
@@ -279,10 +290,9 @@ class HDPlayer extends SimplePlayer with BlockMovementCollision {
     if (isPassable) {
       _lastInteractedX = null;
       _lastInteractedY = null;
-      Vector2 nextPos = Vector2(nextX * tileSize, nextY * tileSize);
-      _targetPosition = nextPos;
       _isMoving = true;
-
+      party.isMoving = true;
+      _targetPosition = Vector2(nextX * tileSize, nextY * tileSize);
       // Play running animation for direction
       switch (lastDirection) {
         case Direction.left:

@@ -162,6 +162,30 @@ class HDGameMain with ChangeNotifier {
           showMainMenu();
           return true;
         }
+
+        // Test time control keys
+        if (key == LogicalKeyboardKey.insert) {
+          party.hour = 5;
+          party.min = 59;
+          party.notifyListeners();
+          return true;
+        } else if (key == LogicalKeyboardKey.delete) {
+          party.hour = 18;
+          party.min = 9;
+          party.notifyListeners();
+          return true;
+        } else if (key == LogicalKeyboardKey.home) {
+          party.hour = 12;
+          party.min = 0;
+          party.notifyListeners();
+          return true;
+        } else if (key == LogicalKeyboardKey.end) {
+          party.hour = 0;
+          party.min = 0;
+          party.notifyListeners();
+          return true;
+        }
+
         // Action (Enter/E) is handled by HDPlayer for now to know facing/position
       }
 

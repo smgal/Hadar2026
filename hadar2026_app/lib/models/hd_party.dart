@@ -20,13 +20,22 @@ class HDParty extends ChangeNotifier {
   int food = 100;
   int gold = 500;
 
+  int year = 1;
+  int month = 1;
+  int day = 1;
+  int hour = 12;
+  int min = 0;
+  int sec = 0;
+
   int magicTorch = 0;
   int levitation = 0;
   int walkOnWater = 0;
   int walkOnSwamp = 0;
   int mindControl = 0;
+  int penetration = 0;
   bool canUseEsp = false;
   bool canUseSpecialMagic = false;
+  bool isMoving = false; // Flag to track if the party is currently moving between tiles
 
   final List<HDPlayer> players = List.generate(6, (index) {
     var p = HDPlayer()..order = index;
@@ -95,12 +104,13 @@ class HDParty extends ChangeNotifier {
     // Update facing
     if (dy > 0) {
       faced = 0; // Down
-    } else if (dy < 0)
+    } else if (dy < 0) {
       faced = 1; // Up
-    else if (dx > 0)
+    } else if (dx > 0) {
       faced = 2; // Right
-    else if (dx < 0)
+    } else if (dx < 0) {
       faced = 3; // Left
+    }
 
     notifyListeners();
   }
@@ -133,11 +143,18 @@ class HDParty extends ChangeNotifier {
       'encounter': encounter,
       'food': food,
       'gold': gold,
+      'year': year,
+      'month': month,
+      'day': day,
+      'hour': hour,
+      'min': min,
+      'sec': sec,
       'magicTorch': magicTorch,
       'levitation': levitation,
       'walkOnWater': walkOnWater,
       'walkOnSwamp': walkOnSwamp,
       'mindControl': mindControl,
+      'penetration': penetration,
       'canUseEsp': canUseEsp,
       'canUseSpecialMagic': canUseSpecialMagic,
       'xPrev': xPrev,
@@ -154,11 +171,18 @@ class HDParty extends ChangeNotifier {
     encounter = json['encounter'] ?? 3;
     food = json['food'] ?? 100;
     gold = json['gold'] ?? 500;
+    year = json['year'] ?? 1;
+    month = json['month'] ?? 1;
+    day = json['day'] ?? 1;
+    hour = json['hour'] ?? 12;
+    min = json['min'] ?? 0;
+    sec = json['sec'] ?? 0;
     magicTorch = json['magicTorch'] ?? 0;
     levitation = json['levitation'] ?? 0;
     walkOnWater = json['walkOnWater'] ?? 0;
     walkOnSwamp = json['walkOnSwamp'] ?? 0;
     mindControl = json['mindControl'] ?? 0;
+    penetration = json['penetration'] ?? 0;
     canUseEsp = json['canUseEsp'] ?? false;
     canUseSpecialMagic = json['canUseSpecialMagic'] ?? false;
     xPrev = json['xPrev'] ?? 0;
@@ -168,6 +192,55 @@ class HDParty extends ChangeNotifier {
       var pList = json['players'] as List;
       for (int i = 0; i < players.length && i < pList.length; i++) {
         players[i] = HDPlayer.fromJson(pList[i]);
+      }
+    }
+
+    notifyListeners();
+  }
+
+  void passTime(int h, int m, int s) {
+    sec += s;
+    min += m;
+    hour += h;
+
+    while (sec >= 60) {
+      sec -= 60;
+      min++;
+    }
+    while (min >= 60) {
+      min -= 60;
+      hour++;
+    }
+    while (hour >= 24) {
+      hour -= 24;
+      day++;
+    }
+    while (day >= 365) {
+      day -= 365;
+      year++;
+    }
+
+    timeGoes();
+  }
+
+  void timeGoes() {
+    if (mindControl > 0) mindControl--;
+    if (levitation > 0) levitation--;
+    if (penetration > 0) penetration--;
+    if (magicTorch > 0) {
+      // magicTorch doesn't seem to decrement in original TimeGoes, 
+      // but maybe it should? Original ObjParty.cs didn't have it in TimeGoes.
+    }
+
+    for (var player in players) {
+      if (player.isValid()) {
+        if (player.poison > 0) {
+          player.poison++;
+          if (player.poison > 10) {
+            player.poison = 1;
+            player.damagedByPoison();
+          }
+        }
       }
     }
 
