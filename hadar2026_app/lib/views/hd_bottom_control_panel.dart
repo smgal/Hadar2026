@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:bonfire/bonfire.dart' hide Timer;
 import '../game_components/hd_game_main.dart';
 
@@ -112,6 +113,13 @@ class _HDBottomControlPanelState extends State<HDBottomControlPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = (defaultTargetPlatform == TargetPlatform.android || 
+                           defaultTargetPlatform == TargetPlatform.iOS);
+
+    if (!isMobile) {
+      return const SizedBox.shrink();
+    }
+
     final media = MediaQuery.of(context);
 
     return Container(
