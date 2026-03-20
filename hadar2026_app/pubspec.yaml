@@ -37,6 +37,8 @@ dependencies:
   bonfire: ^3.16.1
   window_manager: ^0.5.1
   shared_preferences: ^2.5.4
+  cm2_script:
+    path: ../packages/cm2_script
 
 dev_dependencies:
   flutter_test:

@@ -1,0 +1,6 @@
+# main.script — demonstrates include(), Context, halt
+variable(score)
+Context::SetCurrent("main")
+include("intro.script")
+include("quiz.script")
+halt

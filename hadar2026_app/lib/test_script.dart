@@ -15,7 +15,7 @@ if (On(10, 10))
     Talk("On 10,10")
 """;
 
-  engine.loadFromString(testScript);
+  await engine.loadFromString(testScript);
   engine.variables['count'] = 0; // Initialize variable
 
   print("--- Starting Script Execution ---");
