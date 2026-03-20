@@ -117,7 +117,8 @@ class HDPlayer extends SimplePlayer with BlockMovementCollision {
         HardwareKeyboard.instance.isLogicalKeyPressed(
           LogicalKeyboardKey.enter,
         ) ||
-        HardwareKeyboard.instance.isLogicalKeyPressed(LogicalKeyboardKey.keyE);
+        HardwareKeyboard.instance.isLogicalKeyPressed(LogicalKeyboardKey.keyE) ||
+        HDGameMain().virtualActionPressed;
 
     if (mode == HDInputMode.map && isActionKeyPressed) {
       if (!_actionPressed) {
@@ -212,23 +213,29 @@ class HDPlayer extends SimplePlayer with BlockMovementCollision {
       dx = _scriptDx;
       dy = _scriptDy;
     } else {
-      if (_currentInput == null ||
-          _currentInput!.directional == JoystickMoveDirectional.IDLE) {
+      JoystickMoveDirectional finalDirection = JoystickMoveDirectional.IDLE;
+      if (_currentInput != null && _currentInput!.directional != JoystickMoveDirectional.IDLE) {
+        finalDirection = _currentInput!.directional;
+      } else {
+        finalDirection = HDGameMain().virtualDirection;
+      }
+
+      if (finalDirection == JoystickMoveDirectional.IDLE) {
         _lastInteractedX = null;
         _lastInteractedY = null;
         return;
       }
 
       // Determine direction from input
-      if (_currentInput!.directional == JoystickMoveDirectional.MOVE_LEFT) {
+      if (finalDirection == JoystickMoveDirectional.MOVE_LEFT) {
         dx = -1;
-      } else if (_currentInput!.directional ==
+      } else if (finalDirection ==
           JoystickMoveDirectional.MOVE_RIGHT) {
         dx = 1;
-      } else if (_currentInput!.directional ==
+      } else if (finalDirection ==
           JoystickMoveDirectional.MOVE_UP) {
         dy = -1;
-      } else if (_currentInput!.directional ==
+      } else if (finalDirection ==
           JoystickMoveDirectional.MOVE_DOWN) {
         dy = 1;
       } else {

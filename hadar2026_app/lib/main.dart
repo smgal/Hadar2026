@@ -7,6 +7,7 @@ import 'views/hd_map_viewport.dart';
 import 'views/hd_window_view.dart';
 import 'views/hd_console_panel.dart';
 import 'views/hd_status_panel.dart';
+import 'views/hd_bottom_control_panel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -101,49 +102,67 @@ class _MainScreenState extends State<MainScreen> {
     }
 
     return Scaffold(
-      body: Center(
-        child: FittedBox(
-          child: SizedBox(
-            width: HDConfig.gameScreenWidth,
-            height: HDConfig.gameScreenHeight,
-            child: Stack(
-              children: [
-                Column(
-                  children: [
-                    Row(
-                      children: [
-                        // 1. Map Viewport
-                        SizedBox(
-                          width: HDConfig.mapViewportWidth,
-                          height: HDConfig.mapViewportHeight,
-                          child: ListenableBuilder(
-                            listenable: HDGameMain(),
-                            builder: (context, child) {
-                              final map = HDGameMain().map;
-                              if (map == null) return const SizedBox.shrink();
-                              return HDMapViewport(
-                                key: ValueKey(map),
-                                mapModel: map,
-                                party: HDGameMain().party,
-                              );
-                            },
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+            Flexible(
+              fit: FlexFit.loose,
+              child: FittedBox(
+                fit: BoxFit.contain,
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: HDConfig.gameScreenWidth,
+                  height: HDConfig.gameScreenHeight,
+                  child: Stack(
+                    children: [
+                      Column(
+                        children: [
+                          Row(
+                            children: [
+                              // 1. Map Viewport
+                              SizedBox(
+                                width: HDConfig.mapViewportWidth,
+                                height: HDConfig.mapViewportHeight,
+                                child: ListenableBuilder(
+                                  listenable: HDGameMain(),
+                                  builder: (context, child) {
+                                    final map = HDGameMain().map;
+                                    if (map == null) return const SizedBox.shrink();
+                                    return HDMapViewport(
+                                      key: ValueKey(map),
+                                      mapModel: map,
+                                      party: HDGameMain().party,
+                                    );
+                                  },
+                                ),
+                              ),
+                              // 2. Console Panel
+                              const HDConsolePanel(),
+                            ],
                           ),
-                        ),
-                        // 2. Console Panel
-                        const HDConsolePanel(),
-                      ],
-                    ),
-                    // 3. Status Panel
-                    const HDStatusPanel(),
-                  ],
+                          // 3. Status Panel
+                          const HDStatusPanel(),
+                        ],
+                      ),
+                      // Window Layer on top of everything
+                      const HDWindowLayer(),
+                    ],
+                  ),
                 ),
-                // Window Layer on top of everything
-                const HDWindowLayer(),
-              ],
+              ),
             ),
-          ),
+            // 4. Mobile Bottom Control Panel
+            const HDBottomControlPanel(),
+          ],
+        ),
         ),
       ),
     );
   }
 }
+
