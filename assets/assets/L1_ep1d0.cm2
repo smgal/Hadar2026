@@ -185,9 +185,7 @@ if (Equal(ScriptMode(), FLAG_SIGN))
 		else
 			Talk("@D공지@@")
 			Talk("")
-			PushString("수배자 명단: ")
-			PushString(Player::GetName(1))
-			Talk(PopString(2))
+			Talk(JoinString("수배자 명단: ", Player::GetName(1)))
 			Talk("")
 			Talk("위의 사람을 절도죄로 수배합니다.")
 
