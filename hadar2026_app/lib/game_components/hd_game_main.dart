@@ -68,129 +68,143 @@ class HDGameMain with ChangeNotifier {
     // Register global key handler to ensure "Any Key" and Menu work regardless of focus
     HardwareKeyboard.instance.addHandler((KeyEvent event) {
       if (event is! KeyDownEvent) return false;
-
-      final key = event.logicalKey;
-      final mode = currentInputMode;
-
-      // 1. Window Handling (Top Priority)
-      if (mode == HDInputMode.window) {
-        if (HDWindowManager().handleInput(event)) {
-          return true;
-        }
-
-        // Fallback for windows that don't implement handleInput manually
-        // This handles cases where a window might not explicitly consume a key,
-        // but we still want to close it on Escape/Q.
-        // This should be the *last* check in window handling.
-        final topWindow = HDWindowManager().windows.last;
-        if (key == LogicalKeyboardKey.escape ||
-            key == LogicalKeyboardKey.keyQ) {
-          topWindow.isVisible = false;
-          HDWindowManager().notifyListeners();
-          return true;
-        }
-        return true; // Consume all keys when windows are open
-      }
-
-      // 2. Menu Handling
-      if (mode == HDInputMode.menu) {
-        final menu = activeMenu!;
-        if (key == LogicalKeyboardKey.arrowUp ||
-            key == LogicalKeyboardKey.keyW) {
-          menu.selectedIndex--;
-          if (menu.selectedIndex < 1) menu.selectedIndex = menu.enabledCount;
-          notifyListeners();
-          return true;
-        } else if (key == LogicalKeyboardKey.arrowDown ||
-            key == LogicalKeyboardKey.keyS) {
-          menu.selectedIndex++;
-          if (menu.selectedIndex > menu.enabledCount) menu.selectedIndex = 1;
-          notifyListeners();
-          return true;
-        } else if (key == LogicalKeyboardKey.enter ||
-            key == LogicalKeyboardKey.keyE) {
-          final result = menu.selectedIndex;
-          activeMenu = null;
-          menu.completer.complete(result);
-          notifyListeners();
-          return true;
-        } else if (key == LogicalKeyboardKey.escape ||
-            key == LogicalKeyboardKey.keyQ) {
-          activeMenu = null;
-          menu.completer.complete(0); // 0 = Cancel
-          notifyListeners();
-          return true;
-        }
-        return true; // Consume all keys while menu is active
-      }
-
-      // 3. "Any Key" Handling for Dialogue
-      if (mode == HDInputMode.dialogue) {
-        // Exclude Arrows/WASD and Modifiers
-        bool isDirectional =
-            key == LogicalKeyboardKey.arrowUp ||
-            key == LogicalKeyboardKey.arrowDown ||
-            key == LogicalKeyboardKey.arrowLeft ||
-            key == LogicalKeyboardKey.arrowRight ||
-            key == LogicalKeyboardKey.keyW ||
-            key == LogicalKeyboardKey.keyA ||
-            key == LogicalKeyboardKey.keyS ||
-            key == LogicalKeyboardKey.keyD;
-
-        bool isModifier =
-            key == LogicalKeyboardKey.shiftLeft ||
-            key == LogicalKeyboardKey.shiftRight ||
-            key == LogicalKeyboardKey.controlLeft ||
-            key == LogicalKeyboardKey.controlRight ||
-            key == LogicalKeyboardKey.altLeft ||
-            key == LogicalKeyboardKey.altRight ||
-            key == LogicalKeyboardKey.metaLeft ||
-            key == LogicalKeyboardKey.metaRight;
-
-        if (!isDirectional && !isModifier) {
-          dismissKeyWait();
-          return true; // Consume event
-        }
-      }
-
-      // 4. Map Mode - Menu Trigger
-      if (mode == HDInputMode.map) {
-        if (key == LogicalKeyboardKey.escape ||
-            key == LogicalKeyboardKey.keyQ ||
-            key == LogicalKeyboardKey.space) {
-          // Open main menu
-          showMainMenu();
-          return true;
-        }
-
-        // Test time control keys
-        if (key == LogicalKeyboardKey.insert) {
-          party.hour = 5;
-          party.min = 59;
-          party.notifyListeners();
-          return true;
-        } else if (key == LogicalKeyboardKey.delete) {
-          party.hour = 18;
-          party.min = 9;
-          party.notifyListeners();
-          return true;
-        } else if (key == LogicalKeyboardKey.home) {
-          party.hour = 12;
-          party.min = 0;
-          party.notifyListeners();
-          return true;
-        } else if (key == LogicalKeyboardKey.end) {
-          party.hour = 0;
-          party.min = 0;
-          party.notifyListeners();
-          return true;
-        }
-
-        // Action (Enter/E) is handled by HDPlayer for now to know facing/position
-      }
-
-      return false;
+      return processKey(event.logicalKey);
     });
+  }
+
+  bool virtualActionPressed = false;
+  JoystickMoveDirectional virtualDirection = JoystickMoveDirectional.IDLE;
+
+  bool processKey(LogicalKeyboardKey key) {
+    final mode = currentInputMode;
+
+    // 1. Window Handling (Top Priority)
+    if (mode == HDInputMode.window) {
+      // Create a dummy KeyDownEvent to pass to the window manager if called virtually
+      // The real KeyDownEvent is preferable, but we only have logicalKey here.
+      // We assume HDWindowManager only checks the logicalKey or similar.
+      // Wait, HDWindowManager.handleInput expects a KeyEvent. We can't easily reconstruct it.
+      // Let's just create a raw KeyDownEvent.
+      final event = KeyDownEvent(
+        physicalKey: PhysicalKeyboardKey.findKeyByCode(key.keyId) ?? PhysicalKeyboardKey.keyA,
+        logicalKey: key,
+        timeStamp: Duration.zero,
+      );
+
+      if (HDWindowManager().handleInput(event)) {
+        return true;
+      }
+
+      // Fallback for windows that don't implement handleInput manually
+      final topWindow = HDWindowManager().windows.last;
+      if (key == LogicalKeyboardKey.escape ||
+          key == LogicalKeyboardKey.keyQ) {
+        topWindow.isVisible = false;
+        HDWindowManager().notifyListeners();
+        return true;
+      }
+      return true; // Consume all keys when windows are open
+    }
+
+    // 2. Menu Handling
+    if (mode == HDInputMode.menu) {
+      final menu = activeMenu!;
+      if (key == LogicalKeyboardKey.arrowUp ||
+          key == LogicalKeyboardKey.keyW) {
+        menu.selectedIndex--;
+        if (menu.selectedIndex < 1) menu.selectedIndex = menu.enabledCount;
+        notifyListeners();
+        return true;
+      } else if (key == LogicalKeyboardKey.arrowDown ||
+          key == LogicalKeyboardKey.keyS) {
+        menu.selectedIndex++;
+        if (menu.selectedIndex > menu.enabledCount) menu.selectedIndex = 1;
+        notifyListeners();
+        return true;
+      } else if (key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.keyE ||
+          key == LogicalKeyboardKey.space) {
+        final result = menu.selectedIndex;
+        activeMenu = null;
+        menu.completer.complete(result);
+        notifyListeners();
+        return true;
+      } else if (key == LogicalKeyboardKey.escape ||
+          key == LogicalKeyboardKey.keyQ) {
+        activeMenu = null;
+        menu.completer.complete(0); // 0 = Cancel
+        notifyListeners();
+        return true;
+      }
+      return true; // Consume all keys while menu is active
+    }
+
+    // 3. "Any Key" Handling for Dialogue
+    if (mode == HDInputMode.dialogue) {
+      // Exclude Arrows/WASD and Modifiers
+      bool isDirectional =
+          key == LogicalKeyboardKey.arrowUp ||
+          key == LogicalKeyboardKey.arrowDown ||
+          key == LogicalKeyboardKey.arrowLeft ||
+          key == LogicalKeyboardKey.arrowRight ||
+          key == LogicalKeyboardKey.keyW ||
+          key == LogicalKeyboardKey.keyA ||
+          key == LogicalKeyboardKey.keyS ||
+          key == LogicalKeyboardKey.keyD;
+
+      bool isModifier =
+          key == LogicalKeyboardKey.shiftLeft ||
+          key == LogicalKeyboardKey.shiftRight ||
+          key == LogicalKeyboardKey.controlLeft ||
+          key == LogicalKeyboardKey.controlRight ||
+          key == LogicalKeyboardKey.altLeft ||
+          key == LogicalKeyboardKey.altRight ||
+          key == LogicalKeyboardKey.metaLeft ||
+          key == LogicalKeyboardKey.metaRight;
+
+      if (!isDirectional && !isModifier) {
+        dismissKeyWait();
+        return true; // Consume event
+      }
+    }
+
+    // 4. Map Mode - Menu Trigger
+    if (mode == HDInputMode.map) {
+      if (key == LogicalKeyboardKey.escape ||
+          key == LogicalKeyboardKey.keyQ ||
+          key == LogicalKeyboardKey.space) {
+        // Open main menu
+        showMainMenu();
+        return true;
+      }
+
+      // Test time control keys
+      if (key == LogicalKeyboardKey.insert) {
+        party.hour = 5;
+        party.min = 59;
+        party.notifyListeners();
+        return true;
+      } else if (key == LogicalKeyboardKey.delete) {
+        party.hour = 18;
+        party.min = 9;
+        party.notifyListeners();
+        return true;
+      } else if (key == LogicalKeyboardKey.home) {
+        party.hour = 12;
+        party.min = 0;
+        party.notifyListeners();
+        return true;
+      } else if (key == LogicalKeyboardKey.end) {
+        party.hour = 0;
+        party.min = 0;
+        party.notifyListeners();
+        return true;
+      }
+
+      // Action (Enter/E) is handled by HDPlayer for now to know facing/position
+    }
+
+    return false;
   }
 
   @override
