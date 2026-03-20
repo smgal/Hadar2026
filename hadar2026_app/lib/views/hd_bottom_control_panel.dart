@@ -67,13 +67,13 @@ class _HDBottomControlPanelState extends State<HDBottomControlPanel> {
       onPanCancel: () => _stopDirection(),
       onPanEnd: (_) => _stopDirection(),
       child: Container(
-        width: 60,
-        height: 60,
+        width: 78, // 60 * 1.3
+        height: 78,
         decoration: BoxDecoration(
           color: isActive ? Colors.white30 : Colors.white12,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(15),
         ),
-        child: Icon(icon, color: Colors.white, size: 36),
+        child: Icon(icon, color: Colors.white, size: 47), // 36 * 1.3
       ),
     );
   }
@@ -91,8 +91,8 @@ class _HDBottomControlPanelState extends State<HDBottomControlPanel> {
          if (isPrimary) _pressAction(false);
       },
       child: Container(
-        width: isPrimary ? 80 : 64,
-        height: isPrimary ? 80 : 64,
+        width: isPrimary ? 104 : 83, // 80 -> 104, 64 -> 83
+        height: isPrimary ? 104 : 83,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isPrimary ? Colors.blue.withOpacity(0.6) : Colors.white12,
@@ -103,7 +103,7 @@ class _HDBottomControlPanelState extends State<HDBottomControlPanel> {
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: isPrimary ? 20 : 16,
+            fontSize: isPrimary ? 26 : 21, // 20 -> 26, 16 -> 21
           ),
         ),
       ),
@@ -123,51 +123,65 @@ class _HDBottomControlPanelState extends State<HDBottomControlPanel> {
           child: Padding(
             padding: EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 16 + media.padding.bottom),
             child: SizedBox(
-              height: 180, // Fixed height for inner content
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-          // D-Pad
-          SizedBox(
-            width: 180,
-            height: 148, // Reduced slightly to avoid overflow
-            child: Stack(
-              children: [
-                Positioned(top: 0, left: 60, child: _buildDirBtn(Icons.arrow_drop_up, JoystickMoveDirectional.MOVE_UP)),
-                Positioned(bottom: 0, left: 60, child: _buildDirBtn(Icons.arrow_drop_down, JoystickMoveDirectional.MOVE_DOWN)),
-                Positioned(top: 44, left: 0, child: _buildDirBtn(Icons.arrow_left, JoystickMoveDirectional.MOVE_LEFT)),
-                Positioned(top: 44, right: 0, child: _buildDirBtn(Icons.arrow_right, JoystickMoveDirectional.MOVE_RIGHT)),
-              ],
-            ),
-          ),
-          
-          // Action Buttons
-          SizedBox(
-            width: 170,
-            height: 150,
-            child: Stack(
-              children: [
-                 // MENU / CANCEL
-                 Positioned(
-                   bottom: 60,
-                   left: 0,
-                   child: _buildActionBtn('ESC', LogicalKeyboardKey.escape),
-                 ),
-                 // OK / ACTION
-                 Positioned(
-                   bottom: 10,
-                   right: 0,
-                   child: _buildActionBtn('OK', LogicalKeyboardKey.enter, isPrimary: true),
-                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
-            ),
+              height: 234, // Fixed height for inner content (180 * 1.3)
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  double innerWidth = constraints.maxWidth;
+                  if (innerWidth < 494) innerWidth = 494; // Minimum width before scaling down (380 * 1.3)
+                  
+                  return FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.center,
+                    child: SizedBox(
+                      width: innerWidth,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                      // D-Pad
+                      SizedBox(
+                        width: 234, // 180 * 1.3
+                        height: 192, // 148 * 1.3
+                        child: Stack(
+                          children: [
+                            Positioned(top: 0, left: 78, child: _buildDirBtn(Icons.arrow_drop_up, JoystickMoveDirectional.MOVE_UP)),
+                            Positioned(bottom: 0, left: 78, child: _buildDirBtn(Icons.arrow_drop_down, JoystickMoveDirectional.MOVE_DOWN)),
+                            Positioned(top: 57, left: 0, child: _buildDirBtn(Icons.arrow_left, JoystickMoveDirectional.MOVE_LEFT)),
+                            Positioned(top: 57, right: 0, child: _buildDirBtn(Icons.arrow_right, JoystickMoveDirectional.MOVE_RIGHT)),
+                          ],
+                        ),
+                      ),
+                      
+                      // Action Buttons
+                      SizedBox(
+                        width: 221, // 170 * 1.3
+                        height: 195, // 150 * 1.3
+                        child: Stack(
+                          children: [
+                             // MENU / CANCEL
+                             Positioned(
+                               bottom: 78, // 60 * 1.3
+                               left: 0,
+                               child: _buildActionBtn('ESC', LogicalKeyboardKey.escape),
+                             ),
+                             // OK / ACTION
+                             Positioned(
+                               bottom: 13, // 10 * 1.3
+                               right: 0,
+                               child: _buildActionBtn('OK', LogicalKeyboardKey.enter, isPrimary: true),
+                             ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
+    ),
+    ),
     );
   }
 }
