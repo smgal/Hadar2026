@@ -1,0 +1,11 @@
+name: cm2_script_sample
+description: CUI sample demonstrating all cm2_script features with ASCII/emoji art.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  cm2_script:
+    path: ../packages/cm2_script
