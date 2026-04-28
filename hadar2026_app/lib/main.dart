@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 import 'game_components/hd_game_main.dart';
 import 'hd_config.dart';
-import 'views/hd_map_viewport.dart';
-import 'views/hd_window_view.dart';
-import 'views/hd_console_panel.dart';
-import 'views/hd_status_panel.dart';
-import 'views/hd_bottom_control_panel.dart';
+import 'presentation/panels/map_viewport.dart';
+import 'presentation/panels/window_view.dart';
+import 'presentation/panels/console_panel.dart';
+import 'presentation/panels/status_panel.dart';
+import 'presentation/panels/bottom_control_panel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

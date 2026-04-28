@@ -1,4 +1,4 @@
-import 'scripting/hd_script_engine.dart';
+import 'application/scripting/script_engine_adapter.dart';
 
 void main() async {
   final engine = HDScriptEngine();
