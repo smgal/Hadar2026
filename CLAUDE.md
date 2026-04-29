@@ -94,5 +94,9 @@ Maps live as `assets/maps/MapNNN.json` with a name index in `assets/maps/MapInfo
 ### Save/load
 `HDSaveManager.saveGame(slot)` / `loadGame(slot)`. Save files are `save_data_*.json` (gitignored). A successful load throws `GameReloadException` to unwind the current run loop — the script engine catches and silently stops on this exception, so do not log it as an error.
 
+## Tests
+
+`hadar2026_app/test/` holds domain/unit tests against the layered code (no widget tests yet). Run from `hadar2026_app/` with `flutter test`. The currently-covered areas are `domain/party/party_actions_test.dart`, `domain/lighting/sight_calculator_test.dart`, and `domain/console/text_utils_test.dart`. New domain rules should land with a test in the matching subfolder.
+
 ## Deployment
-Web is published to GitHub Pages by `.github/workflows/deploy_web.yml` (manual `workflow_dispatch`). It runs `flutter build web --base-href "/Hadar2026/" --release` in `hadar2026_app/` and pushes `build/web` via `peaceiris/actions-gh-pages@v3`. There is no CI for tests or analyze.
+Web is published to GitHub Pages by `.github/workflows/deploy_web.yml` (manual `workflow_dispatch`). It runs `flutter build web --base-href "/Hadar2026/" --release` in `hadar2026_app/` and pushes `build/web` via `peaceiris/actions-gh-pages@v3`. There is no CI for tests or analyze yet — run `flutter test` and `flutter analyze` locally before pushing.

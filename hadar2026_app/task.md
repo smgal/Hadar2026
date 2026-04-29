@@ -178,7 +178,7 @@ lib/
 - [x] **2.5** `domain/console/console_log.dart` — 데이터 컨테이너 `HDConsoleLog` 분리(events/progress + append/clear). **raw String + `@X..@@` tag 보관으로 완전 전환**. `HDTextUtils.spanToRaw` / `splitToRawLines` helper 추가, host가 wrap 후 raw 직렬화하여 도메인에 저장. View가 `parseRichText`로 re-parse. 도메인 `package:flutter/material.dart` 의존 **0건** (A2 / E1 / E2 완료)
 - [x] **2.6** `presentation/host/flutter_ui_host.dart` 신설 — `HDFlutterUiHost`(ChangeNotifier, UiHost). HDMenu/activeMenu/_keyWaitCompleter/consoleLog/wrap 상수(consoleStyle/consoleWidth/maxLinesPerPage)/`splitToLines` wrap 호출 모두 이전 (E1 / E2 핵심). HDGameMain은 facade 위임 + `_host.addListener(notifyListeners)` 로 기존 listener 호환 유지. `views/hd_console_panel.dart` 의 `HDGameMain.consoleStyle` 참조는 panel 자체 const로 흡수
 - [x] **2.7** `application/menu_flows.dart` 신설 — `HDMenuFlows` 클래스에 `showMainMenu`/`showBattleMenu`/`showPartyStatus`/`showHealthStatus`/`showCharacterStatus`/`restHere`/`selectGameOption`/`_sortParty`/`_dismissPartyMember`/`selectDifficulty`/`selectLoadMenu`/`selectSaveMenu`/`processGameOver`/`_selectPlayerForMagic`/`_selectPlayerForESP` 이전. HDGameMain의 동명 메서드는 위임 thin wrapper. 미사용 import(`dart:io`/`dart:math`/`hd_save_manager`/`hd_battle`/`hd_player`) 정리. **HDGameMain 993줄 → 257줄** (A3, A4 부분)
-- [~] **2.8** `domain/party/party_actions.dart` 신설 — `restHere`, `_sortParty`, `_dismissPartyMember` (A4). 현재 이 메서드들은 한국어 UI flow + 게임 룰이 한 흐름으로 섞여 있어 도메인 룰만 추출하려면 큰 수술. Phase 6 (도메인 결합 정리)에서 함께 진행. **현재는 menu_flows.dart 에 통째 보관**
+- [x] **2.8** `domain/party/party_actions.dart` 신설 (A4). `HDPartyActions.restPlayer(p, party) → RestEntryResult` (RestOutcome enum + player), `applyRestHousekeeping(party)`, `swapMembers(party, src, dest)`, `dismissMember(party, idx)`. menu_flows의 `restHere`/`_sortParty`/`_dismissPartyMember` 는 룰 호출 + outcome→한국어 매핑(`_restMessageFor`)만 담당
 - [x] **2.9** `application/map_navigation.dart` 신설 — `HDMapNavigation.loadByName` 으로 `loadMapFromFile` + MapInfos 인덱스 해석 이전. HDGameMain.loadMapFromFile은 위임 (A5)
 - [x] **2.10** `application/tile_event_dispatcher.dart` 신설 — `HDTileEventDispatcher.check` 으로 `checkTileEvent` + `_isScriptRunning` 플래그 이전. HDGameMain은 `isScriptRunning` getter도 dispatcher 위임 (A6)
 - [x] **2.11** `application/game_session.dart` 신설 — `HDGameSession`(ChangeNotifier)에 `sessionId`/`map`/`errorMessage`/`mapVersion`/`party`/`gameOption`/`mapLoader`/`init()`/`setNewMap()`/`loadMapFromFile()` 이전. asset preload(Flame)는 host에 남겨 application 의존 정화. HDGameMain은 facade getter로 위임 + `_session.addListener(notifyListeners)` 로 forward
@@ -241,7 +241,7 @@ lib/
 #### Phase 8 — 검증
 
 - [x] **8.1** `flutter analyze` — error/warning **0**, info 84
-- [ ] **8.2** 회귀 시나리오 — **사용자 검증 필요**:
+- [~] **8.2** 회귀 시나리오 — **사용자 수동 검증 + 도메인 unit test 추가**. `test/domain/{party,lighting,console}/` 에 34 케이스(`HDPartyActions.restPlayer`/`swapMembers`/`dismissMember` 8건, `applyRestHousekeeping` 2건, `HDSightCalculator.sightRangeFor`/`isInMoonlight`/`lightBitFor` 13건, `HDTextUtils` round-trip 6건, 기타). 룰 회귀는 `flutter test` 로 자동 잡음. 시나리오 회귀(부팅/대화/저장)는 여전히 수동 검증. 다음 시나리오 회귀 후보:
   - 첫 맵 진입
   - 메뉴 열기/닫기
   - 캐릭터 상태 보기

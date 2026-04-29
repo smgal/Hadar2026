@@ -4,11 +4,12 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-import '../application/magic_system.dart';
-import '../domain/party/player.dart';
 import '../application/battle.dart';
-import '../hd_game_main.dart';
+import '../application/magic_system.dart';
 import '../application/save_manager.dart';
+import '../domain/party/party_actions.dart';
+import '../domain/party/player.dart';
+import '../hd_game_main.dart';
 
 /// Top-level menus driven by the main game shell: command menu, party
 /// inspection, rest, save/load, difficulty, game-over. Each call drives the
@@ -139,82 +140,39 @@ class HDMenuFlows {
     final party = _game.party;
     _game.clearLogs();
 
-    for (var p in party.players) {
+    for (final p in party.players) {
       if (!p.isValid()) continue;
-
-      if (party.food <= 0) {
-        await _game.addLog("일행은 식량이 바닥났다", isDialogue: false);
-      } else if (p.dead > 0) {
-        await _game.addLog("${p.name}${p.josaSub1} 죽었다", isDialogue: false);
-      } else if (p.unconscious > 0 && p.poison == 0) {
-        p.unconscious -= (p.level[0] + p.level[1] + p.level[2]);
-        if (p.unconscious <= 0) {
-          await _game.addLog(
-            "${p.name}${p.josaSub1} 의식이 회복되었다",
-            isDialogue: false,
-          );
-          p.unconscious = 0;
-          if (p.hp <= 0) p.hp = 1;
-          party.food--;
-        } else {
-          await _game.addLog(
-            "${p.name}${p.josaSub1} 여전히 의식 불명이다",
-            isDialogue: false,
-          );
-        }
-      } else if (p.unconscious > 0 && p.poison > 0) {
-        await _game.addLog(
-          "독 때문에 ${p.name}의 의식은 회복되지 않았다",
-          isDialogue: false,
-        );
-      } else if (p.poison > 0) {
-        await _game.addLog(
-          "독 때문에 ${p.name}의 건강은 회복되지 않았다",
-          isDialogue: false,
-        );
-      } else {
-        int recovery = (p.level[0] + p.level[1] + p.level[2]) * 2;
-        int maxHp = p.endurance * p.level[0];
-
-        bool fullHp = p.hp >= maxHp;
-
-        p.hp += recovery;
-        if (p.hp >= maxHp) {
-          p.hp = maxHp;
-          await _game.addLog(
-            "${p.name}${p.josaSub1} 모든 건강이 회복되었다",
-            isDialogue: false,
-          );
-        } else {
-          await _game.addLog(
-            "${p.name}${p.josaSub1} 치료되었다",
-            isDialogue: false,
-          );
-        }
-
-        if (!fullHp) {
-          party.food--;
-        }
-      }
-
-      p.sp = p.mentality * p.level[1];
-      p.esp = p.concentration * p.level[2];
-
-      if (p.sp > p.maxSp) p.sp = p.maxSp;
-      if (p.esp > p.maxEsp) p.esp = p.maxEsp;
-      if (p.hp > p.maxHp) p.hp = p.maxHp;
+      final result = HDPartyActions.restPlayer(p, party);
+      await _game.addLog(_restMessageFor(result), isDialogue: false);
     }
 
-    if (party.magicTorch > 0) party.magicTorch--;
-    party.levitation = 0;
-    party.walkOnWater = 0;
-    party.walkOnSwamp = 0;
-    party.mindControl = 0;
-
+    HDPartyActions.applyRestHousekeeping(party);
     party.notifyListeners();
 
     await _game.waitForAnyKey();
     _game.clearLogs();
+  }
+
+  String _restMessageFor(RestEntryResult r) {
+    final p = r.player;
+    switch (r.outcome) {
+      case RestOutcome.noFood:
+        return "일행은 식량이 바닥났다";
+      case RestOutcome.alreadyDead:
+        return "${p.name}${p.josaSub1} 죽었다";
+      case RestOutcome.unconsciousRecovered:
+        return "${p.name}${p.josaSub1} 의식이 회복되었다";
+      case RestOutcome.unconsciousStillOut:
+        return "${p.name}${p.josaSub1} 여전히 의식 불명이다";
+      case RestOutcome.unconsciousPoisoned:
+        return "독 때문에 ${p.name}의 의식은 회복되지 않았다";
+      case RestOutcome.poisoned:
+        return "독 때문에 ${p.name}의 건강은 회복되지 않았다";
+      case RestOutcome.fullyHealed:
+        return "${p.name}${p.josaSub1} 모든 건강이 회복되었다";
+      case RestOutcome.partiallyHealed:
+        return "${p.name}${p.josaSub1} 치료되었다";
+    }
   }
 
   Future<void> showPartyStatus() async {
@@ -388,19 +346,13 @@ class HDMenuFlows {
       return;
     }
 
-    var srcPlayer = validPlayers[srcIdx - 1];
-    var destPlayer = validPlayers[destIdx - 1];
-
-    int actualSrcIdx = party.players.indexOf(srcPlayer);
-    int actualDestIdx = party.players.indexOf(destPlayer);
-
-    var temp = party.players[actualSrcIdx];
-    party.players[actualSrcIdx] = party.players[actualDestIdx];
-    party.players[actualDestIdx] = temp;
-
-    for (int i = 0; i < party.players.length; i++) {
-      party.players[i].order = i;
-    }
+    final srcPlayer = validPlayers[srcIdx - 1];
+    final destPlayer = validPlayers[destIdx - 1];
+    HDPartyActions.swapMembers(
+      party,
+      party.players.indexOf(srcPlayer),
+      party.players.indexOf(destPlayer),
+    );
 
     await _game.addLog("일행의 순서가 변경되었습니다.", isDialogue: false);
     await _game.waitForAnyKey();
@@ -434,24 +386,11 @@ class HDMenuFlows {
     }
 
     final player = validPlayers[selected - 1];
-    int actualIdx = party.players.indexOf(player);
-    party.players[actualIdx].name = ""; // make it invalid
+    // Capture the name *before* dismissal — `dismissMember` clears it.
+    final dismissedName = player.name;
+    HDPartyActions.dismissMember(party, party.players.indexOf(player));
 
-    for (int i = 0; i < party.players.length - 1; i++) {
-      for (int j = 0; j < party.players.length - 1; j++) {
-        if (!party.players[j].isValid() && party.players[j + 1].isValid()) {
-          var temp = party.players[j];
-          party.players[j] = party.players[j + 1];
-          party.players[j + 1] = temp;
-        }
-      }
-    }
-
-    for (int i = 0; i < party.players.length; i++) {
-      party.players[i].order = i;
-    }
-
-    await _game.addLog("${player.name}가 일행에서 제외되었습니다.", isDialogue: false);
+    await _game.addLog("$dismissedName가 일행에서 제외되었습니다.", isDialogue: false);
     await _game.waitForAnyKey();
     _game.clearLogs();
   }

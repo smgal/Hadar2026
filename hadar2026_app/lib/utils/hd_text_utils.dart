@@ -230,6 +230,19 @@ class HDTextUtils {
       }
     }
     flush();
+    // If the trailing color state differs from the last visible chunk's
+    // color, append a zero-width sentinel so callers can still observe
+    // the change. Without this, a word ending in `@@` would leave
+    // `splitToLines` thinking the last colored chunk is still active and
+    // bleed that color into the next word. We compare to the last chunk
+    // (or to startColor when there is no chunk) — that way pure plain
+    // input and empty input produce no sentinel.
+    final Color? trailingObservedColor = chunks.isNotEmpty
+        ? chunks.last.color
+        : startColor;
+    if (currentColor != trailingObservedColor) {
+      chunks.add(_TextChunk('', currentColor));
+    }
     return chunks;
   }
 }

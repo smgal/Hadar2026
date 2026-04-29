@@ -15,6 +15,14 @@ Web build (matches the GitHub Actions deploy):
 flutter build web --base-href "/Hadar2026/" --release
 ```
 
+Tests (domain/unit):
+
+```bash
+flutter test                                 # all
+flutter test test/domain/party/              # one folder
+flutter test test/domain/console/text_utils_test.dart   # one file
+```
+
 `flame` is pinned to `1.35.1` and `bonfire` to exactly `3.16.1` in `pubspec.yaml` — bonfire 3.17.x is incompatible with flame 1.35.1 (`RenderGameWidget(behavior:)` mismatch). Don't bump them casually.
 
 ## Project layout
