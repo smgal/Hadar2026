@@ -175,7 +175,7 @@ lib/
 - [x] **2.2** `presentation/input/input_dispatcher.dart` 신설 — `processKey()` 와 `HardwareKeyboard.instance.addHandler` 등록 이전 (A1). `HDGameMain.processKey` 는 dispatcher 위임 thin wrapper로 축소. `HDWindowManager.hideTopWindow()` helper 추가
 - [x] **2.3** `presentation/input/virtual_input_state.dart` 신설 — `virtualActionPressed`, `virtualDirection` 이전 (A7). 호출자 3곳(player sprite, bottom panel) 업데이트 완료
 - [x] **2.4** `presentation/host/ui_host.dart` 인터페이스 정의: `Future<int> showMenu()`, `Future<void> addLog()`, `Future<void> waitForAnyKey()`, `void clearLogs()` (F2 의 핵심). `HDGameMain implements UiHost` 적용 — 시그니처 일치 검증됨
-- [x] **2.5** `domain/console/console_log.dart` 신설 — 데이터 컨테이너 `HDConsoleLog` 분리(events/progress + append/clear). HDGameMain은 위임 (A2 / E1 부분 — TextStyle은 host로 이동했고 도메인은 TextSpan 보관 중. raw String 보관 전환은 추후 정리)
+- [x] **2.5** `domain/console/console_log.dart` — 데이터 컨테이너 `HDConsoleLog` 분리(events/progress + append/clear). **raw String + `@X..@@` tag 보관으로 완전 전환**. `HDTextUtils.spanToRaw` / `splitToRawLines` helper 추가, host가 wrap 후 raw 직렬화하여 도메인에 저장. View가 `parseRichText`로 re-parse. 도메인 `package:flutter/material.dart` 의존 **0건** (A2 / E1 / E2 완료)
 - [x] **2.6** `presentation/host/flutter_ui_host.dart` 신설 — `HDFlutterUiHost`(ChangeNotifier, UiHost). HDMenu/activeMenu/_keyWaitCompleter/consoleLog/wrap 상수(consoleStyle/consoleWidth/maxLinesPerPage)/`splitToLines` wrap 호출 모두 이전 (E1 / E2 핵심). HDGameMain은 facade 위임 + `_host.addListener(notifyListeners)` 로 기존 listener 호환 유지. `views/hd_console_panel.dart` 의 `HDGameMain.consoleStyle` 참조는 panel 자체 const로 흡수
 - [x] **2.7** `application/menu_flows.dart` 신설 — `HDMenuFlows` 클래스에 `showMainMenu`/`showBattleMenu`/`showPartyStatus`/`showHealthStatus`/`showCharacterStatus`/`restHere`/`selectGameOption`/`_sortParty`/`_dismissPartyMember`/`selectDifficulty`/`selectLoadMenu`/`selectSaveMenu`/`processGameOver`/`_selectPlayerForMagic`/`_selectPlayerForESP` 이전. HDGameMain의 동명 메서드는 위임 thin wrapper. 미사용 import(`dart:io`/`dart:math`/`hd_save_manager`/`hd_battle`/`hd_player`) 정리. **HDGameMain 993줄 → 257줄** (A3, A4 부분)
 - [~] **2.8** `domain/party/party_actions.dart` 신설 — `restHere`, `_sortParty`, `_dismissPartyMember` (A4). 현재 이 메서드들은 한국어 UI flow + 게임 룰이 한 흐름으로 섞여 있어 도메인 룰만 추출하려면 큰 수술. Phase 6 (도메인 결합 정리)에서 함께 진행. **현재는 menu_flows.dart 에 통째 보관**
@@ -249,7 +249,7 @@ lib/
   - 전투 시뮬레이션
   - 마법 시전 윈도우
   - 맵 이동/대화 타일/표지판
-- [~] **8.3** `domain/` Flutter import 검사 — `foundation.dart` (ChangeNotifier) 3건 허용 / **`material.dart`** 1건 잔여 (`domain/console/console_log.dart` 가 TextSpan 보관 중. raw text + tag로 전환은 §2.5 후속 작업으로)
+- [x] **8.3** `domain/` Flutter import 검사 — `foundation.dart` (ChangeNotifier) 3건만 허용 범위 / `material.dart`/`bonfire`/`flame` **0건**. §2.5 마무리로 console_log의 `material.dart` 의존 제거 완료
 - [x] **8.4** `application/` 에 `material`/`bonfire`/`flame` import **0건** — 통과
 - [x] **8.5** presentation 외부 `HDGameMain` 직접 참조 점검 — `main.dart`(부트/리스너) + `application/*`(facade 사용) 허용 범위. **`domain/magic/magic_system.dart` → `application/magic_system.dart`** 로 이전(UI flow + 도메인 룰 혼재 파일). `domain/` 내 `HDGameMain` 참조 **0건** 확인
 

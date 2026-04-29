@@ -154,6 +154,48 @@ class HDTextUtils {
     return resultLines;
   }
 
+  /// Reverse lookup: ARGB32 color value → tag character.
+  static final Map<int, String> _colorReverseTable = {
+    for (final entry in colorTable.entries)
+      // ignore: deprecated_member_use
+      entry.value.value: entry.key,
+  };
+
+  /// Serializes a wrapped [TextSpan] line (as produced by [splitToLines])
+  /// back to a raw string with `@X..@@` color tags. Pair with
+  /// [splitToLines] called using a base style without a `color`, so that a
+  /// child's `style.color == null` reliably means "no color tag".
+  static String spanToRaw(TextSpan line) {
+    final sb = StringBuffer();
+    String? lastTag;
+    for (final child in line.children ?? const <InlineSpan>[]) {
+      if (child is! TextSpan) continue;
+      final color = child.style?.color;
+      // ignore: deprecated_member_use
+      final String? tag = color == null
+          ? null
+          // ignore: deprecated_member_use
+          : _colorReverseTable[color.value];
+      if (tag != lastTag) {
+        sb.write(tag == null ? '@@' : '@$tag');
+        lastTag = tag;
+      }
+      sb.write(child.text ?? '');
+    }
+    return sb.toString();
+  }
+
+  /// Convenience: wrap [text] to raw lines (raw `@X..@@`-tagged strings),
+  /// suitable for storage in a domain-layer console log without bringing
+  /// `package:flutter/material.dart` into the domain.
+  static List<String> splitToRawLines(
+    String text,
+    double maxWidth,
+    TextStyle baseStyle,
+  ) {
+    return splitToLines(text, maxWidth, baseStyle).map(spanToRaw).toList();
+  }
+
   static List<_TextChunk> _parseToChunks(String text, Color? startColor) {
     List<_TextChunk> chunks = [];
     Color? currentColor = startColor;

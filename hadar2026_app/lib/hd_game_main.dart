@@ -72,8 +72,8 @@ class HDGameMain with ChangeNotifier implements UiHost {
   set activeMenu(HDMenu? v) => _host.activeMenu = v;
 
   HDConsoleLog get consoleLog => _host.consoleLog;
-  List<TextSpan> get progressLogs => _host.consoleLog.progress;
-  List<TextSpan> get eventLogs => _host.consoleLog.events;
+  List<String> get progressLogs => _host.consoleLog.progress;
+  List<String> get eventLogs => _host.consoleLog.events;
   bool get isEventMode => _host.isEventMode;
   bool get isWaitingForKey => _host.isWaitingForKey;
 

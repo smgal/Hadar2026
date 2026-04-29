@@ -65,13 +65,15 @@ class HDFlutterUiHost extends ChangeNotifier implements UiHost {
 
   @override
   Future<void> addLog(String message, {bool isDialogue = true}) async {
-    final newLines = HDTextUtils.splitToLines(
+    // Wrap with a color-less base style so the raw serializer can tell
+    // "no color tag" from "default color".
+    final newLines = HDTextUtils.splitToRawLines(
       message,
       _consoleWidth,
-      _consoleStyle.copyWith(color: Colors.white),
+      _consoleStyle,
     );
 
-    for (var line in newLines) {
+    for (final line in newLines) {
       if (isDialogue) {
         if (consoleLog.events.length >= _maxLinesPerPage) {
           // Dialogue: wait for key and clear all

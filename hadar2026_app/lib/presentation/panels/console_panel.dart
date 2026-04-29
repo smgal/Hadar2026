@@ -4,6 +4,7 @@ import '../../hd_config.dart';
 import '../../utils/hd_text_utils.dart';
 
 const TextStyle _consoleStyle = TextStyle(
+  color: Colors.white,
   fontSize: HDConfig.consoleFontSize,
   height: HDConfig.consoleLineHeight,
 );
@@ -31,28 +32,21 @@ class HDConsolePanel extends StatelessWidget {
                 final bool isEventMode = main.isEventMode;
                 final activeMenu = main.activeMenu;
 
-                final List<InlineSpan> combinedItems;
+                // Both log lines and menu items are now plain strings with
+                // `@X..@@` color tags — re-parse to TextSpan here.
+                final List<String> rawItems;
                 int menuStartIndex = -1;
 
                 if (isEventMode) {
                   final eventLogs = main.eventLogs;
                   if (activeMenu != null) {
-                    final parsedMenuItems = activeMenu.items
-                        .map(
-                          (item) => HDTextUtils.parseRichText(
-                            item,
-                            baseStyle: _consoleStyle,
-                          ),
-                        )
-                        .toList();
-
-                    combinedItems = [...eventLogs, ...parsedMenuItems];
+                    rawItems = [...eventLogs, ...activeMenu.items];
                     menuStartIndex = eventLogs.length;
                   } else {
-                    combinedItems = [...eventLogs];
+                    rawItems = [...eventLogs];
                   }
                 } else {
-                  combinedItems = [...main.progressLogs];
+                  rawItems = [...main.progressLogs];
                 }
 
                 return ListView.builder(
@@ -60,17 +54,16 @@ class HDConsolePanel extends StatelessWidget {
                     horizontal: 16,
                     vertical: 8,
                   ),
-                  itemCount: combinedItems.length,
+                  itemCount: rawItems.length,
                   physics: const NeverScrollableScrollPhysics(),
                   itemBuilder: (context, index) {
-                    final span = combinedItems[index];
+                    final raw = rawItems[index];
 
                     if (activeMenu != null &&
                         menuStartIndex >= 0 &&
                         index >= menuStartIndex) {
                       final menuIndex = index - menuStartIndex;
-                      Color? overrideColor;
-
+                      Color overrideColor;
                       if (menuIndex == 0) {
                         overrideColor = Colors.red;
                       } else if (menuIndex == activeMenu.selectedIndex) {
@@ -80,18 +73,21 @@ class HDConsolePanel extends StatelessWidget {
                       } else {
                         overrideColor = Colors.grey.shade900;
                       }
-
+                      // Menu items use a single override color; ignore any
+                      // embedded `@X` tags so the cursor highlight is uniform.
                       return Text.rich(
-                        TextSpan(
-                          children: [span],
-                          style: _consoleStyle.copyWith(
+                        HDTextUtils.parseRichText(
+                          raw,
+                          baseStyle: _consoleStyle.copyWith(
                             color: overrideColor,
                           ),
                         ),
                       );
                     }
 
-                    return Text.rich(span, style: _consoleStyle);
+                    return Text.rich(
+                      HDTextUtils.parseRichText(raw, baseStyle: _consoleStyle),
+                    );
                   },
                 );
               },
