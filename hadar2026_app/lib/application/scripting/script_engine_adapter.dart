@@ -5,8 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:cm2_script/cm2_script.dart';
 
-import '../../game_components/hd_battle.dart';
-import '../../game_components/hd_game_main.dart';
+import '../../application/battle.dart';
+import '../../hd_game_main.dart';
 import '../../presentation/panels/player_sprite.dart';
 import '../../application/select.dart';
 import '../../hd_config.dart';

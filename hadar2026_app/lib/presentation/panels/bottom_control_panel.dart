@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:bonfire/bonfire.dart' hide Timer;
-import '../../game_components/hd_game_main.dart';
+import '../../hd_game_main.dart';
 import '../input/virtual_input_state.dart';
 
 class HDBottomControlPanel extends StatefulWidget {

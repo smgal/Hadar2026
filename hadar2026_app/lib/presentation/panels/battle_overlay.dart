@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../game_components/hd_battle.dart';
+import '../../application/battle.dart';
 
 class HDBattleOverlay extends StatelessWidget {
   const HDBattleOverlay({super.key});

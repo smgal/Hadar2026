@@ -1,40 +1,73 @@
-import 'package:flutter/services.dart';
 import 'dart:async';
-import '../domain/map/map_model.dart';
-import '../domain/party/party.dart';
-import '../domain/game_option.dart';
-import '../application/map_loader.dart';
-import '../application/scripting/script_engine_adapter.dart';
-import '../application/scripting/native_script_runner.dart';
-import 'package:flutter/material.dart';
-import '../presentation/window_manager.dart';
-import 'package:flame/flame.dart'; // For image caching
+
 import 'package:bonfire/bonfire.dart';
-import '../hd_config.dart';
-import '../domain/console/console_log.dart';
-import '../application/menu_flows.dart';
-import '../application/map_navigation.dart';
-import '../application/tile_event_dispatcher.dart';
-import '../presentation/input/input_mode.dart';
-import '../presentation/input/input_dispatcher.dart';
-import '../presentation/host/ui_host.dart';
-import '../presentation/host/flutter_ui_host.dart';
-export '../presentation/input/input_mode.dart';
-export '../presentation/host/ui_host.dart';
-export '../presentation/host/flutter_ui_host.dart' show HDMenu;
+import 'package:flame/flame.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'application/game_session.dart';
+import 'application/menu_flows.dart';
+import 'application/tile_event_dispatcher.dart';
+import 'domain/console/console_log.dart';
+import 'domain/game_option.dart';
+import 'domain/map/map_model.dart';
+import 'domain/party/party.dart';
+import 'hd_config.dart';
+import 'presentation/host/flutter_ui_host.dart';
+import 'presentation/host/ui_host.dart';
+import 'presentation/input/input_dispatcher.dart';
+import 'presentation/input/input_mode.dart';
+import 'presentation/window_manager.dart';
+
+export 'presentation/host/flutter_ui_host.dart' show HDMenu;
+export 'presentation/host/ui_host.dart';
+export 'presentation/input/input_mode.dart';
 
 class GameReloadException implements Exception {
   final String message;
   GameReloadException([this.message = "Game reloaded"]);
 }
 
+/// Thin facade over the layered subsystems:
+/// - `HDGameSession`        session state (party, map, options, init flow)
+/// - `HDFlutterUiHost`      console/menu/key-wait + `UiHost` impl
+/// - `HDInputDispatcher`    keyboard routing
+/// - `HDTileEventDispatcher`, `HDMenuFlows`  use-cases
+///
+/// Kept as a singleton so existing `HDGameMain()`/`ListenableBuilder` call
+/// sites (and the original C++ port shape) keep working unchanged. Forwards
+/// `notifyListeners()` from both the session and the host so a single
+/// listenable still drives the whole UI.
 class HDGameMain with ChangeNotifier implements UiHost {
   static final HDGameMain _instance = HDGameMain._internal();
   factory HDGameMain() => _instance;
 
-  // --- UI host facade (backed by HDFlutterUiHost) ---
   final HDFlutterUiHost _host = HDFlutterUiHost();
+  final HDGameSession _session = HDGameSession();
 
+  // --- session facade ---
+  int get sessionId => _session.sessionId;
+  set sessionId(int v) => _session.sessionId = v;
+  MapModel? get map => _session.map;
+  String? get errorMessage => _session.errorMessage;
+  int get mapVersion => _session.mapVersion;
+  set mapVersion(int v) => _session.mapVersion = v;
+  HDParty get party => _session.party;
+  HDGameOption get gameOption => _session.gameOption;
+  void setNewMap(MapModel newMap) => _session.setNewMap(newMap);
+  Future<bool> loadMapFromFile(String fileName) =>
+      _session.loadMapFromFile(fileName);
+
+  /// Bonfire game ref captured by the map viewport on `onReady`. Lives
+  /// here transitionally — it's a presentation handle, but several
+  /// subsystems (script engine, world map renderer) read it through
+  /// `HDGameMain()`.
+  BonfireGameInterface? mapViewGameRef;
+
+  bool get isScriptRunning => HDTileEventDispatcher().isScriptRunning;
+
+  // --- UI host facade ---
   HDMenu? get activeMenu => _host.activeMenu;
   set activeMenu(HDMenu? v) => _host.activeMenu = v;
 
@@ -69,17 +102,6 @@ class HDGameMain with ChangeNotifier implements UiHost {
 
   void dismissKeyWait() => _host.dismissKeyWait();
 
-  // --- session/game state ---
-  int sessionId = 0;
-  MapModel? map;
-  String? errorMessage;
-  int mapVersion = 0;
-  BonfireGameInterface? mapViewGameRef;
-  final HDParty party = HDParty();
-  final HDGameOption gameOption = HDGameOption();
-  final HDMapLoader mapLoader = HDMapLoader();
-  bool get isScriptRunning => HDTileEventDispatcher().isScriptRunning;
-
   HDInputMode get currentInputMode {
     if (HDWindowManager().windows.isNotEmpty) return HDInputMode.window;
     if (activeMenu != null) return HDInputMode.menu;
@@ -91,9 +113,10 @@ class HDGameMain with ChangeNotifier implements UiHost {
 
   HDGameMain._internal() {
     HDInputDispatcher().registerGlobalHandler();
-    // Forward host changes (menu/log/keyWait) so existing listeners that
-    // watch HDGameMain keep working without rewiring.
+    // Forward host + session changes so a single ListenableBuilder on
+    // HDGameMain catches both.
     _host.addListener(notifyListeners);
+    _session.addListener(notifyListeners);
   }
 
   bool processKey(LogicalKeyboardKey key) =>
@@ -102,21 +125,14 @@ class HDGameMain with ChangeNotifier implements UiHost {
   @override
   void notifyListeners() {
     Future.microtask(() {
-      if (hasListeners) {
-        super.notifyListeners();
-      }
+      if (hasListeners) super.notifyListeners();
     });
   }
 
-  void setNewMap(MapModel newMap) {
-    map = newMap;
-    mapVersion++;
-    notifyListeners();
-  }
-
-  // Core methods from original C++
+  /// Asset preload (Flame images) — kept here because it's a rendering
+  /// concern that sits next to the UI host. Then hands off to
+  /// `HDGameSession.init()` for the gameplay boot.
   Future<void> init() async {
-    // Pre-cache images to avoid flicker during load
     try {
       await Flame.images.loadAll([
         HDConfig.mainSpriteSheet,
@@ -125,22 +141,15 @@ class HDGameMain with ChangeNotifier implements UiHost {
     } catch (e) {
       print("Pre-cache error: $e");
     }
-
-    // Initialization logic
-    party.setPosition(15, 15); // Default start pos for town1
-
-    // Load Script
-    await HDScriptEngine().loadScript(HDConfig.startupScript);
-
-    // Ensure backwards compat if cm2 triggers something, but mainly we use Native
-    HDScriptEngine().setScriptMode(0);
-
-    // Start native dart scripts
-    await HDNativeScriptRunner().startNewGame();
+    await _session.init();
   }
 
   void update(double dt) {
     // Main loop update
+  }
+
+  void render() {
+    // Main loop render (Bonfire handles most)
   }
 
   // --- menu flow facade (delegates to HDMenuFlows) ---
@@ -157,7 +166,6 @@ class HDGameMain with ChangeNotifier implements UiHost {
   Future<void> processGameOver(int exitCode) =>
       HDMenuFlows().processGameOver(exitCode);
 
-
   Future<void> checkTileEvent(
     int x,
     int y, {
@@ -170,16 +178,4 @@ class HDGameMain with ChangeNotifier implements UiHost {
     y: y,
     isInteraction: isInteraction,
   );
-
-  void render() {
-    // Main loop render (if needed, Bonfire handles most)
-  }
-
-  Future<bool> loadMapFromFile(String fileName) async {
-    final newMap = await HDMapNavigation().loadByName(fileName);
-    errorMessage = HDMapNavigation().errorMessage;
-    if (newMap == null) return false;
-    setNewMap(newMap);
-    return true;
-  }
 }

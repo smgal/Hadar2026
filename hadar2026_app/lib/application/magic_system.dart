@@ -1,7 +1,7 @@
 import '../domain/party/player.dart';
 import '../domain/magic/magic.dart';
 import '../domain/window/magic_window_data.dart';
-import '../game_components/hd_game_main.dart';
+import '../hd_game_main.dart';
 import '../presentation/window_manager.dart';
 
 class HDMagicSystem {

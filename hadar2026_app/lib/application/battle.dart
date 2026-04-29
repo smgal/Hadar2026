@@ -1,15 +1,15 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 
-import '../application/menu_flows.dart';
-import '../domain/party/party.dart';
-import '../domain/party/player.dart';
 import '../domain/battle/enemy.dart';
 import '../domain/battle/enemy_data.dart';
 import '../domain/magic/magic.dart';
+import '../domain/party/party.dart';
+import '../domain/party/player.dart';
+import '../hd_game_main.dart';
 import '../presentation/host/ui_host.dart';
-import 'hd_game_main.dart';
-import '../application/magic_system.dart';
+import 'magic_system.dart';
+import 'menu_flows.dart';
 
 class HDBattle with ChangeNotifier {
   static final HDBattle _instance = HDBattle._internal();

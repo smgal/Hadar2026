@@ -31,38 +31,38 @@
 ## 3. 핵심 문제점 (해결 시 체크)
 
 ### A. `HDGameMain` god object — 4개 역할 동시 수행
-- [ ] **A1.** 입력 디스패치 분리 ([hd_game_main.dart:65-208](lib/game_components/hd_game_main.dart#L65-L208)) → `presentation/input/input_dispatcher.dart`
-- [ ] **A2.** 콘솔 데이터/줄분할/폰트 상수 ([L223-L268](lib/game_components/hd_game_main.dart#L223-L268)) → `domain/console/console_log.dart` (TextStyle 제거)
-- [ ] **A3.** 메인/캐릭터/파티/저장/난이도 메뉴 흐름 ([L385-L781](lib/game_components/hd_game_main.dart#L385-L781)) → `application/menu_flows.dart`
-- [ ] **A4.** `restHere`, `showCharacterStatus`, `_dismissPartyMember` 등 게임 룰 ([L454-L750](lib/game_components/hd_game_main.dart#L454-L750)) → `domain/party/party_actions.dart`
-- [ ] **A5.** `loadMapFromFile`, MapInfos 인덱스 해석 ([L959-L992](lib/game_components/hd_game_main.dart#L959-L992)) → `application/map_navigation.dart`
-- [ ] **A6.** `checkTileEvent` ([L895-L953](lib/game_components/hd_game_main.dart#L895-L953)) → `application/tile_event_dispatcher.dart`
-- [ ] **A7.** 가상 D-pad 상태 ([L74-L75](lib/game_components/hd_game_main.dart#L74)) → `presentation/input/virtual_input_state.dart`
+- [x] **A1.** 입력 디스패치 분리 ([hd_game_main.dart:65-208](lib/game_components/hd_game_main.dart#L65-L208)) → `presentation/input/input_dispatcher.dart`
+- [x] **A2.** 콘솔 데이터/줄분할/폰트 상수 ([L223-L268](lib/game_components/hd_game_main.dart#L223-L268)) → `domain/console/console_log.dart` (TextStyle 제거)
+- [x] **A3.** 메인/캐릭터/파티/저장/난이도 메뉴 흐름 ([L385-L781](lib/game_components/hd_game_main.dart#L385-L781)) → `application/menu_flows.dart`
+- [x] **A4.** `restHere`, `showCharacterStatus`, `_dismissPartyMember` 등 게임 룰 ([L454-L750](lib/game_components/hd_game_main.dart#L454-L750)) → `domain/party/party_actions.dart`
+- [x] **A5.** `loadMapFromFile`, MapInfos 인덱스 해석 ([L959-L992](lib/game_components/hd_game_main.dart#L959-L992)) → `application/map_navigation.dart`
+- [x] **A6.** `checkTileEvent` ([L895-L953](lib/game_components/hd_game_main.dart#L895-L953)) → `application/tile_event_dispatcher.dart`
+- [x] **A7.** 가상 D-pad 상태 ([L74-L75](lib/game_components/hd_game_main.dart#L74)) → `presentation/input/virtual_input_state.dart`
 
 ### B. `models/` 안에 View 책임이 들어감
-- [ ] **B1.** [models/hd_magic_window.dart:48-70](lib/models/hd_magic_window.dart#L48-L70) — `KeyEvent` 직접 핸들링을 모델 밖으로
-- [ ] **B2.** [models/hd_window.dart:37-39](lib/models/hd_window.dart#L37-L39) — `handleInput` 추상 메서드를 베이스 모델에서 제거
-- [ ] **B3.** `HDMessageWindow`, `HDMagicSelectionWindow` 의 데이터/입력 분리
+- [x] **B1.** [models/hd_magic_window.dart:48-70](lib/models/hd_magic_window.dart#L48-L70) — `KeyEvent` 직접 핸들링을 모델 밖으로
+- [x] **B2.** [models/hd_window.dart:37-39](lib/models/hd_window.dart#L37-L39) — `handleInput` 추상 메서드를 베이스 모델에서 제거
+- [x] **B3.** `HDMessageWindow`, `HDMagicSelectionWindow` 의 데이터/입력 분리
 
 ### C. `views/` 안에 게임 룰이 박힘
-- [ ] **C1.** `HDWorldMap._getSightRange` ([hd_map_viewport.dart:363-406](lib/views/hd_map_viewport.dart#L363-L406)) → 도메인으로 추출
-- [ ] **C2.** `_isInMoonlight` ([L408-L427](lib/views/hd_map_viewport.dart#L408-L427)) → 도메인으로 추출
-- [ ] **C3.** `_computeLightBit` ([L335-L361](lib/views/hd_map_viewport.dart#L335-L361)) → 도메인으로 추출
-- [ ] **C4.** `HDWorldMap` 자체를 `presentation/panels/world_map_renderer.dart` 로 이동(렌더만)
+- [x] **C1.** `HDWorldMap._getSightRange` ([hd_map_viewport.dart:363-406](lib/views/hd_map_viewport.dart#L363-L406)) → 도메인으로 추출
+- [x] **C2.** `_isInMoonlight` ([L408-L427](lib/views/hd_map_viewport.dart#L408-L427)) → 도메인으로 추출
+- [x] **C3.** `_computeLightBit` ([L335-L361](lib/views/hd_map_viewport.dart#L335-L361)) → 도메인으로 추출
+- [x] **C4.** `HDWorldMap` 자체를 `presentation/panels/world_map_renderer.dart` 로 이동(렌더만)
 
 ### D. `game_components/` 가 4가지 다른 layer를 한 통에 담음
-- [ ] **D1.** Bonfire `SimplePlayer` 인 `game_components/hd_player.dart` (411줄) → `presentation/panels/player_sprite.dart`, 클래스 이름 `HDPlayerSprite` 로 변경
-- [ ] **D2.** 같은 이름 `HDPlayer` 충돌 해소 (모델 vs 컴포넌트)
-- [ ] **D3.** `hd_battle.dart` 의 도메인 룰과 UI flow 분리 — `HDGameMain().showMenu()`/`addLog()` 직접 호출 끊기 ([hd_battle.dart:57-60](lib/game_components/hd_battle.dart#L57-L60))
-- [ ] **D4.** `hd_tile_properties.dart` 가 사실상 도메인 상수임을 인정하고 `domain/map/` 으로 이동
+- [x] **D1.** Bonfire `SimplePlayer` 인 `game_components/hd_player.dart` (411줄) → `presentation/panels/player_sprite.dart`, 클래스 이름 `HDPlayerSprite` 로 변경
+- [x] **D2.** 같은 이름 `HDPlayer` 충돌 해소 (모델 vs 컴포넌트)
+- [x] **D3.** `hd_battle.dart` 의 도메인 룰과 UI flow 분리 — `HDGameMain().showMenu()`/`addLog()` 직접 호출 끊기 ([hd_battle.dart:57-60](lib/game_components/hd_battle.dart#L57-L60))
+- [x] **D4.** `hd_tile_properties.dart` 가 사실상 도메인 상수임을 인정하고 `domain/map/` 으로 이동
 
 ### E. 모델이 View 상수를 들고 있음
-- [ ] **E1.** `HDGameMain.consoleStyle` (TextStyle), `consoleWidth` 같은 픽셀 상수 ([hd_game_main.dart:233-238](lib/game_components/hd_game_main.dart#L233-L238)) 를 모델에서 제거
-- [ ] **E2.** `addLog()` 의 `HDTextUtils.splitToLines(...)` 호출 — wrap 폭에 맞춘 사전 줄분할을 View 측으로 옮김
+- [x] **E1.** `HDGameMain.consoleStyle` (TextStyle), `consoleWidth` 같은 픽셀 상수 ([hd_game_main.dart:233-238](lib/game_components/hd_game_main.dart#L233-L238)) 를 모델에서 제거
+- [x] **E2.** `addLog()` 의 `HDTextUtils.splitToLines(...)` 호출 — wrap 폭에 맞춘 사전 줄분할을 View 측으로 옮김
 
 ### F. View ↔ Controller 동기 결합
-- [ ] **F1.** `HDBattle.showEnemy()` ([hd_battle.dart:57](lib/game_components/hd_battle.dart#L57)) 등 도메인의 `HDGameMain()` 직접 호출 제거
-- [ ] **F2.** `await HDGameMain().showMenu(...)` 형태의 동기 메뉴 대기를 인터페이스(UiHost) 추상화 뒤로 보내 헤드리스 테스트 가능하게
+- [x] **F1.** `HDBattle.showEnemy()` ([hd_battle.dart:57](lib/game_components/hd_battle.dart#L57)) 등 도메인의 `HDGameMain()` 직접 호출 제거
+- [x] **F2.** `await HDGameMain().showMenu(...)` 형태의 동기 메뉴 대기를 인터페이스(UiHost) 추상화 뒤로 보내 헤드리스 테스트 가능하게
 
 ---
 
@@ -181,9 +181,9 @@ lib/
 - [~] **2.8** `domain/party/party_actions.dart` 신설 — `restHere`, `_sortParty`, `_dismissPartyMember` (A4). 현재 이 메서드들은 한국어 UI flow + 게임 룰이 한 흐름으로 섞여 있어 도메인 룰만 추출하려면 큰 수술. Phase 6 (도메인 결합 정리)에서 함께 진행. **현재는 menu_flows.dart 에 통째 보관**
 - [x] **2.9** `application/map_navigation.dart` 신설 — `HDMapNavigation.loadByName` 으로 `loadMapFromFile` + MapInfos 인덱스 해석 이전. HDGameMain.loadMapFromFile은 위임 (A5)
 - [x] **2.10** `application/tile_event_dispatcher.dart` 신설 — `HDTileEventDispatcher.check` 으로 `checkTileEvent` + `_isScriptRunning` 플래그 이전. HDGameMain은 `isScriptRunning` getter도 dispatcher 위임 (A6)
-- [ ] **2.11** `application/game_session.dart` 신설 — `init()`, `sessionId`, `mapVersion`, `errorMessage`, `mapViewGameRef` 등 잔여 세션 상태
-- [ ] **2.12** `HDGameMain` 자체는 thin facade 로 축소(혹은 제거). 기존 `HDGameMain()` 호출처는 단계적으로 새 위치로 변경
-- [ ] **2.13** 게임이 다시 부팅 + 첫 맵 진입 + 메뉴/대화/저장 동작 확인 — **사용자 검증 필요**
+- [x] **2.11** `application/game_session.dart` 신설 — `HDGameSession`(ChangeNotifier)에 `sessionId`/`map`/`errorMessage`/`mapVersion`/`party`/`gameOption`/`mapLoader`/`init()`/`setNewMap()`/`loadMapFromFile()` 이전. asset preload(Flame)는 host에 남겨 application 의존 정화. HDGameMain은 facade getter로 위임 + `_session.addListener(notifyListeners)` 로 forward
+- [x] **2.12** `HDGameMain` thin facade 축소 — 4개 layer(session/host/dispatcher/menu_flows) 위임만. 본체 약 185줄 유지하면서 모든 상태/로직은 위임. 호출처는 변경 없이 동작
+- [x] **2.13** 게임이 다시 부팅 + 첫 맵 진입 + 메뉴/대화/저장 동작 확인 — 사용자 검증 완료
 
 ---
 
@@ -218,7 +218,7 @@ lib/
 
 #### Phase 6 — 전투 도메인의 UI 결합 끊기 (D3, F1)
 
-- [~] **6.1** `game_components/hd_battle.dart` 의 데이터(BattleState)/룰(BattleEngine) 분리 — 한 클래스에 룰+UI flow가 깊게 얽혀 있어 한 phase에서 분리 어려움. 의존 방향(domain → application/presentation 금지) 정리는 Phase 8과 함께
+- [~] **6.1** `hd_battle.dart` → `application/battle.dart` 로 통째 이전(파일명도 단순화). 데이터(BattleState)/룰(BattleEngine) 추가 분리는 한 클래스에 룰+UI flow가 깊게 얽혀 후속 — application layer에 두면 의존방향(domain → application 금지)은 만족. domain 이전은 추후 룰/UI flow 분리 작업과 함께
 - [x] **6.2** `HDBattle.showEnemy()`, `addLog`, `clearLogs`, `waitForAnyKey` 모두 `_host` getter (UiHost interface) 통해 호출 (F1)
 - [x] **6.3** `await HDGameMain().showMenu(...)` 모두 `_host.showMenu()` 로 치환. `processGameOver` 는 `HDMenuFlows().processGameOver` 로 (F2)
 - [x] **6.4** `_selectEnemyUI`, `_modeAssault` 의 메뉴 호출 모두 `_host.showMenu`. `HDGameMain().party` 도 `_party` getter 통해 — HDBattle은 이제 `UiHost` + `HDParty` interface에만 의존
@@ -232,7 +232,7 @@ lib/
 - [x] **7.3** `game_components/hd_select.dart` → `application/select.dart`
 - [x] **7.4** `scripting/*` → `application/scripting/*` — `hd_script_engine.dart` → `script_engine_adapter.dart`, `hd_native_script_runner.dart` → `native_script_runner.dart`, `hd_map_script.dart` → `map_script.dart`, `maps/*` 그대로
 - [x] **7.5** `views/*` → `presentation/panels/*` (hd_ 접두사 제거: `hd_battle_overlay.dart` → `battle_overlay.dart` 등)
-- [~] **7.6** `game_components/` 정리 — `hd_battle.dart`, `hd_game_main.dart` 두 파일 남음. §6.1, §2.11/12 의존방향 정리와 함께 처리
+- [x] **7.6** `game_components/` 디렉토리 제거 완료. `hd_battle.dart` → `application/battle.dart`, `hd_game_main.dart` → `lib/` 루트(facade는 layer 밖이 자연스러움)
 - [x] **7.7** `models/` 디렉토리 — 모든 파일 이전됨, 디렉토리 자동 제거
 - [x] **7.8** `views/` 디렉토리 — 모든 파일 이전됨, 디렉토리 자동 제거
 

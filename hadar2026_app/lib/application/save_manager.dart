@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../domain/game_option.dart';
 import '../domain/map/map_model.dart';
 import '../application/scripting/script_engine_adapter.dart';
-import '../game_components/hd_game_main.dart';
+import '../hd_game_main.dart';
 
 class HDSaveManager {
   static const String _savePrefix = 'hadar_save_';

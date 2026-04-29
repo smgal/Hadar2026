@@ -1,5 +1,5 @@
 import 'dart:async';
-import '../../game_components/hd_game_main.dart';
+import '../../hd_game_main.dart';
 import 'maps/town1_map_script.dart';
 import 'maps/ground1_map_script.dart';
 import 'maps/town2_map_script.dart';

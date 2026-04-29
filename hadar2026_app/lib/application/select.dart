@@ -1,4 +1,4 @@
-import '../game_components/hd_game_main.dart';
+import '../hd_game_main.dart';
 
 class HDSelect {
   static final HDSelect _instance = HDSelect._internal();

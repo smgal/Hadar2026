@@ -1,5 +1,5 @@
 import 'dart:async';
-import '../../game_components/hd_game_main.dart';
+import '../../hd_game_main.dart';
 
 abstract class HDMapScript {
   final HDGameMain game = HDGameMain();

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../game_components/hd_game_main.dart';
+import '../../hd_game_main.dart';
 import '../../hd_config.dart';
 import '../../utils/hd_text_utils.dart';
 

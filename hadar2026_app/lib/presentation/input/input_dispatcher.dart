@@ -1,5 +1,5 @@
 import 'package:flutter/services.dart';
-import '../../game_components/hd_game_main.dart';
+import '../../hd_game_main.dart';
 import '../window_manager.dart';
 import 'input_mode.dart';
 

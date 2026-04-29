@@ -2,7 +2,7 @@ import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 import '../../domain/map/map_model.dart';
 import '../../domain/party/party.dart';
-import '../../game_components/hd_game_main.dart';
+import '../../hd_game_main.dart';
 import 'battle_overlay.dart';
 import 'player_sprite.dart';
 import 'world_map_renderer.dart';

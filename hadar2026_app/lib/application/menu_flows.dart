@@ -6,8 +6,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../application/magic_system.dart';
 import '../domain/party/player.dart';
-import '../game_components/hd_battle.dart';
-import '../game_components/hd_game_main.dart';
+import '../application/battle.dart';
+import '../hd_game_main.dart';
 import '../application/save_manager.dart';
 
 /// Top-level menus driven by the main game shell: command menu, party

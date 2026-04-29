@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../domain/party/party.dart';
 import '../../hd_config.dart';
-import '../../game_components/hd_game_main.dart';
+import '../../hd_game_main.dart';
 import '../../domain/map/tile_properties.dart';
 import '../input/virtual_input_state.dart';
 

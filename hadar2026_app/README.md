@@ -24,10 +24,11 @@ flutter build web --base-href "/Hadar2026/" --release
 ```
 lib/
 ├─ main.dart, hd_config.dart
+├─ hd_game_main.dart   thin facade tying the layers together (UiHost impl)
 ├─ domain/         data + game rules (no Flutter material/Bonfire)
-├─ application/    use-cases (menu flow, map nav, tile dispatch, scripting, save)
+├─ application/    use-cases (game_session, menu_flows, battle,
+│                  map_navigation, tile_event_dispatcher, scripting, save)
 ├─ presentation/   Flutter/Bonfire-bound — host, input, panels, window manager
-├─ game_components/  transitional facades (HDGameMain, HDBattle)
 └─ utils/
 ```
 

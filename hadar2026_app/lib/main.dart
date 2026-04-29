@@ -1,7 +1,7 @@
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
-import 'game_components/hd_game_main.dart';
+import 'hd_game_main.dart';
 import 'hd_config.dart';
 import 'presentation/panels/map_viewport.dart';
 import 'presentation/panels/window_view.dart';

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../domain/lighting/sight_calculator.dart';
 import '../../domain/map/map_model.dart';
 import '../../domain/party/party.dart';
-import '../../game_components/hd_game_main.dart';
+import '../../hd_game_main.dart';
 import '../../application/scripting/native_script_runner.dart';
 
 /// Renders the tiled map and the per-tile shadow/visibility overlay.
