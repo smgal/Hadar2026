@@ -42,35 +42,43 @@ class HDMenuFlows {
       "전투 테스트 (시뮬레이션)",
     ];
 
-    int selected = await _game.showMenu(choices);
+    // Outer narrative cycle: keeps the overlay open across the whole
+    // menu→action→message sequence so the base progress layer stays
+    // hidden until everything is completely done.
+    _game.beginNarrative();
+    try {
+      int selected = await _game.showMenu(choices);
 
-    switch (selected) {
-      case 0:
-        break; // Cancel
-      case 1:
-        await showPartyStatus();
-        break;
-      case 2:
-        await showCharacterStatus();
-        break;
-      case 3:
-        await showHealthStatus();
-        break;
-      case 4:
-        await _selectPlayerForMagic();
-        break;
-      case 5:
-        await _selectPlayerForESP();
-        break;
-      case 6:
-        await restHere();
-        break;
-      case 7:
-        await selectGameOption();
-        break;
-      case 8:
-        await showBattleMenu();
-        break;
+      switch (selected) {
+        case 0:
+          break; // Cancel
+        case 1:
+          await showPartyStatus();
+          break;
+        case 2:
+          await showCharacterStatus();
+          break;
+        case 3:
+          await showHealthStatus();
+          break;
+        case 4:
+          await _selectPlayerForMagic();
+          break;
+        case 5:
+          await _selectPlayerForESP();
+          break;
+        case 6:
+          await restHere();
+          break;
+        case 7:
+          await selectGameOption();
+          break;
+        case 8:
+          await showBattleMenu();
+          break;
+      }
+    } finally {
+      await _game.endNarrative();
     }
   }
 
@@ -95,12 +103,12 @@ class HDMenuFlows {
           HDBattle().enemies.length;
 
       if (avgLuck + Random().nextInt(10) > avgAgility) {
-        await _game.addLog("무사히 도망쳤다...", isDialogue: false);
+        await _game.addLog("무사히 도망쳤다...");
         await _game.waitForAnyKey();
         _game.clearLogs();
         return;
       } else {
-        await _game.addLog("도망에 실패했다 !", isDialogue: false);
+        await _game.addLog("도망에 실패했다 !");
         await _game.waitForAnyKey();
       }
     }
@@ -143,7 +151,7 @@ class HDMenuFlows {
     for (final p in party.players) {
       if (!p.isValid()) continue;
       final result = HDPartyActions.restPlayer(p, party);
-      await _game.addLog(_restMessageFor(result), isDialogue: false);
+      await _game.addLog(_restMessageFor(result));
     }
 
     HDPartyActions.applyRestHousekeeping(party);
@@ -151,6 +159,9 @@ class HDMenuFlows {
 
     await _game.waitForAnyKey();
     _game.clearLogs();
+    // Leave a trace on the base progress layer so the player can see what
+    // happened after the overlay disappears.
+    await _game.addLog("일행이 잠시 쉬었다.", isDialogue: false);
   }
 
   String _restMessageFor(RestEntryResult r) {
@@ -179,16 +190,16 @@ class HDMenuFlows {
     final party = _game.party;
     _game.clearLogs();
 
-    await _game.addLog("X 축 = ${party.x}", isDialogue: false);
-    await _game.addLog("Y 축 = ${party.y}", isDialogue: false);
-    await _game.addLog("남은 식량 = ${party.food}", isDialogue: false);
-    await _game.addLog("남은 황금 = ${party.gold}", isDialogue: false);
-    await _game.addLog("", isDialogue: false);
+    await _game.addLog("X 축 = ${party.x}");
+    await _game.addLog("Y 축 = ${party.y}");
+    await _game.addLog("남은 식량 = ${party.food}");
+    await _game.addLog("남은 황금 = ${party.gold}");
+    await _game.addLog("");
 
-    await _game.addLog("마법의 횃불 : ${party.magicTorch}", isDialogue: false);
-    await _game.addLog("공중 부상   : ${party.levitation}", isDialogue: false);
-    await _game.addLog("물위를 걸음 : ${party.walkOnWater}", isDialogue: false);
-    await _game.addLog("늪위를 걸음 : ${party.walkOnSwamp}", isDialogue: false);
+    await _game.addLog("마법의 횃불 : ${party.magicTorch}");
+    await _game.addLog("공중 부상   : ${party.levitation}");
+    await _game.addLog("물위를 걸음 : ${party.walkOnWater}");
+    await _game.addLog("늪위를 걸음 : ${party.walkOnSwamp}");
 
     await _game.waitForAnyKey();
     _game.clearLogs();
@@ -197,8 +208,8 @@ class HDMenuFlows {
   Future<void> showHealthStatus() async {
     _game.clearLogs();
 
-    await _game.addLog("                이름    중독  의식불명    죽음", isDialogue: false);
-    await _game.addLog("", isDialogue: false);
+    await _game.addLog("                이름    중독  의식불명    죽음");
+    await _game.addLog("");
 
     for (var p in _game.party.players) {
       if (p.isValid()) {
@@ -207,10 +218,7 @@ class HDMenuFlows {
         final deadStr = p.dead.toString().padLeft(7);
         final poiStr = p.poison.toString().padLeft(5);
 
-        await _game.addLog(
-          "$nameStr   $poiStr $unStr $deadStr",
-          isDialogue: false,
-        );
+        await _game.addLog("$nameStr   $poiStr $unStr $deadStr");
       }
     }
 
@@ -234,44 +242,40 @@ class HDMenuFlows {
     final player = validPlayers[selected - 1];
 
     _game.clearLogs();
-    await _game.addLog("# 이름 : ${player.name}", isDialogue: false);
-    await _game.addLog("# 성별 : ${player.getGenderName()}", isDialogue: false);
-    await _game.addLog("# 계급 : ${player.getClassName()}", isDialogue: false);
-    await _game.addLog("", isDialogue: false);
-    await _game.addLog("체력   : ${player.strength}", isDialogue: false);
-    await _game.addLog("정신력 : ${player.mentality}", isDialogue: false);
-    await _game.addLog("집중력 : ${player.concentration}", isDialogue: false);
-    await _game.addLog("인내력 : ${player.endurance}", isDialogue: false);
-    await _game.addLog("저항력 : ${player.resistance}", isDialogue: false);
-    await _game.addLog("민첩성 : ${player.agility}", isDialogue: false);
-    await _game.addLog("행운   : ${player.luck}", isDialogue: false);
+    await _game.addLog("# 이름 : ${player.name}");
+    await _game.addLog("# 성별 : ${player.getGenderName()}");
+    await _game.addLog("# 계급 : ${player.getClassName()}");
+    await _game.addLog("");
+    await _game.addLog("체력   : ${player.strength}");
+    await _game.addLog("정신력 : ${player.mentality}");
+    await _game.addLog("집중력 : ${player.concentration}");
+    await _game.addLog("인내력 : ${player.endurance}");
+    await _game.addLog("저항력 : ${player.resistance}");
+    await _game.addLog("민첩성 : ${player.agility}");
+    await _game.addLog("행운   : ${player.luck}");
 
     await _game.waitForAnyKey();
 
     _game.clearLogs();
-    await _game.addLog("# 이름 : ${player.name}", isDialogue: false);
-    await _game.addLog("# 성별 : ${player.getGenderName()}", isDialogue: false);
-    await _game.addLog("# 계급 : ${player.getClassName()}", isDialogue: false);
-    await _game.addLog("", isDialogue: false);
+    await _game.addLog("# 이름 : ${player.name}");
+    await _game.addLog("# 성별 : ${player.getGenderName()}");
+    await _game.addLog("# 계급 : ${player.getClassName()}");
+    await _game.addLog("");
 
     await _game.addLog(
       "무기의 정확성   : ${player.accuracy[0].toString().padLeft(2)}    전투 레벨   : ${player.level[0].toString().padLeft(2)}",
-      isDialogue: false,
     );
     await _game.addLog(
       "정신력의 정확성 : ${player.accuracy[1].toString().padLeft(2)}    마법 레벨   : ${player.level[1].toString().padLeft(2)}",
-      isDialogue: false,
     );
     await _game.addLog(
       "초감각의 정확성 : ${player.accuracy[2].toString().padLeft(2)}    초감각 레벨 : ${player.level[2].toString().padLeft(2)}",
-      isDialogue: false,
     );
-    await _game.addLog("## 경험치   : ${player.experience}", isDialogue: false);
-    await _game.addLog("", isDialogue: false);
-    await _game.addLog("사용 무기 - ${player.getWeaponName()}", isDialogue: false);
+    await _game.addLog("## 경험치   : ${player.experience}");
+    await _game.addLog("");
+    await _game.addLog("사용 무기 - ${player.getWeaponName()}");
     await _game.addLog(
       "방패 - ${player.getShieldName().padRight(12)} 갑옷 - ${player.getArmorName()}",
-      isDialogue: false,
     );
 
     await _game.waitForAnyKey();
@@ -354,7 +358,7 @@ class HDMenuFlows {
       party.players.indexOf(destPlayer),
     );
 
-    await _game.addLog("일행의 순서가 변경되었습니다.", isDialogue: false);
+    await _game.addLog("일행의 순서가 변경되었습니다.");
     await _game.waitForAnyKey();
     _game.clearLogs();
   }
@@ -390,7 +394,7 @@ class HDMenuFlows {
     final dismissedName = player.name;
     HDPartyActions.dismissMember(party, party.players.indexOf(player));
 
-    await _game.addLog("$dismissedName가 일행에서 제외되었습니다.", isDialogue: false);
+    await _game.addLog("$dismissedName가 일행에서 제외되었습니다.");
     await _game.waitForAnyKey();
     _game.clearLogs();
   }
@@ -448,12 +452,12 @@ class HDMenuFlows {
     bool loadSuccess = await HDSaveManager.loadGame(slot);
     if (loadSuccess) {
       _game.sessionId++;
-      await _game.addLog("게임을 무사히 불러왔습니다", isDialogue: false);
+      await _game.addLog("게임을 무사히 불러왔습니다");
       await _game.waitForAnyKey();
       _game.clearLogs();
       return true;
     } else {
-      await _game.addLog("게임 불러오기에 실패했습니다.", isDialogue: false);
+      await _game.addLog("게임 불러오기에 실패했습니다.");
       await _game.waitForAnyKey();
       _game.clearLogs();
       return false;
@@ -479,12 +483,12 @@ class HDMenuFlows {
 
     bool saveSuccess = await HDSaveManager.saveGame(slot);
     if (saveSuccess) {
-      await _game.addLog("게임을 무사히 저장했습니다", isDialogue: false);
+      await _game.addLog("게임을 무사히 저장했습니다");
       await _game.waitForAnyKey();
       _game.clearLogs();
       return true;
     } else {
-      await _game.addLog("게임 저장에 실패했습니다.", isDialogue: false);
+      await _game.addLog("게임 저장에 실패했습니다.");
       await _game.waitForAnyKey();
       _game.clearLogs();
       return false;
@@ -500,10 +504,7 @@ class HDMenuFlows {
         if (!kIsWeb) {
           exit(0);
         } else {
-          await _game.addLog(
-            "게임을 종료합니다. 브라우저 창을 닫아주세요.",
-            isDialogue: false,
-          );
+          await _game.addLog("게임을 종료합니다. 브라우저 창을 닫아주세요.");
           await _game.waitForAnyKey();
         }
       }
@@ -513,7 +514,7 @@ class HDMenuFlows {
     if (exitCode == 1) {
       // EXITCODE_BY_ACCIDENT (Field Death)
       _game.clearLogs();
-      await _game.addLog("일행은 모험중에 모두 목숨을 잃었다.", isDialogue: false);
+      await _game.addLog("일행은 모험중에 모두 목숨을 잃었다.");
       await _game.waitForAnyKey();
       if (await selectLoadMenu()) {
         throw GameReloadException();
@@ -526,7 +527,7 @@ class HDMenuFlows {
     if (exitCode == 2) {
       // EXITCODE_BY_ENEMY (Battle Death)
       _game.clearLogs();
-      await _game.addLog("일행은 모두 전투에서 패했다 !!", isDialogue: false);
+      await _game.addLog("일행은 모두 전투에서 패했다 !!");
       await _game.waitForAnyKey();
 
       final menu = ["    어떻게 하시겠습니까 ?", "   이전의 게임을 재개한다", "       게임을 끝낸다"];

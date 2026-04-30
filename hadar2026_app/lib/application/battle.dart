@@ -7,7 +7,7 @@ import '../domain/magic/magic.dart';
 import '../domain/party/party.dart';
 import '../domain/party/player.dart';
 import '../hd_game_main.dart';
-import '../presentation/host/ui_host.dart';
+import 'ports/ui_host.dart';
 import 'magic_system.dart';
 import 'menu_flows.dart';
 
@@ -63,7 +63,6 @@ class HDBattle with ChangeNotifier {
     String enemyNames = displayNames.join(", ");
     _host.addLog(
       "$enemyNames ${enemies.first.josaSub2} 나타났다 !",
-      isDialogue: false,
     );
   }
 
@@ -138,15 +137,13 @@ class HDBattle with ChangeNotifier {
               // Heal
               await _host.addLog(
                 "${p.name}${p.josaSub1} ${magic.name}${magic.josaObj} 시전했다!",
-                isDialogue: false,
               );
               // Simulate heal resolution
-              await _host.addLog("아군의 상처가 치료되었다.", isDialogue: false);
+              await _host.addLog("아군의 상처가 치료되었다.");
             } else {
               // Attack / ESP
               await _host.addLog(
                 "${p.name}${p.josaSub1} ${magic.name}${magic.josaObj} 시전했다!",
-                isDialogue: false,
               );
               if (targetId == -1) {
                 // all enemies
@@ -157,13 +154,11 @@ class HDBattle with ChangeNotifier {
                   t.hp -= dmg;
                   await _host.addLog(
                     "${t.name}에게 $dmg의 데미지!",
-                    isDialogue: false,
                   );
                   if (t.hp <= 0) {
                     t.dead = 1;
                     await _host.addLog(
                       "${t.name}${t.josaSub2} 죽었다.",
-                      isDialogue: false,
                     );
                   }
                 }
@@ -178,13 +173,11 @@ class HDBattle with ChangeNotifier {
                   t.hp -= dmg;
                   await _host.addLog(
                     "${t.name}에게 $dmg의 데미지!",
-                    isDialogue: false,
                   );
                   if (t.hp <= 0) {
                     t.dead = 1;
                     await _host.addLog(
                       "${t.name}${t.josaSub2} 죽었다.",
-                      isDialogue: false,
                     );
                   }
                 }
@@ -252,7 +245,6 @@ class HDBattle with ChangeNotifier {
       });
       await _host.addLog(
         "전투에서 승리하여 경험치 $totExp을 얻었다.",
-        isDialogue: false,
       );
       for (var p in _party.players) {
         if (p.isConscious()) {
@@ -260,7 +252,6 @@ class HDBattle with ChangeNotifier {
           if (p.checkLevelUp()) {
             await _host.addLog(
               "${p.name}${p.josaSub1} 전투 레벨이 ${p.level[0]}로 올랐다!",
-              isDialogue: false,
             );
           }
         }
@@ -271,10 +262,10 @@ class HDBattle with ChangeNotifier {
       ); // Add dummy gold
     } else if (_battleResult == 0) {
       // Lose
-      await _host.addLog("파티가 전멸했습니다.", isDialogue: false);
+      await _host.addLog("파티가 전멸했습니다.");
       await HDMenuFlows().processGameOver(2);
     } else if (_battleResult == 2) {
-      await _host.addLog("무사히 도망쳤다...", isDialogue: false);
+      await _host.addLog("무사히 도망쳤다...");
     }
 
     await _host.waitForAnyKey();
@@ -380,7 +371,6 @@ class HDBattle with ChangeNotifier {
   bool _tryToRunAway(HDPlayer p) {
     _host.addLog(
       "${p.name}${p.josaSub1} 도망을 시도했다...",
-      isDialogue: false,
     );
 
     int avgEnemyAgility = 0;
@@ -401,7 +391,7 @@ class HDBattle with ChangeNotifier {
       notifyListeners();
       return true;
     } else {
-      _host.addLog("그러나 실패했다.", isDialogue: false);
+      _host.addLog("그러나 실패했다.");
       notifyListeners();
       return false;
     }
@@ -426,7 +416,6 @@ class HDBattle with ChangeNotifier {
       t.dead = 1;
       await _host.addLog(
         "${p.name}${p.josaSub1} 의식불명 상태인 ${t.name}${t.josaObj} 가볍게 처치했다!",
-        isDialogue: false,
       );
       // P plus XP
       p.experience += t.level * 10;
@@ -434,14 +423,13 @@ class HDBattle with ChangeNotifier {
     }
 
     if (Random().nextInt(20) > p.accuracy[0]) {
-      await _host.addLog("${p.name}의 공격은 빗나갔다....", isDialogue: false);
+      await _host.addLog("${p.name}의 공격은 빗나갔다....");
       return;
     }
 
     if (Random().nextInt(100) < t.resistance) {
       await _host.addLog(
         "${t.name}${t.josaSub1} ${p.name}의 공격을 저지했다",
-        isDialogue: false,
       );
       return;
     }
@@ -453,7 +441,6 @@ class HDBattle with ChangeNotifier {
     if (damage <= 0) {
       await _host.addLog(
         "그러나 ${t.name}${t.josaSub1} ${p.name}의 공격을 막았다",
-        isDialogue: false,
       );
       return;
     }
@@ -462,7 +449,6 @@ class HDBattle with ChangeNotifier {
     notifyListeners();
     await _host.addLog(
       "${p.name}${p.josaSub1} ${p.getWeaponName()}${_getJosaRo(p.getWeaponName())} ${t.name}${t.josaObj} 공격하여 $damage 데미지!",
-      isDialogue: false,
     );
 
     if (t.hp <= 0) {
@@ -472,7 +458,6 @@ class HDBattle with ChangeNotifier {
       t.dead = 1;
       await _host.addLog(
         "${t.name}${t.josaSub1} ${p.name}의 공격으로 치명상을 입었다",
-        isDialogue: false,
       );
       p.experience += t.level * 10;
     }
@@ -497,19 +482,16 @@ class HDBattle with ChangeNotifier {
         // Simulated magic/special attack
         await _host.addLog(
           "${e.name}${e.josaSub2} 마법/특수 능력을 사용했다!",
-          isDialogue: false,
         );
         int magDmg = (e.level * 5) + Random().nextInt(10);
         t.hp -= magDmg;
         await _host.addLog(
           "${t.name}에게 $magDmg 데미지!",
-          isDialogue: false,
         );
         if (t.hp <= 0) {
           t.dead = 1;
           await _host.addLog(
             "${t.name}${t.josaSub1} 의식을 잃고 쓰러졌다.",
-            isDialogue: false,
           );
         }
         return;
@@ -519,11 +501,9 @@ class HDBattle with ChangeNotifier {
     if (Random().nextInt(50) < t.resistance) {
       await _host.addLog(
         "${e.name}${e.josaSub1} ${t.name}${t.josaObj} 공격했다.",
-        isDialogue: false,
       );
       await _host.addLog(
         "그러나, ${t.name}${t.josaSub1} 적의 공격을 저지했다.",
-        isDialogue: false,
       );
       return;
     }
@@ -534,11 +514,9 @@ class HDBattle with ChangeNotifier {
     if (damage <= 0) {
       await _host.addLog(
         "${e.name}${e.josaSub1} ${t.name}${t.josaObj} 공격했다.",
-        isDialogue: false,
       );
       await _host.addLog(
         "그러나, ${t.name}${t.josaSub1} 적의 공격을 방어했다.",
-        isDialogue: false,
       );
       return;
     }
@@ -546,14 +524,12 @@ class HDBattle with ChangeNotifier {
     t.hp -= damage;
     await _host.addLog(
       "${e.name}${e.josaSub1} ${t.name}${t.josaObj} 공격하여 $damage 데미지!",
-      isDialogue: false,
     );
 
     if (t.hp <= 0) {
       t.dead = 1;
       await _host.addLog(
         "${t.name}${t.josaSub1} 의식을 잃고 쓰러졌다.",
-        isDialogue: false,
       );
     }
   }

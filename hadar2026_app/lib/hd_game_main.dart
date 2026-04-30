@@ -1,27 +1,23 @@
 import 'dart:async';
 
-import 'package:bonfire/bonfire.dart';
-import 'package:flame/flame.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'application/game_session.dart';
 import 'application/menu_flows.dart';
 import 'application/tile_event_dispatcher.dart';
-import 'domain/console/console_log.dart';
 import 'domain/game_option.dart';
 import 'domain/map/map_model.dart';
 import 'domain/party/party.dart';
-import 'hd_config.dart';
+import 'application/ports/movement_host.dart';
+import 'application/ports/ui_host.dart';
 import 'presentation/host/flutter_ui_host.dart';
-import 'presentation/host/ui_host.dart';
 import 'presentation/input/input_dispatcher.dart';
 import 'presentation/input/input_mode.dart';
 import 'presentation/window_manager.dart';
 
+export 'application/ports/ui_host.dart';
 export 'presentation/host/flutter_ui_host.dart' show HDMenu;
-export 'presentation/host/ui_host.dart';
 export 'presentation/input/input_mode.dart';
 
 class GameReloadException implements Exception {
@@ -39,7 +35,7 @@ class GameReloadException implements Exception {
 /// sites (and the original C++ port shape) keep working unchanged. Forwards
 /// `notifyListeners()` from both the session and the host so a single
 /// listenable still drives the whole UI.
-class HDGameMain with ChangeNotifier implements UiHost {
+class HDGameMain with ChangeNotifier implements UiHost, PartyMovementHost {
   static final HDGameMain _instance = HDGameMain._internal();
   factory HDGameMain() => _instance;
 
@@ -59,11 +55,9 @@ class HDGameMain with ChangeNotifier implements UiHost {
   Future<bool> loadMapFromFile(String fileName) =>
       _session.loadMapFromFile(fileName);
 
-  /// Bonfire game ref captured by the map viewport on `onReady`. Lives
-  /// here transitionally — it's a presentation handle, but several
-  /// subsystems (script engine, world map renderer) read it through
-  /// `HDGameMain()`.
-  BonfireGameInterface? mapViewGameRef;
+  /// Tracks the last `mapVersion` we cleared progress for. Used by the
+  /// session listener below.
+  int _lastObservedMapVersion = 0;
 
   bool get isScriptRunning => HDTileEventDispatcher().isScriptRunning;
 
@@ -71,10 +65,9 @@ class HDGameMain with ChangeNotifier implements UiHost {
   HDMenu? get activeMenu => _host.activeMenu;
   set activeMenu(HDMenu? v) => _host.activeMenu = v;
 
-  HDConsoleLog get consoleLog => _host.consoleLog;
   List<String> get progressLogs => _host.consoleLog.progress;
   List<String> get eventLogs => _host.consoleLog.events;
-  bool get isEventMode => _host.isEventMode;
+  HDConsoleViewMode get viewMode => _host.viewMode;
   bool get isWaitingForKey => _host.isWaitingForKey;
 
   @override
@@ -100,6 +93,20 @@ class HDGameMain with ChangeNotifier implements UiHost {
   @override
   void clearLogs() => _host.clearLogs();
 
+  @override
+  void beginNarrative() => _host.beginNarrative();
+
+  @override
+  Future<void> endNarrative({String? summary, bool autoFlush = true}) =>
+      _host.endNarrative(summary: summary, autoFlush: autoFlush);
+
+  @override
+  Future<void> preloadAssets() => _host.preloadAssets();
+
+  @override
+  Future<void> animatePartyMove(int dx, int dy) =>
+      _host.animatePartyMove(dx, dy);
+
   void dismissKeyWait() => _host.dismissKeyWait();
 
   HDInputMode get currentInputMode {
@@ -113,10 +120,23 @@ class HDGameMain with ChangeNotifier implements UiHost {
 
   HDGameMain._internal() {
     HDInputDispatcher().registerGlobalHandler();
+    _lastObservedMapVersion = _session.mapVersion;
     // Forward host + session changes so a single ListenableBuilder on
     // HDGameMain catches both.
     _host.addListener(notifyListeners);
-    _session.addListener(notifyListeners);
+    _session.addListener(_onSessionChanged);
+  }
+
+  /// Bridges session-level state changes into facade listeners *and*
+  /// performs a side-effect that crosses the application/presentation
+  /// boundary: on map transitions, the per-map progress scrollback is
+  /// cleared (map = natural context boundary).
+  void _onSessionChanged() {
+    if (_session.mapVersion != _lastObservedMapVersion) {
+      _lastObservedMapVersion = _session.mapVersion;
+      _host.consoleLog.clearProgress();
+    }
+    notifyListeners();
   }
 
   bool processKey(LogicalKeyboardKey key) =>
@@ -129,18 +149,11 @@ class HDGameMain with ChangeNotifier implements UiHost {
     });
   }
 
-  /// Asset preload (Flame images) — kept here because it's a rendering
-  /// concern that sits next to the UI host. Then hands off to
-  /// `HDGameSession.init()` for the gameplay boot.
+  /// Boot sequence: ask the host to preload its rendering assets, then
+  /// hand off to `HDGameSession.init()` for the gameplay boot. The
+  /// facade no longer names Flame/Bonfire — the host owns its surfaces.
   Future<void> init() async {
-    try {
-      await Flame.images.loadAll([
-        HDConfig.mainSpriteSheet,
-        HDConfig.mainTileSheet,
-      ]);
-    } catch (e) {
-      print("Pre-cache error: $e");
-    }
+    await _host.preloadAssets();
     await _session.init();
   }
 

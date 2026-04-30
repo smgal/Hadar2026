@@ -92,6 +92,11 @@ class HDPlayerSprite extends SimplePlayer with BlockMovementCollision {
 
   bool _actionPressed = false;
 
+  /// Last frame's input mode. Used to detect non-map → map transitions:
+  /// the keystroke that just closed an overlay (Enter dismissing a sign,
+  /// menu confirm, etc.) must not double as the start of a new interact.
+  HDInputMode? _lastInputMode;
+
   bool _isProcessingMove = false;
 
   @override
@@ -121,12 +126,28 @@ class HDPlayerSprite extends SimplePlayer with BlockMovementCollision {
         HardwareKeyboard.instance.isLogicalKeyPressed(LogicalKeyboardKey.keyE) ||
         HDVirtualInputState().actionPressed;
 
+    final justEnteredMapMode =
+        _lastInputMode != null &&
+        _lastInputMode != HDInputMode.map &&
+        mode == HDInputMode.map;
+    _lastInputMode = mode;
+
+    // The keystroke that just transitioned us back to map mode is most
+    // likely the same key that closed the overlay (Enter dismissing a
+    // sign, menu confirm, etc.). Force-latch so it doesn't immediately
+    // re-trigger interact on the same frame — the user has to release
+    // the key first.
+    if (justEnteredMapMode && isActionKeyPressed) {
+      _actionPressed = true;
+    }
+
     if (mode == HDInputMode.map && isActionKeyPressed) {
       if (!_actionPressed) {
         _actionPressed = true;
         _interactWithFacingTile();
       }
-    } else {
+    } else if (!isActionKeyPressed) {
+      // Key released — re-arm.
       _actionPressed = false;
     }
 

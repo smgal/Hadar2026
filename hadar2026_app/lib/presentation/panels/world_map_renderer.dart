@@ -6,6 +6,7 @@ import '../../domain/map/map_model.dart';
 import '../../domain/party/party.dart';
 import '../../hd_game_main.dart';
 import '../../application/scripting/native_script_runner.dart';
+import '../host/flutter_ui_host.dart';
 
 /// Renders the tiled map and the per-tile shadow/visibility overlay.
 /// Game rules (sight radius, moonlight, light bit) come from
@@ -175,7 +176,7 @@ class HDWorldMap extends WorldMap {
     int pX = party.x;
     int pY = party.y;
 
-    final game = HDGameMain().mapViewGameRef;
+    final game = HDFlutterUiHost().bonfireGame;
     if (game != null && game.player != null) {
       double valX = game.player!.position.x / renderTileSize;
       double valY = game.player!.position.y / renderTileSize;

@@ -75,10 +75,12 @@ class HDNativeScriptRunner {
           (e) => e.x == x && e.y == y,
         );
         if (ev.dialogLines.isNotEmpty) {
-          bool isDialogue = (actType == 1 || actType == 2); // Talk or Sign
+          // All scripted dialogue lines flow through the narrative
+          // overlay — `HDTileEventDispatcher.check` opens/closes the
+          // cycle around this call.
           for (var line in ev.dialogLines) {
             if (line.isNotEmpty) {
-              await gameModel.addLog(line, isDialogue: isDialogue);
+              await gameModel.addLog(line);
             }
           }
         }

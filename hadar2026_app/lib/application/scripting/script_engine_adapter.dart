@@ -7,7 +7,6 @@ import 'package:cm2_script/cm2_script.dart';
 
 import '../../application/battle.dart';
 import '../../hd_game_main.dart';
-import '../../presentation/panels/player_sprite.dart';
 import '../../application/select.dart';
 import '../../hd_config.dart';
 import '../../domain/map/map_model.dart';
@@ -286,13 +285,10 @@ class HDScriptEngine {
     e.registerCommand('Party::Move', (stmt, eng) async {
       final dx = (eng.getVal(stmt.args[0]) as num).toInt();
       final dy = (eng.getVal(stmt.args[1]) as num).toInt();
-      final game = HDGameMain().mapViewGameRef;
-      if (game != null && game.player != null) {
-        final playerComponent = game.player as HDPlayerSprite;
-        await playerComponent.forceMove(dx, dy);
-      } else {
-        HDGameMain().party.move(dx, dy);
-      }
+      // Delegate to PartyMovementHost: presentation-backed hosts play
+      // the walk animation and sync coords; headless hosts just bump
+      // the domain coordinates. The script doesn't care which.
+      await HDGameMain().animatePartyMove(dx, dy);
     });
 
     e.registerCommand('Map::SetType', (stmt, eng) async {

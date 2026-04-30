@@ -26,7 +26,7 @@ class HDBattleOverlay extends StatelessWidget {
                 "적의 상태",
                 style: TextStyle(
                   color: Colors.yellow,
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -78,7 +78,7 @@ class HDBattleOverlay extends StatelessWidget {
                           ),
                           Text(
                             status,
-                            style: TextStyle(color: statusColor, fontSize: 14),
+                            style: TextStyle(color: statusColor, fontSize: 16),
                           ),
                         ],
                       ),

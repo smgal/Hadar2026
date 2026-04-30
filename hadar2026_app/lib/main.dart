@@ -6,6 +6,7 @@ import 'hd_config.dart';
 import 'presentation/panels/map_viewport.dart';
 import 'presentation/panels/window_view.dart';
 import 'presentation/panels/console_panel.dart';
+import 'presentation/panels/input_panel.dart';
 import 'presentation/panels/status_panel.dart';
 import 'presentation/panels/bottom_control_panel.dart';
 
@@ -47,6 +48,9 @@ class HadarApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.black,
+        // Single embedded font for the entire UI. Widgets that don't
+        // override TextStyle.fontFamily inherit this from the theme.
+        fontFamily: 'DungGeunMo',
       ),
       home: const MainScreen(),
     );
@@ -122,9 +126,9 @@ class _MainScreenState extends State<MainScreen> {
                     children: [
                       Column(
                         children: [
+                          // Top row: map (left) + console (right).
                           Row(
                             children: [
-                              // 1. Map Viewport
                               SizedBox(
                                 width: HDConfig.mapViewportWidth,
                                 height: HDConfig.mapViewportHeight,
@@ -141,12 +145,16 @@ class _MainScreenState extends State<MainScreen> {
                                   },
                                 ),
                               ),
-                              // 2. Console Panel
                               const HDConsolePanel(),
                             ],
                           ),
-                          // 3. Status Panel
-                          const HDStatusPanel(),
+                          // Bottom row: status (under map) + input (under console).
+                          Row(
+                            children: const [
+                              HDStatusPanel(),
+                              HDInputPanel(),
+                            ],
+                          ),
                         ],
                       ),
                       // Window Layer on top of everything

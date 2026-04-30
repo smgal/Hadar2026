@@ -16,6 +16,10 @@ class HDConsoleLog {
     events.clear();
   }
 
+  void clearProgress() {
+    progress.clear();
+  }
+
   void appendEvent(String line) {
     events.add(line);
   }

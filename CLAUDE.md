@@ -45,11 +45,11 @@ dart run bin/run.dart
 `hadar2026_app/lib/` was reorganized from a flat `models/ + views/ + game_components/ + scripting/` into:
 
 - `domain/` — pure data + game rules. Allowed Flutter import: `foundation.dart` only (for `ChangeNotifier`). Subfolders: `party/`, `map/`, `battle/`, `magic/`, `lighting/`, `console/`, `window/`, plus `game_option.dart`.
-- `application/` — use-cases that compose domain with a UI host. No `flutter/material`, no `bonfire`, no `flame`. Contains `game_session.dart`, `menu_flows.dart`, `battle.dart`, `magic_system.dart`, `map_navigation.dart`, `tile_event_dispatcher.dart`, `save_manager.dart`, `select.dart`, `map_loader.dart`, and `scripting/` (CM2 adapter + native map scripts).
-- `presentation/` — Flutter/Bonfire-bound code: `host/` (`UiHost` interface + `HDFlutterUiHost`), `input/` (`HDInputDispatcher`, `HDVirtualInputState`, `HDInputMode`), `panels/` (the 6 panels + `world_map_renderer.dart` + `player_sprite.dart`), and `window_manager.dart`.
-- `lib/hd_game_main.dart` — thin facade that wires the layers together. Singleton, implements `UiHost`, forwards both `HDGameSession` and `HDFlutterUiHost` change notifications. Existing `HDGameMain()` call sites and `ListenableBuilder(listenable: HDGameMain(), ...)` keep working unchanged.
+- `application/` — use-cases that compose domain with a UI host. No `flutter/material`, no `bonfire`, no `flame`. Contains `game_session.dart`, `menu_flows.dart`, `battle.dart`, `magic_system.dart`, `map_navigation.dart`, `tile_event_dispatcher.dart`, `save_manager.dart`, `select.dart`, `map_loader.dart`, `scripting/` (CM2 adapter + native map scripts), and `ports/` (the abstract host interfaces application calls into — `UiHost`, `PartyMovementHost`).
+- `presentation/` — Flutter/Bonfire-bound code: `host/` (`HDFlutterUiHost`, the concrete adapter implementing every `application/ports/` interface), `input/` (`HDInputDispatcher`, `HDVirtualInputState`, `HDInputMode`), `panels/` (the 6 panels + `world_map_renderer.dart` + `player_sprite.dart`), and `window_manager.dart`.
+- `lib/hd_game_main.dart` — thin facade that wires the layers together. Singleton, implements `UiHost` + `PartyMovementHost`, forwards both `HDGameSession` and `HDFlutterUiHost` change notifications. Existing `HDGameMain()` call sites and `ListenableBuilder(listenable: HDGameMain(), ...)` keep working unchanged.
 
-When adding a class, pick the layer first. If a domain file ever imports `package:flutter/material.dart` or `package:bonfire/...`, that's a layering violation — push the rendering concern out into `presentation/` or the use-case into `application/`.
+When adding a class, pick the layer first. If a domain file ever imports `package:flutter/material.dart` or `package:bonfire/...`, that's a layering violation — push the rendering concern out into `presentation/` or the use-case into `application/`. Application code must not import `lib/presentation/...` either; talk to a port instead.
 
 ### Layout (fixed 800×480)
 The UI is hand-laid out at fixed pixel coordinates by `lib/main.dart`, scaled with `FittedBox`. Constants live in `lib/hd_config.dart`. Three viewports + a mobile control strip:
@@ -67,7 +67,7 @@ Most subsystems are accessed as `Foo()` (factory returning a static instance): `
 
 `HDGameMain` extends `ChangeNotifier` and is still the source of truth for UI rebuilds (via `ListenableBuilder(listenable: HDGameMain(), …)`). It implements `UiHost` and forwards changes from both `HDFlutterUiHost` and `HDGameSession` (`addListener(notifyListeners)`), so a single listenable still drives the whole UI even though state lives in two layered singletons. `notifyListeners()` is wrapped in `Future.microtask` to avoid notifying during build.
 
-The `UiHost` boundary (`presentation/host/ui_host.dart`) is the seam if you ever need a headless test driver or an alternate frontend — domain/application code only ever calls `host.showMenu / addLog / waitForAnyKey / clearLogs`, never the concrete `HDGameMain`.
+The `UiHost` and `PartyMovementHost` interfaces (`application/ports/`) are the seam if you ever need a headless test driver, a CLI/MUD frontend, or an alternate Flutter layout — application code only ever calls `host.showMenu / addLog / waitForAnyKey / beginNarrative / endNarrative / preloadAssets / animatePartyMove`, never the concrete `HDFlutterUiHost` or `HDGameMain`. To swap frontends, write a new adapter implementing the ports; nothing in `domain/` or `application/` changes.
 
 ### Input modes
 `HDGameMain.currentInputMode` resolves to one of `HDInputMode.{window, menu, dialogue, map}` in priority order. The global `HardwareKeyboard.instance` handler is registered by `HDInputDispatcher().registerGlobalHandler()`; every key flows through `HDInputDispatcher.process()` which dispatches by current mode (`HDGameMain.processKey()` is now a thin facade over it). Key bindings policy is documented in `docs/key_input_policy.md`:

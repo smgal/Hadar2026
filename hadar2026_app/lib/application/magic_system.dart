@@ -11,7 +11,6 @@ class HDMagicSystem {
     if (!player.isConscious()) {
       await gameMain.addLog(
         "${player.name}${player.josaSub1} 마법을 사용할 수 있는 상태가 아닙니다.",
-        isDialogue: false,
       );
       await gameMain.waitForAnyKey();
       gameMain.clearLogs();
@@ -19,7 +18,7 @@ class HDMagicSystem {
     }
 
     if (player.level[1] == 0) {
-      await gameMain.addLog("당신에게는 아직 능력이 없습니다.", isDialogue: false);
+      await gameMain.addLog("당신에게는 아직 능력이 없습니다.");
       await gameMain.waitForAnyKey();
       gameMain.clearLogs();
       return;
@@ -56,7 +55,7 @@ class HDMagicSystem {
     int spCost = (magicId >= 33) ? 10 : 5;
 
     if (player.sp < spCost) {
-      await gameMain.addLog("마법 지수가 충분하지 않습니다.", isDialogue: false);
+      await gameMain.addLog("마법 지수가 충분하지 않습니다.");
       await gameMain.waitForAnyKey();
       gameMain.clearLogs();
       return;
@@ -75,29 +74,27 @@ class HDMagicSystem {
       var target = gameMain.party.players[tSel - 1];
       await gameMain.addLog(
         "${player.name}${player.josaSub1} ${target.name}에게 ${magic.name}${magic.josaObj} 시전했다!",
-        isDialogue: false,
       );
 
       if (magicId == 19) {
         int recovery = (player.level[1] * 5);
         target.hp += recovery;
         if (target.hp > target.maxHp) target.hp = target.maxHp;
-        await gameMain.addLog("${target.name}의 건강이 회복되었다!", isDialogue: false);
+        await gameMain.addLog("${target.name}의 건강이 회복되었다!");
       }
     } else if (magicId >= 33 && magicId <= 39) {
       player.sp -= spCost;
       if (magicId == 33) {
         gameMain.party.magicTorch += 10;
-        await gameMain.addLog("주위가 횃불의 기운으로 밝아졌다.", isDialogue: false);
+        await gameMain.addLog("주위가 횃불의 기운으로 밝아졌다.");
       } else if (magicId == 34) {
         gameMain.party.levitation = 1;
-        await gameMain.addLog("일행의 몸이 가벼워졌다.", isDialogue: false);
+        await gameMain.addLog("일행의 몸이 가벼워졌다.");
       }
     } else {
       player.sp -= spCost;
       await gameMain.addLog(
         "${player.name}${player.josaSub1} ${magic.name}${magic.josaObj} 시전했다! (전투 외)",
-        isDialogue: false,
       );
     }
 
@@ -111,7 +108,6 @@ class HDMagicSystem {
     if (!player.isConscious()) {
       await gameMain.addLog(
         "${player.name}${player.josaSub1} 초감각을 사용할 수 있는 상태가 아닙니다.",
-        isDialogue: false,
       );
       await gameMain.waitForAnyKey();
       gameMain.clearLogs();
@@ -119,7 +115,7 @@ class HDMagicSystem {
     }
 
     if (player.level[2] == 0 && !gameMain.party.canUseEsp) {
-      await gameMain.addLog("당신에게는 아직 능력이 없습니다.", isDialogue: false);
+      await gameMain.addLog("당신에게는 아직 능력이 없습니다.");
       await gameMain.waitForAnyKey();
       gameMain.clearLogs();
       return;
@@ -149,7 +145,6 @@ class HDMagicSystem {
       final m = HDMagicMap.getMagic(45);
       await gameMain.addLog(
         "${m.name}${m.josaSub1} 전투 모드에서만 사용됩니다.",
-        isDialogue: false,
       );
       await gameMain.waitForAnyKey();
       gameMain.clearLogs();
@@ -158,7 +153,7 @@ class HDMagicSystem {
 
     int spCost = 10;
     if (player.esp < spCost) {
-      await gameMain.addLog("ESP 지수가 충분하지 않습니다.", isDialogue: false);
+      await gameMain.addLog("ESP 지수가 충분하지 않습니다.");
       await gameMain.waitForAnyKey();
       gameMain.clearLogs();
       return;
@@ -171,14 +166,12 @@ class HDMagicSystem {
       // 41: 투시
       await gameMain.addLog(
         "${player.name}${player.josaSub1} ${magic.name}${magic.josaObj} 사용했다!",
-        isDialogue: false,
       );
 
       // Logic would go here
     } else {
       await gameMain.addLog(
         "${player.name}${player.josaSub1} ${magic.name}${magic.josaObj} 사용했다!",
-        isDialogue: false,
       );
     }
 

@@ -2,7 +2,7 @@ import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 import '../../domain/map/map_model.dart';
 import '../../domain/party/party.dart';
-import '../../hd_game_main.dart';
+import '../host/flutter_ui_host.dart';
 import 'battle_overlay.dart';
 import 'player_sprite.dart';
 import 'world_map_renderer.dart';
@@ -64,7 +64,7 @@ class _HDMapViewportState extends State<HDMapViewport> {
           autofocus: true,
           backgroundColor: Colors.black,
           onReady: (game) {
-            HDGameMain().mapViewGameRef = game;
+            HDFlutterUiHost().attachBonfireGame(game);
           },
         ),
         // Coordinates overlay (Top-left)
