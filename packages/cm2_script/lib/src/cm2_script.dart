@@ -40,6 +40,11 @@ class ScriptEngine {
 
   bool halted = false;
 
+  /// Set by `Event::MarkHandled`. Reset to `false` at the start of every
+  /// [run]. Hosts read this after a run to decide whether to fall through
+  /// to a lower-priority event source (e.g. static JSON map events).
+  bool handled = false;
+
   int scriptMode = 0;
   int targetX = -1;
   int targetY = -1;
@@ -86,6 +91,7 @@ class ScriptEngine {
 
   Future<void> run({void Function(Object error, StackTrace stack)? onError}) async {
     halted = false;
+    handled = false;
     final statements = List<ScriptStatement>.from(currentScript);
     try {
       for (var stmt in statements) {
@@ -161,6 +167,9 @@ class ScriptEngine {
         break;
       case 'halt':
         halted = true;
+        break;
+      case 'Event::MarkHandled':
+        handled = true;
         break;
       case 'Context::SetCurrent':
         if (args.isNotEmpty) {

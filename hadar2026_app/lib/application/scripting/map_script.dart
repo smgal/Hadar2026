@@ -10,13 +10,16 @@ abstract class HDMapScript {
   void onLoad(String prevMap, int fromX, int fromY);
   void onUnload();
 
-  /// Return true if the player can move to the target tile.
+  /// Return `true` if this script handled the event at (tx, ty). When
+  /// `false`, the dispatcher falls through to the next event source
+  /// (cm2 → static JSON). This is the same contract for [onTalk],
+  /// [onSign], [onEvent], and [onEnter].
   Future<bool> onEvent(int eventId);
 
   Future<void> onPostEvent(int eventId);
   Future<bool> onEnter(int eventId);
-  Future<void> onSign(int eventId);
-  Future<void> onTalk(int eventId);
+  Future<bool> onSign(int eventId);
+  Future<bool> onTalk(int eventId);
 
   // Coordinate of the target tile (the tile being interacted with or stepped on)
   int tx = 0;

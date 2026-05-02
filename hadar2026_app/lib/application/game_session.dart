@@ -11,6 +11,10 @@ import 'map_navigation.dart';
 import 'scripting/native_script_runner.dart';
 import 'scripting/script_engine_adapter.dart';
 
+/// Resolves a `MapInfos.json#cm2` reference to a bundle asset path.
+String _resolveCm2Asset(String cm2Ref) =>
+    cm2Ref.startsWith('assets/') ? cm2Ref : 'assets/$cm2Ref';
+
 /// Session-wide game state: which map is loaded, the party, options, the
 /// scripting/loading boot sequence. Lives in `application/` because it
 /// composes domain objects (party, map, options) with infrastructure
@@ -59,11 +63,28 @@ class HDGameSession extends ChangeNotifier {
     await HDNativeScriptRunner().startNewGame();
   }
 
+  /// Path to the cm2 script paired with the currently loaded map (via
+  /// `MapInfos.json#cm2`). Null when the map has no paired cm2.
+  /// The dispatcher consults this when running per-tile cm2 events
+  /// (wired in step 3 of the migration).
+  String? currentMapCm2Path;
+
   Future<bool> loadMapFromFile(String fileName) async {
-    final newMap = await HDMapNavigation().loadByName(fileName);
+    final bundle = await HDMapNavigation().loadByName(fileName);
     errorMessage = HDMapNavigation().errorMessage;
-    if (newMap == null) return false;
-    setNewMap(newMap);
+    if (bundle == null) return false;
+    if (bundle.json != null) {
+      setNewMap(bundle.json!);
+    }
+    currentMapCm2Path = bundle.cm2Path;
+    if (bundle.cm2Path != null) {
+      // Load the paired cm2 into the script engine so that subsequent
+      // tile dispatches (`HDScriptEngine().run()`) execute this map's
+      // script, not whatever was previously loaded. Note: this clears
+      // `ScriptEngine.variables`/contexts — globals are not preserved
+      // across map transitions in the new model.
+      await HDScriptEngine().loadScript(_resolveCm2Asset(bundle.cm2Path!));
+    }
     return true;
   }
 

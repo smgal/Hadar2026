@@ -35,6 +35,7 @@ class Town2MapScript extends HDMapScript {
         // 2 = Right
         game.party.x += 3;
       }
+      return true;
     }
 
     if (isArea(31, 7, 31, 10)) {
@@ -42,9 +43,10 @@ class Town2MapScript extends HDMapScript {
         // 3 = Left
         game.party.x -= 3;
       }
+      return true;
     }
 
-    return true;
+    return false;
   }
 
   @override
@@ -62,6 +64,7 @@ class Town2MapScript extends HDMapScript {
       if (choice == 1) {
         await HDNativeScriptRunner().loadMapScript('TOWN1');
       }
+      return true;
     }
 
     if (isArea(36, 69, 39, 69)) {
@@ -73,8 +76,8 @@ class Town2MapScript extends HDMapScript {
   }
 
   @override
-  Future<void> onSign(int eventId) async {}
+  Future<bool> onSign(int eventId) async => false;
 
   @override
-  Future<void> onTalk(int eventId) async {}
+  Future<bool> onTalk(int eventId) async => false;
 }

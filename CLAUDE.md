@@ -78,25 +78,33 @@ The `UiHost` and `PartyMovementHost` interfaces (`application/ports/`) are the s
 
 Window-mode keys are dispatched by `HDWindowManager._dispatch`, which type-switches on the topmost window (`HDMessageWindow.close()`, `HDMagicSelectionWindow.moveCursor/confirm/cancel`). Domain window classes no longer carry their own `handleInput`.
 
-### Scripting: two parallel runtimes
-The game has **two** scripting subsystems running side-by-side. New work generally goes into the native Dart side; the CM2 side is for legacy/data-driven scripts ported from the original.
+### Scripting: three event tiers per tile
 
-1. **CM2 scripts** (legacy, line-based DSL) — `.cm2` files under `hadar2026_app/assets/`. Parsed/run by `packages/cm2_script` (`ScriptEngine`). The Hadar-specific command/function set is registered in `lib/application/scripting/script_engine_adapter.dart` (`HDScriptEngine`) — `Talk`, `Map::*`, `Battle::*`, `Player::*`, `Flag::*`, `Variable::*`, `Select::*`, etc. Language reference: `docs/cm2_script_manual.md` and `packages/cm2_script/README.md`.
+Tile events are dispatched through a 3-tier priority chain in `HDTileEventDispatcher.check` → `_dispatchScripted`:
 
-2. **Native Dart map scripts** — one class per map under `lib/application/scripting/maps/` (e.g. `town1_map_script.dart`), each extending `HDMapScript` with `onLoad/onUnload/onTalk/onSign/onEvent/onEnter` lifecycle hooks. `HDNativeScriptRunner.mapScriptFactory` maps a script name (e.g. `'TOWN1'`) to its constructor. When entering a tile, `HDTileEventDispatcher.check` (called via `HDGameMain.checkTileEvent`) first asks the native runner; if there's no native handler for the current map it falls back to `HDScriptEngine.run()`.
+1. **native map script** — Dart class extending `HDMapScript` under `lib/application/scripting/maps/`, registered in `HDNativeScriptRunner.mapScriptFactory` (`'TOWN1' → Town1MapScript`, etc.). Lifecycle hooks: `onLoad/onUnload/onTalk/onSign/onEvent/onEnter`. **All four event hooks return `Future<bool>` — `true` means "handled, don't fall through".**
+2. **cm2 paired script** — `.cm2` file under `hadar2026_app/assets/`, referenced from `MapInfos.json#cm2`. Loaded into `HDScriptEngine` on map entry. Signals processing via the new `Event::MarkHandled()` builtin — without it, dispatch falls through to JSON.
+3. **JSON `MapEvent.dialogLines`** — static fallback emitted by the dispatcher when neither native nor cm2 handled the tile. The legacy RPG Maker `code=401` text is parsed; the optional `events[].hadarEvent: { kind, payload }` extension is parsed but not yet dispatched (placeholder for future warp/oneshot kinds).
 
-#### CM2 gotcha — initialization vs run phase
-`loadFromString()` runs an **initialization phase** that executes `variable`, `include`, and `name.assign`. `run()` then **skips** `variable`/`include` but **re-executes** every `.assign`. So a `score.assign(0)` at the top of the main script will wipe runtime state every loop iteration. Put one-shot initial assignments inside an `include`d file. Unregistered commands silently print "Unknown command" and are skipped; unregistered functions print "Unknown function" and **return 0**, which can silently mis-branch — watch for typos.
+**Per-map binding**: `MapInfos.json` entries carry optional `cm2` and `json` fields. Missing `json` falls back to `Map${id:03d}.json`. Missing `cm2` is allowed only if the map has a registered native script (otherwise the map has no dynamic scripting at all). Native maps without a paired cm2 keep the legacy "JSON dialogLines emitted alongside native" behaviour. Maps with neither native nor paired cm2 fall back to the legacy global cm2 chain (`startup.cm2` → ...) and don't fall through to JSON — preserves pre-migration cm2 dispatch.
+
+**Why two scripting runtimes still**: cm2 is a hot-reloadable, data-driven DSL good for porting original Hadar scripts and for content authors. Native Dart is for typed, IDE-supported logic where cm2's expressivity falls short. New maps generally pick one — the 3-tier chain is the seam that lets them coexist.
+
+#### CM2 gotchas
+- **init vs run phase**: `loadFromString()` runs an **initialization phase** that executes `variable`, `include`, and `name.assign`. `run()` then **skips** `variable`/`include` but **re-executes** every `.assign`. So a `score.assign(0)` at the top of the main script will wipe runtime state every loop iteration. Put one-shot initial assignments inside an `include`d file.
+- **silent failure modes**: Unregistered commands print "Unknown command" and are skipped; unregistered functions print "Unknown function" and **return 0**, which can silently mis-branch — watch for typos.
+- **`Event::MarkHandled` is required** for cm2-paired maps to fall through to JSON correctly. If a cm2 handler does its work but forgets to mark, JSON gets re-emitted as a duplicate dialogue. For legacy global-cm2 maps (no `cm2` field in `MapInfos.json`), the dispatcher skips the JSON tier entirely so missing-mark is harmless.
+- **per-map cm2 load wipes engine globals**: `HDGameSession.loadMapFromFile` calls `HDScriptEngine().loadScript(cm2Path)` on map transitions, which clears `variables`/contexts. Globals are not preserved across maps in the new model — keep state in `HDNativeScriptRunner.flags`/`.variables` if it must survive.
 
 ### Map data
-Maps live as `assets/maps/MapNNN.json` with a name index in `assets/maps/MapInfos.json`. `HDMapNavigation.loadByName(name)` (in `application/map_navigation.dart`) resolves `name` → numeric id via `MapInfos.json` then loads `MapNNN.json` via `HDMapLoader`; `HDGameMain.loadMapFromFile` is a thin facade over it. Don't bypass the index. Tile actions (`HDTileProperties.ACTION_TALK/SIGN/ENTER/EVENT/SWAMP/LAVA/WATER`) drive interaction dispatch in `HDTileEventDispatcher.check`.
+Maps live as `assets/maps/MapNNN.json` with a name index in `assets/maps/MapInfos.json`. `HDMapNavigation.loadByName(name)` (in `application/map_navigation.dart`) returns a `MapBundle { mapName, json?, cm2Path? }`: `name` → entry in `MapInfos.json` → resolves both the JSON map data and the optional cm2 path. Don't bypass the index. Tile actions (`HDTileProperties.ACTION_TALK/SIGN/ENTER/EVENT/SWAMP/LAVA/WATER`) drive interaction dispatch in `HDTileEventDispatcher.check`. The legacy `*.map` files are no longer used (deleted).
 
 ### Save/load
 `HDSaveManager.saveGame(slot)` / `loadGame(slot)`. Save files are `save_data_*.json` (gitignored). A successful load throws `GameReloadException` to unwind the current run loop — the script engine catches and silently stops on this exception, so do not log it as an error.
 
 ## Tests
 
-`hadar2026_app/test/` holds domain/unit tests against the layered code (no widget tests yet). Run from `hadar2026_app/` with `flutter test`. The currently-covered areas are `domain/party/party_actions_test.dart`, `domain/lighting/sight_calculator_test.dart`, and `domain/console/text_utils_test.dart`. New domain rules should land with a test in the matching subfolder.
+`hadar2026_app/test/` holds domain/unit tests against the layered code (no widget tests yet). Run from `hadar2026_app/` with `flutter test`. Currently-covered areas: `domain/party/party_actions_test.dart`, `domain/lighting/sight_calculator_test.dart`, `domain/console/text_utils_test.dart`, `domain/console/console_log_test.dart`, `domain/map/map_event_test.dart`, `presentation/host/flutter_ui_host_test.dart`. cm2 engine has its own tests in `packages/cm2_script/test/` (run with `dart test`). New domain rules should land with a test in the matching subfolder.
 
 ## Deployment
 Web is published to GitHub Pages by `.github/workflows/deploy_web.yml` (manual `workflow_dispatch`). It runs `flutter build web --base-href "/Hadar2026/" --release` in `hadar2026_app/` and pushes `build/web` via `peaceiris/actions-gh-pages@v3`. There is no CI for tests or analyze yet — run `flutter test` and `flutter analyze` locally before pushing.

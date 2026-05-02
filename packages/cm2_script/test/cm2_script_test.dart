@@ -40,6 +40,25 @@ Count()
       expect(executed, equals(1));
       expect(engine.halted, isTrue);
     });
+
+    test('Event::MarkHandled sets handled flag', () async {
+      final engine = ScriptEngine();
+      await engine.loadFromString('Event::MarkHandled()');
+      expect(engine.handled, isFalse);
+      await engine.run();
+      expect(engine.handled, isTrue);
+    });
+
+    test('handled flag resets at the start of every run', () async {
+      final engine = ScriptEngine();
+      await engine.loadFromString('Event::MarkHandled()');
+      await engine.run();
+      expect(engine.handled, isTrue);
+
+      await engine.loadFromString('variable(x)');
+      await engine.run();
+      expect(engine.handled, isFalse);
+    });
   });
 
   group('ScriptEngine - getVal / built-in functions', () {

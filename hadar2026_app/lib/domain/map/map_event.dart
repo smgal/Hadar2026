@@ -1,3 +1,30 @@
+/// Optional Hadar-specific event extension carried in the JSON map's
+/// `events[].hadarEvent` field. Parsed alongside the legacy RPG Maker
+/// `pages[].list` so RPG Maker JSON stays compatible.
+///
+/// `kind` values:
+/// - `"talk"` / `"sign"`: payload is ignored — the legacy `dialogLines`
+///   already cover dialogue.
+/// - `"warp"`: payload `{ "map": String, "x": int, "y": int }` —
+///   teleports the party to (x, y) on the named map.
+/// - `"oneshot"`: payload `{ "flag": int }` — fires once, then sets the
+///   flag so subsequent visits skip the event.
+class HadarEvent {
+  final String kind;
+  final Map<String, dynamic> payload;
+
+  const HadarEvent({required this.kind, required this.payload});
+
+  factory HadarEvent.fromJson(Map<String, dynamic> json) {
+    return HadarEvent(
+      kind: (json['kind'] as String?) ?? '',
+      payload: (json['payload'] is Map<String, dynamic>)
+          ? json['payload'] as Map<String, dynamic>
+          : const {},
+    );
+  }
+}
+
 class MapEvent {
   final int id;
   final String name;
@@ -5,6 +32,7 @@ class MapEvent {
   final int x;
   final int y;
   List<String> dialogLines = [];
+  HadarEvent? hadarEvent;
 
   // parsed type
   final String type; // e.g., "TALK", "ENTER", "EVENT"
@@ -16,6 +44,7 @@ class MapEvent {
     required this.x,
     required this.y,
     List<String>? dialogLines,
+    this.hadarEvent,
   }) : type = _parseTypeString(name) {
     if (dialogLines != null) {
       this.dialogLines = dialogLines;
@@ -38,6 +67,9 @@ class MapEvent {
       note: json['note'] ?? '',
       x: json['x'] ?? 0,
       y: json['y'] ?? 0,
+      hadarEvent: json['hadarEvent'] is Map<String, dynamic>
+          ? HadarEvent.fromJson(json['hadarEvent'] as Map<String, dynamic>)
+          : null,
     );
 
     if (json['pages'] != null && (json['pages'] as List).isNotEmpty) {

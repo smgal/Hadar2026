@@ -65,56 +65,29 @@ class HDNativeScriptRunner {
     }
   }
 
+  /// Routes the tile action to the registered native handler. Returns
+  /// `true` if the script handled the event at (x, y), `false` otherwise
+  /// — the dispatcher uses this to fall through to cm2 / JSON tiers.
+  ///
+  /// ACT_TYPE: 1=Talk, 2=Sign, 3=Event, 4=Enter.
   Future<bool> processMapEvent(int actType, int x, int y) async {
-    final gameModel = HDGameMain();
-
-    // Check if there is a JSON-defined event at (x, y)
-    if (gameModel.map != null) {
-      try {
-        final ev = gameModel.map!.events.firstWhere(
-          (e) => e.x == x && e.y == y,
-        );
-        if (ev.dialogLines.isNotEmpty) {
-          // All scripted dialogue lines flow through the narrative
-          // overlay — `HDTileEventDispatcher.check` opens/closes the
-          // cycle around this call.
-          for (var line in ev.dialogLines) {
-            if (line.isNotEmpty) {
-              await gameModel.addLog(line);
-            }
-          }
-        }
-      } catch (_) {
-        // No MapEvent found at this tile
-      }
-    }
-
-    if (currentMapScript == null) return true;
+    if (currentMapScript == null) return false;
 
     currentMapScript!.tx = x;
     currentMapScript!.ty = y;
 
-    // Based on ACT_TYPE
-    // 0 = ACTION_NONE/EVENT
-    // 1 = ACTION_TALK
-    // 2 = ACTION_SIGN
-    // 3 = ACTION_EVENT
-    // 4 = ACTION_ENTER
-
     switch (actType) {
-      case 1: // Talk
-        await currentMapScript!.onTalk(0);
-        break;
-      case 2: // Sign
-        await currentMapScript!.onSign(0);
-        break;
-      case 3: // Event
+      case 1:
+        return await currentMapScript!.onTalk(0);
+      case 2:
+        return await currentMapScript!.onSign(0);
+      case 3:
         return await currentMapScript!.onEvent(0);
-      case 4: // Enter
+      case 4:
         return await currentMapScript!.onEnter(0);
     }
 
-    return true;
+    return false;
   }
 
   bool isFlagSet(int flagId) {

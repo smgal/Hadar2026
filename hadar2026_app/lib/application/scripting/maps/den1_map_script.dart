@@ -32,7 +32,7 @@ class Den1MapScript extends HDMapScript {
 
   @override
   Future<bool> onEvent(int eventId) async {
-    return true;
+    return false;
   }
 
   @override
@@ -59,14 +59,15 @@ class Den1MapScript extends HDMapScript {
       } else {
         await talk("당신은 그냥 그 자리에 서 있다");
       }
+      return true;
     }
 
     return false;
   }
 
   @override
-  Future<void> onSign(int eventId) async {}
+  Future<bool> onSign(int eventId) async => false;
 
   @override
-  Future<void> onTalk(int eventId) async {}
+  Future<bool> onTalk(int eventId) async => false;
 }
