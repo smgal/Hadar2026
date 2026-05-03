@@ -39,7 +39,9 @@ class HDMapNavigation {
         for (var info in mapInfos) {
           if (info != null && info['name'] == searchName) {
             final int id = info['id'];
-            resolvedJsonName = 'Map${id.toString().padLeft(3, '0')}.json';
+            final idStr = id.toString().padLeft(3, '0');
+            resolvedJsonName = 'Map$idStr.json';
+            cm2Path = 'Map$idStr.cm2';
             if (info['json'] is String) overrideJsonName = info['json'];
             if (info['cm2'] is String) cm2Path = info['cm2'];
             break;

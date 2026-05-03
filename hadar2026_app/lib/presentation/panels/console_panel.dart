@@ -4,7 +4,7 @@ import '../../hd_config.dart';
 import '../../utils/hd_text_utils.dart';
 
 const TextStyle _consoleStyle = TextStyle(
-  color: Colors.white,
+  color: Colors.grey,
   fontSize: HDConfig.consoleFontSize,
   height: HDConfig.consoleLineHeight,
 );
@@ -139,8 +139,7 @@ class _NarrativeOverlay extends StatelessWidget {
                 final List<String> rawItems = showMenuHere
                     ? [...eventLogs, ...activeMenu.items]
                     : [...eventLogs];
-                final menuStartIndex =
-                    showMenuHere ? eventLogs.length : -1;
+                final menuStartIndex = showMenuHere ? eventLogs.length : -1;
 
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(

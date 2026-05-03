@@ -80,11 +80,9 @@ class HDFlutterUiHost extends ChangeNotifier
   /// shown when a narrative cycle is active OR a menu is up OR there are
   /// pending event lines.
   HDConsoleViewMode get viewMode =>
-      (_narrativeActive ||
-              activeMenu != null ||
-              consoleLog.events.isNotEmpty)
-          ? HDConsoleViewMode.overlay
-          : HDConsoleViewMode.progress;
+      (_narrativeActive || activeMenu != null || consoleLog.events.isNotEmpty)
+      ? HDConsoleViewMode.overlay
+      : HDConsoleViewMode.progress;
 
   @override
   void notifyListeners() {
@@ -97,11 +95,17 @@ class HDFlutterUiHost extends ChangeNotifier
   Future<void> addLog(String message, {bool isDialogue = true}) async {
     // Wrap with a color-less base style so the raw serializer can tell
     // "no color tag" from "default color".
-    final newLines = HDTextUtils.splitToRawLines(
-      message,
-      _consoleWidth,
-      _consoleStyle,
-    );
+    List<String> newLines = [];
+    if (message.trim().isEmpty) {
+      newLines = [''];
+    } else {
+      newLines = HDTextUtils.splitToRawLines(
+        message,
+        _consoleWidth,
+        _consoleStyle,
+      );
+      if (newLines.isEmpty) newLines = [''];
+    }
 
     for (final line in newLines) {
       if (isDialogue) {

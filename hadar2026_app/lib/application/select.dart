@@ -12,7 +12,8 @@ class HDSelect {
 
   void init() {
     print("Select::Init()");
-    HDGameMain().clearLogs();
+    // 앞의 글자에서 엔터를 한 번 적용
+    HDGameMain().addLog('');
     items.clear();
     selectedIndex = 0;
     isSelectionActive = false;
@@ -29,7 +30,7 @@ class HDSelect {
 
   Future<void> run() async {
     isSelectionActive = true;
-    _lastResult = await HDGameMain().showMenu(items);
+    _lastResult = await HDGameMain().showMenu(items, clearLogs: false);
     isSelectionActive = false;
   }
 

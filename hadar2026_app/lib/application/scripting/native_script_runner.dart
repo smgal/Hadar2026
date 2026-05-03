@@ -33,8 +33,6 @@ class HDNativeScriptRunner {
 
     flags.clear();
     variables.clear();
-
-    await loadMapScript('LORE_EP', targetX: 32, targetY: 25);
   }
 
   Future<void> loadMapScript(

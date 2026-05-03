@@ -10,6 +10,7 @@ class HDMapLoader {
     String jsonString = "";
 
     try {
+      print("MapLoader: Loading from $assetPath");
       if (!kIsWeb && await File(assetPath).exists()) {
         jsonString = await File(assetPath).readAsString();
       } else {

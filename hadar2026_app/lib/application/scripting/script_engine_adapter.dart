@@ -60,9 +60,11 @@ class HDScriptEngine {
         content = await rootBundle.loadString(assetPath);
       }
     } catch (e) {
-      print("ScriptEngine: Failed to load $assetPath: $e");
+      print("ScriptEngine: [ERROR] Failed to load $assetPath: $e");
       return;
     }
+
+    print("ScriptEngine: Loading script content from $assetPath");
 
     _engine.clearRuntimeState();
     _tileMap.clear();
@@ -111,8 +113,18 @@ class HDScriptEngine {
       if (text.startsWith('"') && text.endsWith('"')) {
         text = text.substring(1, text.length - 1);
       }
-      print("TALK: $text");
+      print("ScriptEngine [TALK]: $text");
       await HDGameMain().addLog(text);
+    });
+
+    e.registerCommand('Answer', (stmt, eng) async {
+      final args = stmt.args;
+      var text = eng.getVal(args.isNotEmpty ? args[0] : '').toString();
+      if (text.startsWith('"') && text.endsWith('"')) {
+        text = text.substring(1, text.length - 1);
+      }
+      print("ScriptEngine [ANSWER]: $text");
+      await HDGameMain().addLog('@G$text@@');
     });
 
     e.registerCommand('PressAnyKey', (stmt, eng) async {
@@ -173,15 +185,27 @@ class HDScriptEngine {
       if (path.startsWith('"') && path.endsWith('"')) {
         path = path.substring(1, path.length - 1);
       }
-      print("Loading Script: $path");
-      await loadScript('assets/$path');
+      print("Loading Script/Map: $path");
+      bool isMap = await HDGameMain().loadMapFromFile(path);
+      if (!isMap) {
+        await loadScript('assets/$path');
+      }
+
+      int nx = 0, ny = 0;
+      if (args.length >= 3) {
+        nx = (eng.getVal(args[1]) as num).toInt();
+        ny = (eng.getVal(args[2]) as num).toInt();
+      } else {
+        final map = HDGameMain().map;
+        if (map != null) {
+          nx = map.width ~/ 2;
+          ny = map.height ~/ 2;
+        }
+      }
+      HDGameMain().party.setPosition(nx, ny);
+
       setScriptMode(0);
       await run();
-      if (args.length >= 3) {
-        final nx = (eng.getVal(args[1]) as num).toInt();
-        final ny = (eng.getVal(args[2]) as num).toInt();
-        HDGameMain().party.setPosition(nx, ny);
-      }
       eng.halted = true;
     });
 
@@ -191,7 +215,7 @@ class HDScriptEngine {
         path = path.substring(1, path.length - 1);
       }
       print("ScriptEngine: Loading map file $path");
-      await HDGameMain().loadMapFromFile('assets/$path');
+      await HDGameMain().loadMapFromFile(path);
     });
 
     e.registerCommand('Battle::Init', (_, __) async => HDBattle().init());

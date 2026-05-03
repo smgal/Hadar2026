@@ -119,6 +119,7 @@ class HDTileEventDispatcher {
       // didn't mark the tile as handled.
       HDScriptEngine().setTargetPos(x, y);
       HDScriptEngine().setScriptMode(action);
+      print("TileEventDispatcher: Running script at ($x, $y) with actionMode: $action (cm2Path: $cm2Path)");
       await HDScriptEngine().run();
       if (HDScriptEngine().handled) return;
       await _emitJsonDialog(map, x, y, host);

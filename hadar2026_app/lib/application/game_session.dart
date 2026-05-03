@@ -57,10 +57,11 @@ class HDGameSession extends ChangeNotifier {
   /// Boots the in-game world (party position + scripts). Asset preload
   /// (Flame images) lives in the host because it's a rendering concern.
   Future<void> init() async {
+    await HDNativeScriptRunner().startNewGame();
     party.setPosition(15, 15); // Default start pos for town1
     await HDScriptEngine().loadScript(HDConfig.startupScript);
     HDScriptEngine().setScriptMode(0);
-    await HDNativeScriptRunner().startNewGame();
+    await HDScriptEngine().run();
   }
 
   /// Path to the cm2 script paired with the currently loaded map (via

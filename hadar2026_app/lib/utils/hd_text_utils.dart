@@ -18,6 +18,7 @@ class HDTextUtils {
     'D': Color(0xFFFF00FF), // Magenta
     'E': Color(0xFFFFFF00), // Yellow
     'F': Color(0xFFFFFFFF), // White
+    'G': Color(0xFFFFA500), // Amber
   };
 
   /// Parses a string with @X...@@ tags into a list of TextSpans.
