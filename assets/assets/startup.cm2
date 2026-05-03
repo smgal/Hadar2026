@@ -2,4 +2,5 @@
 if (Equal(ScriptMode(), 0))
 #	LoadScript("L1_ep1d0.cm2", 47, 28)
 #	LoadScript("menace.cm2", 24, 41)
-	LoadScript("town2.cm2", 50, 30)
+#	LoadScript("town2.cm2", 50, 30)
+	LoadScript("LORE_EP", 32, 25)

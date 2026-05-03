@@ -1,0 +1,21 @@
+include("const.cm2")
+
+variable(temp)
+
+if (Equal(ScriptMode(), FLAG_TALK))
+	if (On(30, 20))
+		Talk("제가 철학적인 질문을 하나 해 보겠소.")
+		Talk("삶은 계란이라고 보시오?")
+		Select::Init()
+		Select::Add("당신의 대답은:")
+		Select::Add("역시 계란이지요")
+		Select::Add("나는 말 장난을 좋아하지 않소")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			Answer("나 역시도 삶은 계란이락 생각하오.")
+		else
+			Answer("말도 안 되는 소리를 하고 계시는구려")
+
+if (FLAG_MAP.Equal(ScriptMode()))
+	Map::SetStartPos(32, 27)
