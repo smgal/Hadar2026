@@ -1,4 +1,5 @@
 import '../party/party.dart';
+import '../system/game_system.dart';
 
 /// Pure functions describing the lighting/visibility rules of the original
 /// game: how far the party can see at a given hour, whether ambient
@@ -11,8 +12,12 @@ class HDSightCalculator {
   /// Returns sight radius (1..5) given the party's current time + magic
   /// torch + the current map's name. Maps containing "DEN" force a dark
   /// interior.
-  static int sightRangeFor({required HDParty party, required String mapName}) {
-    int time = party.hour * 100 + party.min;
+  static int sightRangeFor({
+    required HDGameSystem gameSystem,
+    required HDParty party,
+    required String mapName,
+  }) {
+    int time = gameSystem.hour * 100 + gameSystem.min;
 
     int sightRange = 5;
     if (time < 600) {
@@ -38,7 +43,7 @@ class HDSightCalculator {
     final isDen = mapName.toUpperCase().contains('DEN');
     if (isDen) sightRange = 1;
 
-    final inDark = isDen || !(party.hour >= 7 && party.hour < 17);
+    final inDark = isDen || !(gameSystem.hour >= 7 && gameSystem.hour < 17);
     if (inDark && party.magicTorch > 0) {
       if (party.magicTorch >= 1 && party.magicTorch <= 2) {
         sightRange = sightRange > 2 ? sightRange : 2;
@@ -52,6 +57,7 @@ class HDSightCalculator {
   /// Whether the map currently has ambient moonlight (so tiles outside the
   /// torch radius can still be drawn dimly rather than pitch black).
   static bool isInMoonlight({
+    required HDGameSystem gameSystem,
     required HDParty party,
     required String mapName,
   }) {
@@ -59,13 +65,13 @@ class HDSightCalculator {
     final isDen = upper.contains('DEN');
     final isTown = upper.contains('TOWN') || upper.contains('CASTLE');
 
-    bool inMoonlight = (party.day ~/ 12) >= 10 && (party.day ~/ 12) <= 20;
+    bool inMoonlight = (gameSystem.day ~/ 12) >= 10 && (gameSystem.day ~/ 12) <= 20;
     inMoonlight &= !isDen;
     inMoonlight |= isTown;
 
     if (isDen) return false;
 
-    final inDark = isDen || !(party.hour >= 7 && party.hour < 17);
+    final inDark = isDen || !(gameSystem.hour >= 7 && gameSystem.hour < 17);
     if (inDark && party.magicTorch > 4) inMoonlight = true;
     return inMoonlight;
   }

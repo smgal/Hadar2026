@@ -122,26 +122,26 @@ class HDInputDispatcher {
     }
 
     // Test time control keys
-    final party = game.party;
+    final gameSystem = game.gameSystem;
     if (key == LogicalKeyboardKey.insert) {
-      party.hour = 5;
-      party.min = 59;
-      party.notifyListeners();
+      gameSystem.hour = 5;
+      gameSystem.min = 59;
+      gameSystem.notifyListeners();
       return true;
     } else if (key == LogicalKeyboardKey.delete) {
-      party.hour = 18;
-      party.min = 9;
-      party.notifyListeners();
+      gameSystem.hour = 18;
+      gameSystem.min = 9;
+      gameSystem.notifyListeners();
       return true;
     } else if (key == LogicalKeyboardKey.home) {
-      party.hour = 12;
-      party.min = 0;
-      party.notifyListeners();
+      gameSystem.hour = 12;
+      gameSystem.min = 0;
+      gameSystem.notifyListeners();
       return true;
     } else if (key == LogicalKeyboardKey.end) {
-      party.hour = 0;
-      party.min = 0;
-      party.notifyListeners();
+      gameSystem.hour = 0;
+      gameSystem.min = 0;
+      gameSystem.notifyListeners();
       return true;
     }
 

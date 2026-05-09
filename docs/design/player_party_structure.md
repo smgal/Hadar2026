@@ -64,24 +64,40 @@ classDiagram
       +fromJson(json)$ HDPlayer
     }
 
-    class HDParty {
+    class HDGameSystem {
       <<ChangeNotifier>>
-      --[좌표/이동]--
-      +int x, y, xPrev, yPrev
-      +int faced
-      +bool isMoving
-      --[조우]--
-      +int maxEnemy, encounter
-      --[인벤토리]--
-      +int food, gold
       --[캘린더]--
       +int year, month, day
       +int hour, min, sec
-      --[버프 타이머]--
+      +passTime(h,m,s)
+      +toJson()/fromJson()
+    }
+
+    class PartyPosition {
+      +int x, y, xPrev, yPrev
+      +int faced
+      +bool isMoving
+    }
+
+    class PartyInventory {
+      +int food, gold
+    }
+
+    class PartyBuffs {
       +int magicTorch, levitation
       +int walkOnWater, walkOnSwamp
       +int mindControl, penetration
       +bool canUseEsp, canUseSpecialMagic
+    }
+
+    class HDParty {
+      <<ChangeNotifier>>
+      --[내부 상태]--
+      -_position: PartyPosition
+      -_inventory: PartyInventory
+      -_buffs: PartyBuffs
+      --[조우]--
+      +int maxEnemy, encounter
       --[멤버]--
       +List~HDPlayer~ players [6]
       --[행동]--
@@ -89,7 +105,6 @@ classDiagram
       +move(dx,dy)
       +setFace(dx,dy)
       +warpToPrev()
-      +passTime(h,m,s)
       +timeGoes()
       +toJson()/fromJson()
     }
@@ -144,6 +159,10 @@ classDiagram
     }
 
     ChangeNotifier <|-- HDParty
+    ChangeNotifier <|-- HDGameSystem
+    HDParty *-- PartyPosition
+    HDParty *-- PartyInventory
+    HDParty *-- PartyBuffs
     HDParty "1" *-- "6" HDPlayer : players
     HDPartyActions ..> HDPlayer : mutates
     HDPartyActions ..> HDParty : mutates
@@ -164,7 +183,8 @@ classDiagram
 | --- | --- |
 | `HDNoun` | `hadar2026_app/lib/domain/text/noun.dart` |
 | `HDPlayer` | `hadar2026_app/lib/domain/party/player.dart` |
-| `HDParty` | `hadar2026_app/lib/domain/party/party.dart` |
+| `HDParty`, `PartyPosition` 등 | `hadar2026_app/lib/domain/party/party.dart` |
+| `HDGameSystem` | `hadar2026_app/lib/domain/system/game_system.dart` |
 | `HDPartyActions`, `RestOutcome`, `RestEntryResult` | `hadar2026_app/lib/domain/party/party_actions.dart` |
 | `HDEnemy` | `hadar2026_app/lib/domain/battle/enemy.dart` |
 | `HDEnemyData`, `enemyTable` | `hadar2026_app/lib/domain/battle/enemy_data.dart` |
@@ -180,6 +200,7 @@ classDiagram
 - 모든 호출처는 `${e.name.sub1}` 등으로 통일. `name` 자체가 `HDNoun` 이므로 `${e.name}` 은 `toString()` 통해 동작.
 - 한국어/영어 어미를 모두 처리하는 종성 추정 규칙(영어는 모음/`w` 끝나면 종성 없음으로 간주) 통합. 이전엔 `HDPlayer` 와 `HDEnemy` 가 살짝 달랐다.
 - **검토했지만 적용하지 않음**: `extension type HDNoun(String text) implements String` 으로 만들면 `.text` 명시가 사라지지만, (1) 도메인 타입 구분 손실, (2) 시스템 언어 일반화 시 시그니처 재설계 비용, 두 가지 이유로 보류. 일반 클래스 형태 유지.
+- **파티 응집도 및 캘린더 분리**: 시간 흐름과 캘린더 변수를 `HDGameSystem` 으로 독립시켰으며, `HDParty` 에 흩어져 있던 위치/인벤토리/버프 변수들을 `PartyPosition`, `PartyInventory`, `PartyBuffs` 로 구조체화하여 내부로 캡슐화 완료 (하위 호환성을 위해 getter/setter 노출 중).
 
 ## 4. 남아있는 구조적 이슈 (우선순위순)
 
@@ -203,15 +224,6 @@ classDiagram
 
 - `HDPlayer` (player.dart:122–189, 324–421) 와 `HDEnemy` (enemy.dart) 모두 거대한 switch. 키는 스크립트 엔진(`'level(magic)'`, `'pow_of_weapon'` 등) 문법이 그대로 들어와 있음.
 - 제안: 스크립트 엔진 어댑터(`application/scripting/script_engine_adapter.dart`) 쪽으로 책임 이동. 도메인은 보통의 게터/세터만 갖고, 어댑터가 이름→필드 맵을 보유. 또는 코드 생성으로.
-
-### D. (中) `HDParty` 의 응집도 — 한 클래스에 5가지 책임
-
-좌표/이동 · 캘린더 · 인벤토리 · 파티 버프 · 멤버 리스트. 변경 사유가 5가지인 `ChangeNotifier` 라 무엇이 바뀌어 listener 가 깨어나는지 분간 불가.
-
-- `passTime/timeGoes` 의 캘린더 ([party.dart:201-248]): `day >= 365` 로 곧장 연 단위 — `month` 필드가 사실상 죽어 있음.
-- 버프 감쇠(`mindControl--` 등)도 `timeGoes` 안. `applyRestHousekeeping` 과 책임 분배가 다름(아래 H 참조).
-
-제안: `PartyPosition` / `GameClock` / `PartyInventory` / `PartyBuffs` / `PartyRoster` 로 분리 후 `HDParty` 는 컴포지트 + ChangeNotifier 만. 또는 최소한 `month` 가 의미 있는지 결정.
 
 ### E. (中) Max 자원의 진실 소스가 둘
 
@@ -272,7 +284,7 @@ classDiagram
 새 세션에서 어디부터 손댈지 정할 때:
 
 1. **A 부터** 가는 게 임팩트 가장 큼. 다만 전투 코드(`battle.dart`) 전체에 걸쳐 영향. 한 시간 짜리 작업 아님 — 별도 세션 잡고 진행.
-2. **D, F 부터** 해도 비슷하게 큰 효과. `HDParty` 가 너무 많은 책임을 갖는 게 다른 이슈들의 모양을 흐려서, 분리 후 시야가 트임.
+2. **F 부터** 해도 비슷하게 큰 효과. (기존 D 이슈였던 Party 분리는 해결됨)
 3. **E** (max 자원 진실 소스) 는 한 세션에 끝나는 작은 작업이지만 영향 범위가 곳곳. 결정 → 일괄 수정.
 4. **K** (조사 일반화) 는 `HDNoun` 의 자연스러운 다음 단계. 코드 영향 적음.
 

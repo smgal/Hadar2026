@@ -2,18 +2,24 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hadar2026_app/domain/lighting/sight_calculator.dart';
 import 'package:hadar2026_app/domain/party/party.dart';
+import 'package:hadar2026_app/domain/system/game_system.dart';
 
 HDParty _partyAt({
-  required int hour,
-  int min = 0,
-  int day = 1,
   int magicTorch = 0,
 }) {
   return HDParty()
+    ..magicTorch = magicTorch;
+}
+
+HDGameSystem _sysAt({
+  required int hour,
+  int min = 0,
+  int day = 1,
+}) {
+  return HDGameSystem()
     ..hour = hour
     ..min = min
-    ..day = day
-    ..magicTorch = magicTorch;
+    ..day = day;
 }
 
 void main() {
@@ -21,14 +27,14 @@ void main() {
     test('full daylight (07:00–17:59) gives sight 5', () {
       expect(
         HDSightCalculator.sightRangeFor(
-          party: _partyAt(hour: 12),
+          gameSystem: _sysAt(hour: 12), party: _partyAt(),
           mapName: 'GROUND1',
         ),
         5,
       );
       expect(
         HDSightCalculator.sightRangeFor(
-          party: _partyAt(hour: 17, min: 59),
+          gameSystem: _sysAt(hour: 17, min: 59), party: _partyAt(),
           mapName: 'GROUND1',
         ),
         5,
@@ -38,7 +44,7 @@ void main() {
     test('pre-dawn 05:59 = 1', () {
       expect(
         HDSightCalculator.sightRangeFor(
-          party: _partyAt(hour: 5, min: 59),
+          gameSystem: _sysAt(hour: 5, min: 59), party: _partyAt(),
           mapName: 'GROUND1',
         ),
         1,
@@ -48,7 +54,7 @@ void main() {
     test('06:30 = 3 (dawn ramp)', () {
       expect(
         HDSightCalculator.sightRangeFor(
-          party: _partyAt(hour: 6, min: 30),
+          gameSystem: _sysAt(hour: 6, min: 30), party: _partyAt(),
           mapName: 'GROUND1',
         ),
         3,
@@ -58,7 +64,7 @@ void main() {
     test('18:30 = 3 (dusk ramp)', () {
       expect(
         HDSightCalculator.sightRangeFor(
-          party: _partyAt(hour: 18, min: 30),
+          gameSystem: _sysAt(hour: 18, min: 30), party: _partyAt(),
           mapName: 'GROUND1',
         ),
         3,
@@ -68,7 +74,7 @@ void main() {
     test('23:00 = 1 (deep night)', () {
       expect(
         HDSightCalculator.sightRangeFor(
-          party: _partyAt(hour: 23),
+          gameSystem: _sysAt(hour: 23), party: _partyAt(),
           mapName: 'GROUND1',
         ),
         1,
@@ -80,7 +86,7 @@ void main() {
     test('DEN map at noon still has sight 1', () {
       expect(
         HDSightCalculator.sightRangeFor(
-          party: _partyAt(hour: 12),
+          gameSystem: _sysAt(hour: 12), party: _partyAt(),
           mapName: 'DEN1',
         ),
         1,
@@ -93,7 +99,7 @@ void main() {
       // 23:00 in dark → base 1; torch=1 → bumped to 2
       expect(
         HDSightCalculator.sightRangeFor(
-          party: _partyAt(hour: 23, magicTorch: 1),
+          gameSystem: _sysAt(hour: 23), party: _partyAt(magicTorch: 1),
           mapName: 'GROUND1',
         ),
         2,
@@ -103,7 +109,7 @@ void main() {
     test('mid-tier torch (3+) raises night sight to 3', () {
       expect(
         HDSightCalculator.sightRangeFor(
-          party: _partyAt(hour: 23, magicTorch: 3),
+          gameSystem: _sysAt(hour: 23), party: _partyAt(magicTorch: 3),
           mapName: 'GROUND1',
         ),
         3,
@@ -113,7 +119,7 @@ void main() {
     test('torch never lowers daytime sight', () {
       expect(
         HDSightCalculator.sightRangeFor(
-          party: _partyAt(hour: 12, magicTorch: 5),
+          gameSystem: _sysAt(hour: 12), party: _partyAt(magicTorch: 5),
           mapName: 'GROUND1',
         ),
         5,
@@ -125,14 +131,14 @@ void main() {
     test('TOWN/CASTLE always returns true regardless of hour', () {
       expect(
         HDSightCalculator.isInMoonlight(
-          party: _partyAt(hour: 23),
+          gameSystem: _sysAt(hour: 23), party: _partyAt(),
           mapName: 'TOWN1',
         ),
         true,
       );
       expect(
         HDSightCalculator.isInMoonlight(
-          party: _partyAt(hour: 3),
+          gameSystem: _sysAt(hour: 3), party: _partyAt(),
           mapName: 'CASTLE_LORE',
         ),
         true,
@@ -142,7 +148,7 @@ void main() {
     test('DEN always returns false', () {
       expect(
         HDSightCalculator.isInMoonlight(
-          party: _partyAt(hour: 12),
+          gameSystem: _sysAt(hour: 12), party: _partyAt(),
           mapName: 'DEN1',
         ),
         false,
@@ -152,7 +158,7 @@ void main() {
     test('high-tier torch (>4) at night turns moonlight on', () {
       expect(
         HDSightCalculator.isInMoonlight(
-          party: _partyAt(hour: 23, magicTorch: 5),
+          gameSystem: _sysAt(hour: 23), party: _partyAt(magicTorch: 5),
           mapName: 'GROUND1',
         ),
         true,

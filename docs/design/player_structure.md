@@ -4,12 +4,12 @@
 
 ## 1. 주요 구조 (Flutter)
 
-`lib/models/hd_player.dart`에 위치합니다.
+`lib/domain/party/player.dart`에 위치합니다.
 
 ### 주요 속성
 | 속성명 | 타입 | 설명 |
 | :--- | :--- | :--- |
-| `name` | `String` | 캐릭터 이름 (한국어 조사 '은/는', '이/가' 처리를 위한 종성 판별 포함). |
+| `name` | `HDNoun` | 캐릭터 이름 (조사 처리를 포함하는 명사 객체). |
 | `gender` | `int` | 0: 남성, 1: 여성. |
 | `characterClass` | `int` | 0: 에스퍼, 1: 싸이보그, 2: 초능력자. |
 | `strength` ~ `luck` | `int` | 힘(STR), 정신력(INT), 지구력(END) 등 파라미터. |

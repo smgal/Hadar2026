@@ -11,6 +11,7 @@ import 'map_loader.dart';
 import 'map_navigation.dart';
 import 'scripting/native_script_runner.dart';
 import 'scripting/script_engine_adapter.dart';
+import '../domain/system/game_system.dart';
 
 /// Resolves a `MapInfos.json#cm2` reference to a bundle asset path.
 String _resolveCm2Asset(String cm2Ref) =>
@@ -46,6 +47,7 @@ class HDGameSession extends ChangeNotifier {
   int mapVersion = 0;
 
   final HDParty party = HDParty();
+  final HDGameSystem gameSystem = HDGameSystem();
   final HDGameOption gameOption = HDGameOption();
   final HDMapLoader mapLoader = HDMapLoader();
 

@@ -10,6 +10,7 @@ import 'application/tile_event_dispatcher.dart';
 import 'domain/game_option.dart';
 import 'domain/map/map_model.dart';
 import 'domain/party/party.dart';
+import 'domain/system/game_system.dart';
 import 'application/ports/movement_host.dart';
 import 'application/ports/ui_host.dart';
 import 'presentation/host/flutter_ui_host.dart';
@@ -51,6 +52,7 @@ class HDGameMain with ChangeNotifier implements UiHost, PartyMovementHost {
   int get mapVersion => _session.mapVersion;
   set mapVersion(int v) => _session.mapVersion = v;
   HDParty get party => _session.party;
+  HDGameSystem get gameSystem => _session.gameSystem;
   HDGameOption get gameOption => _session.gameOption;
   void setNewMap(MapModel newMap) => _session.setNewMap(newMap);
 

@@ -168,6 +168,7 @@ class HDWorldMap extends WorldMap {
     final String mapName =
         HDNativeScriptRunner().currentMapScript?.mapName ?? "";
     int sightRange = HDSightCalculator.sightRangeFor(
+      gameSystem: HDGameMain().gameSystem,
       party: party,
       mapName: mapName,
     );
@@ -188,6 +189,7 @@ class HDWorldMap extends WorldMap {
     }
 
     bool inMoonlight = HDSightCalculator.isInMoonlight(
+      gameSystem: HDGameMain().gameSystem,
       party: party,
       mapName: mapName,
     );

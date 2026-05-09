@@ -180,13 +180,13 @@ class HDPlayerSprite extends SimplePlayer with BlockMovementCollision {
 
         final mapType = HDGameMain().gameOption.mapType;
         if (mapType == HDTileProperties.TYPE_GROUND) {
-          party.passTime(0, 2, 0); // 2 minutes on ground map
+          HDGameMain().gameSystem.passTime(0, 2, 0, onTimeGoes: party.timeGoes); // 2 minutes on ground map
         } else {
-          party.passTime(0, 0, 5); // 5 seconds on other maps
+          HDGameMain().gameSystem.passTime(0, 0, 5, onTimeGoes: party.timeGoes); // 5 seconds on other maps
         }
         
-        // Status effect timers (Levitation, MindControl, Poison, etc)
-        party.timeGoes();
+        // Note: Status effect timers (Levitation, MindControl, Poison, etc)
+        // are already processed inside gameSystem.passTime via onTimeGoes callback.
 
         // Trigger tile events (Event, Enter)
         // Fire-and-forget so we don't deadlock the next movement frame inside update(dt)

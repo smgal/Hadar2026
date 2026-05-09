@@ -1,6 +1,31 @@
 import 'package:flutter/foundation.dart';
 import 'player.dart';
 
+class PartyPosition {
+  int x = 0;
+  int y = 0;
+  int xPrev = 0;
+  int yPrev = 0;
+  int faced = 0; // 0: Down, 1: Up, 2: Right, 3: Left
+  bool isMoving = false; // Flag to track if the party is currently moving between tiles
+}
+
+class PartyInventory {
+  int food = 100;
+  int gold = 500;
+}
+
+class PartyBuffs {
+  int magicTorch = 0;
+  int levitation = 0;
+  int walkOnWater = 0;
+  int walkOnSwamp = 0;
+  int mindControl = 0;
+  int penetration = 0;
+  bool canUseEsp = false;
+  bool canUseSpecialMagic = false;
+}
+
 class HDParty extends ChangeNotifier {
   @override
   void notifyListeners() {
@@ -11,31 +36,47 @@ class HDParty extends ChangeNotifier {
     });
   }
 
-  int x = 0;
-  int y = 0;
-  int faced = 0; // 0: Down, 1: Up, 2: Right, 3: Left
+  final PartyPosition _position = PartyPosition();
+  final PartyInventory _inventory = PartyInventory();
+  final PartyBuffs _buffs = PartyBuffs();
+
+  int get x => _position.x;
+  set x(int value) => _position.x = value;
+  int get y => _position.y;
+  set y(int value) => _position.y = value;
+  int get xPrev => _position.xPrev;
+  set xPrev(int value) => _position.xPrev = value;
+  int get yPrev => _position.yPrev;
+  set yPrev(int value) => _position.yPrev = value;
+  int get faced => _position.faced;
+  set faced(int value) => _position.faced = value;
+  bool get isMoving => _position.isMoving;
+  set isMoving(bool value) => _position.isMoving = value;
+
+  int get food => _inventory.food;
+  set food(int value) => _inventory.food = value;
+  int get gold => _inventory.gold;
+  set gold(int value) => _inventory.gold = value;
+
+  int get magicTorch => _buffs.magicTorch;
+  set magicTorch(int value) => _buffs.magicTorch = value;
+  int get levitation => _buffs.levitation;
+  set levitation(int value) => _buffs.levitation = value;
+  int get walkOnWater => _buffs.walkOnWater;
+  set walkOnWater(int value) => _buffs.walkOnWater = value;
+  int get walkOnSwamp => _buffs.walkOnSwamp;
+  set walkOnSwamp(int value) => _buffs.walkOnSwamp = value;
+  int get mindControl => _buffs.mindControl;
+  set mindControl(int value) => _buffs.mindControl = value;
+  int get penetration => _buffs.penetration;
+  set penetration(int value) => _buffs.penetration = value;
+  bool get canUseEsp => _buffs.canUseEsp;
+  set canUseEsp(bool value) => _buffs.canUseEsp = value;
+  bool get canUseSpecialMagic => _buffs.canUseSpecialMagic;
+  set canUseSpecialMagic(bool value) => _buffs.canUseSpecialMagic = value;
+
   int maxEnemy = 3;
   int encounter = 3;
-
-  int food = 100;
-  int gold = 500;
-
-  int year = 1;
-  int month = 1;
-  int day = 1;
-  int hour = 12;
-  int min = 0;
-  int sec = 0;
-
-  int magicTorch = 0;
-  int levitation = 0;
-  int walkOnWater = 0;
-  int walkOnSwamp = 0;
-  int mindControl = 0;
-  int penetration = 0;
-  bool canUseEsp = false;
-  bool canUseSpecialMagic = false;
-  bool isMoving = false; // Flag to track if the party is currently moving between tiles
 
   final List<HDPlayer> players = List.generate(6, (index) {
     var p = HDPlayer()..order = index;
@@ -84,8 +125,6 @@ class HDParty extends ChangeNotifier {
     }
     return p;
   });
-  int xPrev = 0;
-  int yPrev = 0;
 
   void setPosition(int newX, int newY) {
     xPrev = x;
@@ -143,12 +182,6 @@ class HDParty extends ChangeNotifier {
       'encounter': encounter,
       'food': food,
       'gold': gold,
-      'year': year,
-      'month': month,
-      'day': day,
-      'hour': hour,
-      'min': min,
-      'sec': sec,
       'magicTorch': magicTorch,
       'levitation': levitation,
       'walkOnWater': walkOnWater,
@@ -171,12 +204,6 @@ class HDParty extends ChangeNotifier {
     encounter = json['encounter'] ?? 3;
     food = json['food'] ?? 100;
     gold = json['gold'] ?? 500;
-    year = json['year'] ?? 1;
-    month = json['month'] ?? 1;
-    day = json['day'] ?? 1;
-    hour = json['hour'] ?? 12;
-    min = json['min'] ?? 0;
-    sec = json['sec'] ?? 0;
     magicTorch = json['magicTorch'] ?? 0;
     levitation = json['levitation'] ?? 0;
     walkOnWater = json['walkOnWater'] ?? 0;
@@ -196,31 +223,6 @@ class HDParty extends ChangeNotifier {
     }
 
     notifyListeners();
-  }
-
-  void passTime(int h, int m, int s) {
-    sec += s;
-    min += m;
-    hour += h;
-
-    while (sec >= 60) {
-      sec -= 60;
-      min++;
-    }
-    while (min >= 60) {
-      min -= 60;
-      hour++;
-    }
-    while (hour >= 24) {
-      hour -= 24;
-      day++;
-    }
-    while (day >= 365) {
-      day -= 365;
-      year++;
-    }
-
-    timeGoes();
   }
 
   void timeGoes() {

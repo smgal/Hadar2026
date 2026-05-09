@@ -17,6 +17,7 @@ class HDSaveManager {
       final Map<String, dynamic> data = {
         'version': 1,
         'party': gameMain.party.toJson(),
+        'gameSystem': gameMain.gameSystem.toJson(),
         'gameOption': gameMain.gameOption.toJson(),
         'map': gameMain.map?.toJson(),
       };
@@ -53,6 +54,10 @@ class HDSaveManager {
         savedX = gameMain.party.x;
         savedY = gameMain.party.y;
         savedFaced = gameMain.party.faced;
+      }
+
+      if (data['gameSystem'] != null) {
+        gameMain.gameSystem.fromJson(data['gameSystem']);
       }
 
       // 2. Load Script definition first (to get named variables/constants)

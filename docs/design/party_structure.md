@@ -4,17 +4,16 @@
 
 ## 1. 주요 구조 (Flutter)
 
-`lib/models/hd_party.dart`에 위치하며, Flutter의 상태 관리를 위해 `ChangeNotifier`를 확장하여 구현되었습니다.
+`lib/domain/party/party.dart`에 위치하며, Flutter의 상태 관리를 위해 `ChangeNotifier`를 확장하여 구현되었습니다. 
+최근 리팩토링을 통해 게임 시간 및 캘린더 속성은 `HDGameSystem`(`lib/domain/system/game_system.dart`)으로 분리되었고, 파티 내부의 상태는 각각 `PartyPosition`, `PartyInventory`, `PartyBuffs` 구조체로 응집되었습니다.
 
 ### 주요 속성
 | 속성명 | 타입 | 설명 |
 | :--- | :--- | :--- |
-| `x`, `y` | `int` | 맵 상의 현재 좌표. |
-| `faced` | `int` | 현재 바라보는 방향 (0: 아래, 1: 위, 2: 오른쪽, 3: 왼쪽). |
-| `food` | `int` | 남은 식량 (시간 경과나 이동 시 감소). |
-| `gold` | `int` | 현재 보유 중인 골드. |
 | `players` | `List<HDPlayer>` | 최대 6명의 파티원 리스트. |
-| `year` ~ `sec` | `int` | 게임 세계의 현재 시간 상태. |
+| `_position` | `PartyPosition` | 좌표(`x`, `y`) 및 바라보는 방향(`faced`), 이동 상태 관리 (기존 필드는 Getter/Setter로 호환성 유지). |
+| `_inventory` | `PartyInventory` | 식량(`food`)과 돈(`gold`) 관리. |
+| `_buffs` | `PartyBuffs` | 각종 마법 버프 및 상태 이상 타이머들 관리. |
 | `magicTorch` | `int` | 마법의 횃불 지속 시간 타이머. |
 | `levitation` | `int` | 공중 부양 지속 시간 타이머. |
 | `walkOnWater` | `int` | 수상 보행 지속 시간 타이머. |
@@ -22,7 +21,6 @@
 
 ### 주요 메서드
 - `move(int dx, int dy)`: 그리드 기반의 이동을 처리하고 `faced` 방향을 업데이트합니다.
-- `passTime(int h, int m, int s)`: 게임 내 시간을 경과시키고 `timeGoes`를 호출합니다.
 - `timeGoes()`: 마법 효과 타이머를 감소시키고 독(poison) 상태 확인 등 주기적인 상태 변화를 처리합니다.
 - `toJson() / fromJson()`: 세이브/로드 시스템을 위한 직렬화 처리를 담당합니다.
 

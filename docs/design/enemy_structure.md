@@ -4,13 +4,13 @@
 
 ## 1. 주요 구조 (Flutter)
 
-`lib/models/hd_enemy.dart` 및 `lib/models/hd_enemy_data.dart`에 위치합니다.
+`lib/domain/battle/enemy.dart` 및 `lib/domain/battle/enemy_data.dart`에 위치합니다.
 
 ### 주요 속성 (HDEnemy)
 | 속성명 | 타입 | 설명 |
 | :--- | :--- | :--- |
 | `data` | `HDEnemyData` | 몬스터의 정적 템플릿 정보에 대한 참조. |
-| `name` | `String` | 몬스터 이름 (조사 처리를 위한 종성 판별 포함). |
+| `name` | `HDNoun` | 몬스터 이름 (조사 처리를 포함하는 명사 객체). |
 | `strength` ~ `agility` | `int` | 템플릿으로부터 할당받은 실제 전투 능력치. |
 | `accuracy` | `List<int>` | [물리 명중률, 마법 명중률]. |
 | `hp` | `int` | `지구력 * 레벨` 공식으로 산출된 체력. |
@@ -24,7 +24,7 @@
 - `changeAttribute(String attr, value)`: 스크립트 엔진(예: `Enemy::SetHP`)에서 능력을 수정하기 위한 인터페이스입니다.
 
 ### 몬스터 테이블 (`HDEnemyData`)
-`hd_enemy_data.dart`에는 오크(Orc), 드래곤(Dragon) 등 총 75종의 몬스터 데이터가 상수로 정의되어 있으며, 원작의 능력치를 그대로 계승합니다.
+`enemy_data.dart`에는 오크(Orc), 드래곤(Dragon) 등 총 75종의 몬스터 데이터가 상수로 정의되어 있으며, 원작의 능력치를 그대로 계승합니다.
 
 ---
 
