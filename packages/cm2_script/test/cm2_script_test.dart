@@ -41,9 +41,9 @@ Count()
       expect(engine.halted, isTrue);
     });
 
-    test('Event::MarkHandled sets handled flag', () async {
+    test('Event::Override sets handled flag', () async {
       final engine = ScriptEngine();
-      await engine.loadFromString('Event::MarkHandled()');
+      await engine.loadFromString('Event::Override()');
       expect(engine.handled, isFalse);
       await engine.run();
       expect(engine.handled, isTrue);
@@ -51,7 +51,7 @@ Count()
 
     test('handled flag resets at the start of every run', () async {
       final engine = ScriptEngine();
-      await engine.loadFromString('Event::MarkHandled()');
+      await engine.loadFromString('Event::Override()');
       await engine.run();
       expect(engine.handled, isTrue);
 

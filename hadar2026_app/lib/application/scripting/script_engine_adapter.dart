@@ -96,9 +96,9 @@ class HDScriptEngine {
     );
   }
 
-  /// Was `Event::MarkHandled` invoked during the most recent [run]?
-  /// Used by `HDTileEventDispatcher` to decide whether to fall through
-  /// to static JSON events. Reset to `false` at the start of every run.
+  /// Was `Event::Override` invoked during the most recent [run]? Used by
+  /// `HDTileEventDispatcher` to decide whether to fall through to static
+  /// JSON events. Reset to `false` at the start of every run.
   bool get handled => _engine.handled;
 
   Future<void> executeStatement(ScriptStatement stmt) =>

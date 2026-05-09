@@ -27,7 +27,9 @@ class HDNativeScriptRunner {
   };
 
   Future<void> startNewGame() async {
-    // Equivalent. Initialize player, party, and load first map (CastleLore/TOWN1)
+    // Reset native-script state for a fresh run: clear flags/variables
+    // and set the party's initial facing. The first map is loaded later
+    // by `startup.cm2` via the `LoadScript` command, not here.
     final gameModel = HDGameMain();
     gameModel.party.faced = 1;
 
@@ -48,19 +50,10 @@ class HDNativeScriptRunner {
       gameModel.party.y = targetY;
     }
 
+    // Native script swap (onUnload / factory / onLoad) lives inside
+    // `HDGameSession.loadMapFromFile` so that the cm2 `LoadScript`
+    // path stays in sync too. Don't duplicate it here.
     await gameModel.loadMapFromFile('$scriptName.json');
-
-    if (currentMapScript != null) {
-      currentMapScript!.onUnload();
-    }
-
-    if (mapScriptFactory.containsKey(scriptName)) {
-      currentMapScript = mapScriptFactory[scriptName]!();
-      currentMapScript!.onPrepare();
-      currentMapScript!.onLoad(scriptName, 0, 0);
-    } else {
-      currentMapScript = null; // No native script for this map yet
-    }
   }
 
   /// Routes the tile action to the registered native handler. Returns

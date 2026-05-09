@@ -15,8 +15,8 @@ import 'ports/ui_host.dart';
 ///      map has a registered Dart `HDMapScript`. JSON `dialogLines` for
 ///      the tile are emitted alongside the handler (legacy behaviour).
 ///   2. **cm2 paired script** — when `MapInfos.json#cm2` is set for the
-///      current map. cm2 signals processing via `Event::MarkHandled`;
-///      if it didn't handle the tile, fall through to JSON.
+///      current map. cm2 signals processing via `Event::Override`; if
+///      it didn't handle the tile, fall through to JSON.
 ///   3. **JSON `MapEvent.dialogLines`** — static fallback.
 ///
 /// Maps with neither a native nor a paired cm2 fall back to the legacy

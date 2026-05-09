@@ -52,8 +52,15 @@ class HDGameMain with ChangeNotifier implements UiHost, PartyMovementHost {
   HDParty get party => _session.party;
   HDGameOption get gameOption => _session.gameOption;
   void setNewMap(MapModel newMap) => _session.setNewMap(newMap);
-  Future<bool> loadMapFromFile(String fileName) =>
-      _session.loadMapFromFile(fileName);
+
+  /// Map transition entry from any path (cm2 `LoadScript`, native
+  /// `loadMapScript`, save/load). Tears down the presentation-side
+  /// overlay window stack before delegating; battle state and the
+  /// native script swap are handled inside `HDGameSession`.
+  Future<bool> loadMapFromFile(String fileName) {
+    HDWindowManager().clear();
+    return _session.loadMapFromFile(fileName);
+  }
 
   /// Tracks the last `mapVersion` we cleared progress for. Used by the
   /// session listener below.

@@ -13,9 +13,16 @@ if (Equal(ScriptMode(), FLAG_TALK))
 		Select::Run()
 		temp.assign(Select::Result())
 		if (Equal(temp, 1))
-			Answer("나 역시도 삶은 계란이락 생각하오.")
+			Answer("나 역시도 삶은 계란이라 생각하오.")
 		else
 			Answer("말도 안 되는 소리를 하고 계시는구려")
+
+if (FLAG_ENTER.Equal(ScriptMode()))
+	if (On(30, 28))
+		Event::Override()
+		Talk("@G[cm2 OVERRIDE]@@ 이 줄은 Map002.cm2 가 처리했습니다.")
+		Talk("(JSON ENTER002 의 폴백 텍스트는 무시됩니다.)")
+		PressAnyKey()
 
 if (FLAG_MAP.Equal(ScriptMode()))
 	Map::SetStartPos(32, 27)

@@ -40,7 +40,7 @@ class ScriptEngine {
 
   bool halted = false;
 
-  /// Set by `Event::MarkHandled`. Reset to `false` at the start of every
+  /// Set by `Event::Override`. Reset to `false` at the start of every
   /// [run]. Hosts read this after a run to decide whether to fall through
   /// to a lower-priority event source (e.g. static JSON map events).
   bool handled = false;
@@ -168,7 +168,7 @@ class ScriptEngine {
       case 'halt':
         halted = true;
         break;
-      case 'Event::MarkHandled':
+      case 'Event::Override':
         handled = true;
         break;
       case 'Context::SetCurrent':

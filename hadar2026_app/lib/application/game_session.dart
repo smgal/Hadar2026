@@ -6,6 +6,7 @@ import '../domain/game_option.dart';
 import '../domain/map/map_model.dart';
 import '../domain/party/party.dart';
 import '../hd_config.dart';
+import 'battle.dart';
 import 'map_loader.dart';
 import 'map_navigation.dart';
 import 'scripting/native_script_runner.dart';
@@ -56,11 +57,20 @@ class HDGameSession extends ChangeNotifier {
 
   /// Boots the in-game world (party position + scripts). Asset preload
   /// (Flame images) lives in the host because it's a rendering concern.
+  ///
+  /// Party position is intentionally NOT set here — `startup.cm2` runs
+  /// `LoadScript(<name>, x, y)` which resolves the map via
+  /// `MapInfos.json` and assigns the start coords through the
+  /// `LoadScript` command handler.
   Future<void> init() async {
     await HDNativeScriptRunner().startNewGame();
-    party.setPosition(15, 15); // Default start pos for town1
     await HDScriptEngine().loadScript(HDConfig.startupScript);
-    HDScriptEngine().setScriptMode(0);
+    // Redundant in the boot path: `ScriptEngine.scriptMode` defaults to
+    // 0 and `clearRuntimeState` (called by `loadScript`) does not reset
+    // it, so this is a no-op on first run. Kept commented to document
+    // the contract that `startup.cm2`'s `if (Equal(ScriptMode(), 0))`
+    // branch is the intended entry point.
+    // HDScriptEngine().setScriptMode(0);
     await HDScriptEngine().run();
   }
 
@@ -74,6 +84,13 @@ class HDGameSession extends ChangeNotifier {
     final bundle = await HDMapNavigation().loadByName(fileName);
     errorMessage = HDMapNavigation().errorMessage;
     if (bundle == null) return false;
+
+    // Tear down lingering battle state from the previous map so that
+    // enemies/playerCommands registered but never consumed don't leak
+    // across transitions. (Window stack is cleared one layer up in
+    // `HDGameMain.loadMapFromFile` since it's a presentation concern.)
+    HDBattle().init();
+
     if (bundle.json != null) {
       setNewMap(bundle.json!);
     }
@@ -86,6 +103,27 @@ class HDGameSession extends ChangeNotifier {
       // across map transitions in the new model.
       await HDScriptEngine().loadScript(_resolveCm2Asset(bundle.cm2Path!));
     }
+
+    // Swap the native map script in lockstep with the map transition.
+    // Both entry points — cm2 `LoadScript` command and
+    // `HDNativeScriptRunner.loadMapScript` — funnel through here, so
+    // this is the single place that keeps `currentMapScript` aligned
+    // with the loaded map. Without this, transitioning native → cm2
+    // map would leave a stale handler registered (and tile dispatch
+    // would fire on the wrong map).
+    final native = HDNativeScriptRunner();
+    if (native.currentMapScript != null) {
+      native.currentMapScript!.onUnload();
+    }
+    final factory = native.mapScriptFactory[bundle.mapName];
+    if (factory != null) {
+      native.currentMapScript = factory();
+      native.currentMapScript!.onPrepare();
+      native.currentMapScript!.onLoad(bundle.mapName, 0, 0);
+    } else {
+      native.currentMapScript = null;
+    }
+
     return true;
   }
 

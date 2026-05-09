@@ -94,3 +94,24 @@ Select::Run()
 if (Equal(Select::Result(), 1))
     # '예' 선택 시
 ```
+
+### 5.3 JSON 이벤트 오버라이드 (`Event::Override`)
+cm2-paired 맵(`MapInfos.json` 의 `cm2` 필드가 지정된 맵)에서, 같은 좌표에 JSON `MapEvent.dialogLines` 이 있는 타일을 cm2 가 처리할 때 호출합니다. 호출하지 않으면 cm2 출력 뒤에 JSON 텍스트가 이어 붙어 중복으로 보입니다.
+
+**관용**: 매칭된 타일 핸들러 블록의 **맨 위**에 두어 "이 블록은 JSON 을 덮어쓴다"는 선언처럼 읽히게 합니다.
+
+```python
+if (FLAG_ENTER.Equal(ScriptMode()))
+    if (On(30, 28))
+        Event::Override()           # ← JSON 폴백 억제 (annotation 처럼 맨 위에)
+        Talk("cm2 가 처리한 ENTER")
+        PressAnyKey()
+```
+
+호출이 필요한 경우:
+- JSON 에 같은 좌표 이벤트가 있고 거기 `dialogLines` 가 비어 있지 않을 때
+
+호출이 불필요한 경우:
+- JSON 에 해당 좌표 이벤트 자체가 없거나 `dialogLines` 가 비어 있을 때
+- cm2 와 JSON 둘 다 보여주고 싶을 때 (드문 케이스)
+- legacy global-cm2 맵 (`MapInfos.json` 에 `cm2` 필드가 없는 맵) — 디스패처가 JSON 단계를 건너뜁니다
