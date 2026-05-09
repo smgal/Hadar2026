@@ -10,7 +10,7 @@ class HDMagicSystem {
 
     if (!player.isConscious()) {
       await gameMain.addLog(
-        "${player.name}${player.josaSub1} 마법을 사용할 수 있는 상태가 아닙니다.",
+        "${player.name}${player.name.sub1} 마법을 사용할 수 있는 상태가 아닙니다.",
       );
       await gameMain.waitForAnyKey();
       gameMain.clearLogs();
@@ -65,7 +65,7 @@ class HDMagicSystem {
     if (magicId >= 19 && magicId <= 32) {
       final pChoices = ["누구에게 사용할 것입니까?"];
       for (var p in gameMain.party.players) {
-        if (p.isValid()) pChoices.add(p.name);
+        if (p.isValid()) pChoices.add(p.name.text);
       }
       int tSel = await gameMain.showMenu(pChoices);
       if (tSel == 0) return;
@@ -73,7 +73,7 @@ class HDMagicSystem {
       player.sp -= spCost;
       var target = gameMain.party.players[tSel - 1];
       await gameMain.addLog(
-        "${player.name}${player.josaSub1} ${target.name}에게 ${magic.name}${magic.josaObj} 시전했다!",
+        "${player.name}${player.name.sub1} ${target.name}에게 ${magic.name}${magic.name.obj} 시전했다!",
       );
 
       if (magicId == 19) {
@@ -94,7 +94,7 @@ class HDMagicSystem {
     } else {
       player.sp -= spCost;
       await gameMain.addLog(
-        "${player.name}${player.josaSub1} ${magic.name}${magic.josaObj} 시전했다! (전투 외)",
+        "${player.name}${player.name.sub1} ${magic.name}${magic.name.obj} 시전했다! (전투 외)",
       );
     }
 
@@ -107,7 +107,7 @@ class HDMagicSystem {
 
     if (!player.isConscious()) {
       await gameMain.addLog(
-        "${player.name}${player.josaSub1} 초감각을 사용할 수 있는 상태가 아닙니다.",
+        "${player.name}${player.name.sub1} 초감각을 사용할 수 있는 상태가 아닙니다.",
       );
       await gameMain.waitForAnyKey();
       gameMain.clearLogs();
@@ -144,7 +144,7 @@ class HDMagicSystem {
     if (magicId == 45) {
       final m = HDMagicMap.getMagic(45);
       await gameMain.addLog(
-        "${m.name}${m.josaSub1} 전투 모드에서만 사용됩니다.",
+        "${m.name}${m.name.sub1} 전투 모드에서만 사용됩니다.",
       );
       await gameMain.waitForAnyKey();
       gameMain.clearLogs();
@@ -165,13 +165,13 @@ class HDMagicSystem {
     if (magicId == 41) {
       // 41: 투시
       await gameMain.addLog(
-        "${player.name}${player.josaSub1} ${magic.name}${magic.josaObj} 사용했다!",
+        "${player.name}${player.name.sub1} ${magic.name}${magic.name.obj} 사용했다!",
       );
 
       // Logic would go here
     } else {
       await gameMain.addLog(
-        "${player.name}${player.josaSub1} ${magic.name}${magic.josaObj} 사용했다!",
+        "${player.name}${player.name.sub1} ${magic.name}${magic.name.obj} 사용했다!",
       );
     }
 
@@ -232,7 +232,7 @@ class HDMagicSystem {
 
     final choices = ["사용할 $catName ===>"];
     for (int i = 0; i < availableSpells; i++) {
-      choices.add(HDMagicMap.getMagic(minId + i).name);
+      choices.add(HDMagicMap.getMagic(minId + i).name.text);
     }
 
     int selected = await gameMain.showMenu(choices);

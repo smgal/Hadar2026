@@ -48,7 +48,7 @@ class HDBattle with ChangeNotifier {
     // Map same-name enemies to "Name xN" or just print names
     Map<String, int> counts = {};
     for (var e in enemies) {
-      counts[e.name] = (counts[e.name] ?? 0) + 1;
+      counts[e.name.text] = (counts[e.name.text] ?? 0) + 1;
     }
 
     List<String> displayNames = [];
@@ -62,7 +62,7 @@ class HDBattle with ChangeNotifier {
 
     String enemyNames = displayNames.join(", ");
     _host.addLog(
-      "$enemyNames ${enemies.first.josaSub2} 나타났다 !",
+      "$enemyNames ${enemies.first.name.sub2} 나타났다 !",
     );
   }
 
@@ -83,7 +83,7 @@ class HDBattle with ChangeNotifier {
 
     for (int i = 0; i < enemies.length; i++) {
       if (enemies[i].isConscious()) {
-        options.add(enemies[i].name);
+        options.add(enemies[i].name.text);
         aliveIndices.add(i);
       }
     }
@@ -136,14 +136,14 @@ class HDBattle with ChangeNotifier {
             if (cmd == 5) {
               // Heal
               await _host.addLog(
-                "${p.name}${p.josaSub1} ${magic.name}${magic.josaObj} 시전했다!",
+                "${p.name}${p.name.sub1} ${magic.name}${magic.name.obj} 시전했다!",
               );
               // Simulate heal resolution
               await _host.addLog("아군의 상처가 치료되었다.");
             } else {
               // Attack / ESP
               await _host.addLog(
-                "${p.name}${p.josaSub1} ${magic.name}${magic.josaObj} 시전했다!",
+                "${p.name}${p.name.sub1} ${magic.name}${magic.name.obj} 시전했다!",
               );
               if (targetId == -1) {
                 // all enemies
@@ -158,7 +158,7 @@ class HDBattle with ChangeNotifier {
                   if (t.hp <= 0) {
                     t.dead = 1;
                     await _host.addLog(
-                      "${t.name}${t.josaSub2} 죽었다.",
+                      "${t.name}${t.name.sub2} 죽었다.",
                     );
                   }
                 }
@@ -177,7 +177,7 @@ class HDBattle with ChangeNotifier {
                   if (t.hp <= 0) {
                     t.dead = 1;
                     await _host.addLog(
-                      "${t.name}${t.josaSub2} 죽었다.",
+                      "${t.name}${t.name.sub2} 죽었다.",
                     );
                   }
                 }
@@ -251,7 +251,7 @@ class HDBattle with ChangeNotifier {
           p.experience += totExp;
           if (p.checkLevelUp()) {
             await _host.addLog(
-              "${p.name}${p.josaSub1} 전투 레벨이 ${p.level[0]}로 올랐다!",
+              "${p.name}${p.name.sub1} 전투 레벨이 ${p.level[0]}로 올랐다!",
             );
           }
         }
@@ -370,7 +370,7 @@ class HDBattle with ChangeNotifier {
 
   bool _tryToRunAway(HDPlayer p) {
     _host.addLog(
-      "${p.name}${p.josaSub1} 도망을 시도했다...",
+      "${p.name}${p.name.sub1} 도망을 시도했다...",
     );
 
     int avgEnemyAgility = 0;
@@ -415,7 +415,7 @@ class HDBattle with ChangeNotifier {
       t.hp = 0;
       t.dead = 1;
       await _host.addLog(
-        "${p.name}${p.josaSub1} 의식불명 상태인 ${t.name}${t.josaObj} 가볍게 처치했다!",
+        "${p.name}${p.name.sub1} 의식불명 상태인 ${t.name}${t.name.obj} 가볍게 처치했다!",
       );
       // P plus XP
       p.experience += t.level * 10;
@@ -429,7 +429,7 @@ class HDBattle with ChangeNotifier {
 
     if (Random().nextInt(100) < t.resistance) {
       await _host.addLog(
-        "${t.name}${t.josaSub1} ${p.name}의 공격을 저지했다",
+        "${t.name}${t.name.sub1} ${p.name}의 공격을 저지했다",
       );
       return;
     }
@@ -440,7 +440,7 @@ class HDBattle with ChangeNotifier {
 
     if (damage <= 0) {
       await _host.addLog(
-        "그러나 ${t.name}${t.josaSub1} ${p.name}의 공격을 막았다",
+        "그러나 ${t.name}${t.name.sub1} ${p.name}의 공격을 막았다",
       );
       return;
     }
@@ -448,7 +448,7 @@ class HDBattle with ChangeNotifier {
     t.hp -= damage;
     notifyListeners();
     await _host.addLog(
-      "${p.name}${p.josaSub1} ${p.getWeaponName()}${_getJosaRo(p.getWeaponName())} ${t.name}${t.josaObj} 공격하여 $damage 데미지!",
+      "${p.name}${p.name.sub1} ${p.getWeaponName()}${_getJosaRo(p.getWeaponName())} ${t.name}${t.name.obj} 공격하여 $damage 데미지!",
     );
 
     if (t.hp <= 0) {
@@ -457,7 +457,7 @@ class HDBattle with ChangeNotifier {
           0; // if it was conscious, goes unconscious first in hadar sometimes but let's just do death for simplicity
       t.dead = 1;
       await _host.addLog(
-        "${t.name}${t.josaSub1} ${p.name}의 공격으로 치명상을 입었다",
+        "${t.name}${t.name.sub1} ${p.name}의 공격으로 치명상을 입었다",
       );
       p.experience += t.level * 10;
     }
@@ -481,7 +481,7 @@ class HDBattle with ChangeNotifier {
       if (e.castLevel > 0 || e.special > 0) {
         // Simulated magic/special attack
         await _host.addLog(
-          "${e.name}${e.josaSub2} 마법/특수 능력을 사용했다!",
+          "${e.name}${e.name.sub2} 마법/특수 능력을 사용했다!",
         );
         int magDmg = (e.level * 5) + Random().nextInt(10);
         t.hp -= magDmg;
@@ -491,7 +491,7 @@ class HDBattle with ChangeNotifier {
         if (t.hp <= 0) {
           t.dead = 1;
           await _host.addLog(
-            "${t.name}${t.josaSub1} 의식을 잃고 쓰러졌다.",
+            "${t.name}${t.name.sub1} 의식을 잃고 쓰러졌다.",
           );
         }
         return;
@@ -500,10 +500,10 @@ class HDBattle with ChangeNotifier {
 
     if (Random().nextInt(50) < t.resistance) {
       await _host.addLog(
-        "${e.name}${e.josaSub1} ${t.name}${t.josaObj} 공격했다.",
+        "${e.name}${e.name.sub1} ${t.name}${t.name.obj} 공격했다.",
       );
       await _host.addLog(
-        "그러나, ${t.name}${t.josaSub1} 적의 공격을 저지했다.",
+        "그러나, ${t.name}${t.name.sub1} 적의 공격을 저지했다.",
       );
       return;
     }
@@ -513,23 +513,23 @@ class HDBattle with ChangeNotifier {
 
     if (damage <= 0) {
       await _host.addLog(
-        "${e.name}${e.josaSub1} ${t.name}${t.josaObj} 공격했다.",
+        "${e.name}${e.name.sub1} ${t.name}${t.name.obj} 공격했다.",
       );
       await _host.addLog(
-        "그러나, ${t.name}${t.josaSub1} 적의 공격을 방어했다.",
+        "그러나, ${t.name}${t.name.sub1} 적의 공격을 방어했다.",
       );
       return;
     }
 
     t.hp -= damage;
     await _host.addLog(
-      "${e.name}${e.josaSub1} ${t.name}${t.josaObj} 공격하여 $damage 데미지!",
+      "${e.name}${e.name.sub1} ${t.name}${t.name.obj} 공격하여 $damage 데미지!",
     );
 
     if (t.hp <= 0) {
       t.dead = 1;
       await _host.addLog(
-        "${t.name}${t.josaSub1} 의식을 잃고 쓰러졌다.",
+        "${t.name}${t.name.sub1} 의식을 잃고 쓰러졌다.",
       );
     }
   }

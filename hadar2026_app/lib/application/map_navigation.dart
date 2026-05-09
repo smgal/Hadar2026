@@ -36,6 +36,7 @@ class HDMapNavigation {
           'assets/maps/MapInfos.json',
         );
         final List<dynamic> mapInfos = jsonDecode(mapInfosStr);
+
         for (var info in mapInfos) {
           if (info != null && info['name'] == searchName) {
             final int id = info['id'];

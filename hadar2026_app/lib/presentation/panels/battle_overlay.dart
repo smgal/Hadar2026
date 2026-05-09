@@ -65,7 +65,7 @@ class HDBattleOverlay extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            e.name,
+                            e.name.text,
                             style: TextStyle(
                               color: isSelected
                                   ? Colors.cyanAccent

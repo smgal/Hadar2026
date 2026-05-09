@@ -1,0 +1,18 @@
+include("const.cm2")
+
+variable(temp)
+
+if (FLAG_ENTER.Equal(ScriptMode()))
+	if (On(10, 5))
+		Event::Override()
+		Select::Init()
+		Select::Add("큰 맵에 들어가시겠습니까?")
+		Select::Add("예")
+		Select::Add("아니오")
+		Select::Run()
+		temp.assign(Select::Result())
+		if (Equal(temp, 1))
+			LoadScript("LORE_EP", 30, 26)
+
+if (FLAG_MAP.Equal(ScriptMode()))
+	Map::SetStartPos(10, 10)

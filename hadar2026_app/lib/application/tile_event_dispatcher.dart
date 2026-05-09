@@ -87,7 +87,9 @@ class HDTileEventDispatcher {
       }
     } finally {
       if (narrativeOpened) {
-        await host.endNarrative();
+        await host.endNarrative(
+          autoFlush: HDScriptEngine().pendingNavigation == null,
+        );
       }
       _isScriptRunning = false;
     }
@@ -102,6 +104,17 @@ class HDTileEventDispatcher {
   ) async {
     final native = HDNativeScriptRunner();
     final cm2Path = HDGameSession().currentMapCm2Path;
+    final xs = x.toString().padLeft(2);
+    final ys = y.toString().padLeft(2);
+    final tag = const {
+      HDTileProperties.ACTION_TALK: 'Tak',
+      HDTileProperties.ACTION_SIGN: 'Sig',
+      HDTileProperties.ACTION_EVENT: 'Evt',
+      HDTileProperties.ACTION_ENTER: 'Ent',
+      HDTileProperties.ACTION_WATER: 'Wtr',
+      HDTileProperties.ACTION_SWAMP: 'Swm',
+      HDTileProperties.ACTION_LAVA: 'Lav',
+    }[action] ?? '???';
 
     if (native.currentMapScript != null) {
       // Native map (legacy behaviour preserved): emit JSON dialogLines
@@ -119,7 +132,6 @@ class HDTileEventDispatcher {
       // didn't mark the tile as handled.
       HDScriptEngine().setTargetPos(x, y);
       HDScriptEngine().setScriptMode(action);
-      print("TileEventDispatcher: Running script at ($x, $y) with actionMode: $action (cm2Path: $cm2Path)");
       await HDScriptEngine().run();
       if (HDScriptEngine().handled) return;
       await _emitJsonDialog(map, x, y, host);
@@ -130,6 +142,7 @@ class HDTileEventDispatcher {
     // and run the global cm2 chain alongside — matches the pre-migration
     // `processMapEvent` flow (JSON pre-emit + cm2 fallback) so static
     // event dialogue keeps showing on un-paired maps.
+    print('[JSN][$tag] ($xs, $ys)');
     await _emitJsonDialog(map, x, y, host);
     HDScriptEngine().setTargetPos(x, y);
     HDScriptEngine().setScriptMode(action);

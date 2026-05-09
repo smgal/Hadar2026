@@ -127,6 +127,19 @@ class HDGameSession extends ChangeNotifier {
     return true;
   }
 
+  /// Releases all current map resources without loading a new one.
+  /// Called by the LoadScript handler before storing pending navigation,
+  /// so the widget layer sees map == null and can show a loading state.
+  void clearCurrentMap() {
+    HDBattle().init();
+    final native = HDNativeScriptRunner();
+    native.currentMapScript?.onUnload();
+    native.currentMapScript = null;
+    currentMapCm2Path = null;
+    map = null;
+    notifyListeners();
+  }
+
   @override
   void notifyListeners() {
     Future.microtask(() {

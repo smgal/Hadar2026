@@ -136,7 +136,7 @@ class HDStatusPanel extends StatelessWidget {
       child: Row(
         children: [
           _buildCell(
-            cellText(player?.name ?? ''),
+            cellText(player?.name.text ?? ''),
             _nameW,
             bg: bg,
             border: border,

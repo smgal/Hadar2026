@@ -211,8 +211,8 @@ void main() {
 
       HDPartyActions.swapMembers(party, 0, 2);
 
-      expect(party.players[0].name, 'C');
-      expect(party.players[2].name, 'A');
+      expect(party.players[0].name.text, 'C');
+      expect(party.players[2].name.text, 'A');
       // order is reassigned to slot index for everyone.
       for (int i = 0; i < party.players.length; i++) {
         expect(party.players[i].order, i);
@@ -230,8 +230,8 @@ void main() {
 
       HDPartyActions.dismissMember(party, 1); // dismiss B
 
-      expect(party.players[0].name, 'A');
-      expect(party.players[1].name, 'C', reason: 'C bubbled up into slot 1');
+      expect(party.players[0].name.text, 'A');
+      expect(party.players[1].name.text, 'C', reason: 'C bubbled up into slot 1');
       // The dismissed (now nameless) slot is at the end.
       expect(party.players.last.isValid(), false);
       // order stays slot-aligned.

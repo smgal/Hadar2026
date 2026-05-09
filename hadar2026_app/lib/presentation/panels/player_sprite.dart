@@ -309,7 +309,7 @@ class HDPlayerSprite extends SimplePlayer with BlockMovementCollision {
       if (action == HDTileProperties.ACTION_SWAMP) flags += "Swm";
       if (action == HDTileProperties.ACTION_LAVA) flags += "Lav";
 
-      final currentLog = "MOVE: ($nextX, $nextY) - id($tileIdAtNext) [$flags]";
+      final currentLog = "MOVE: (${nextX.toString().padLeft(2)}, ${nextY.toString().padLeft(2)}) - id(${tileIdAtNext.toString().padLeft(2)}) [$flags]";
       if (flags.isNotEmpty && currentLog != _lastMoveLog) {
         print(currentLog);
         _lastMoveLog = currentLog;

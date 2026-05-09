@@ -114,7 +114,7 @@ class HDWindowWidget extends StatelessWidget {
                 if (index == 3) label = "취소";
               } else {
                 if (index < window.currentOptions.length) {
-                  label = window.currentOptions[index].name;
+                  label = window.currentOptions[index].name.text;
                 } else {
                   label = "취소";
                 }

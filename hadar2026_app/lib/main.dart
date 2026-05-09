@@ -70,12 +70,26 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    HDGameMain().addListener(_onGameChanged);
     _initGame();
   }
 
   @override
   void dispose() {
+    HDGameMain().removeListener(_onGameChanged);
     super.dispose();
+  }
+
+  void _onGameChanged() {
+    if (HDGameMain().map == null && HDGameMain().hasPendingNavigation) {
+      _loadPendingMap();
+    }
+  }
+
+  Future<void> _loadPendingMap() async {
+    if (mounted) setState(() => _ready = false);
+    await HDGameMain().navigateToPending();
+    if (mounted) setState(() => _ready = true);
   }
 
   Future<void> _initGame() async {

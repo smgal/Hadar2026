@@ -123,7 +123,7 @@ class HDMenuFlows {
     final validPlayers = party.players.where((p) => p.isValid()).toList();
     if (validPlayers.isEmpty) return;
 
-    final choices = ["누가 마법을 사용하겠습니까 ?", ...validPlayers.map((p) => p.name)];
+    final choices = ["누가 마법을 사용하겠습니까 ?", ...validPlayers.map((p) => p.name.text)];
     int selected = await _game.showMenu(choices);
     if (selected == 0) return;
 
@@ -136,7 +136,7 @@ class HDMenuFlows {
     final validPlayers = party.players.where((p) => p.isValid()).toList();
     if (validPlayers.isEmpty) return;
 
-    final choices = ["누가 초능력을 사용하겠습니까 ?", ...validPlayers.map((p) => p.name)];
+    final choices = ["누가 초능력을 사용하겠습니까 ?", ...validPlayers.map((p) => p.name.text)];
     int selected = await _game.showMenu(choices);
     if (selected == 0) return;
 
@@ -170,19 +170,19 @@ class HDMenuFlows {
       case RestOutcome.noFood:
         return "일행은 식량이 바닥났다";
       case RestOutcome.alreadyDead:
-        return "${p.name}${p.josaSub1} 죽었다";
+        return "${p.name}${p.name.sub1} 죽었다";
       case RestOutcome.unconsciousRecovered:
-        return "${p.name}${p.josaSub1} 의식이 회복되었다";
+        return "${p.name}${p.name.sub1} 의식이 회복되었다";
       case RestOutcome.unconsciousStillOut:
-        return "${p.name}${p.josaSub1} 여전히 의식 불명이다";
+        return "${p.name}${p.name.sub1} 여전히 의식 불명이다";
       case RestOutcome.unconsciousPoisoned:
         return "독 때문에 ${p.name}의 의식은 회복되지 않았다";
       case RestOutcome.poisoned:
         return "독 때문에 ${p.name}의 건강은 회복되지 않았다";
       case RestOutcome.fullyHealed:
-        return "${p.name}${p.josaSub1} 모든 건강이 회복되었다";
+        return "${p.name}${p.name.sub1} 모든 건강이 회복되었다";
       case RestOutcome.partiallyHealed:
-        return "${p.name}${p.josaSub1} 치료되었다";
+        return "${p.name}${p.name.sub1} 치료되었다";
     }
   }
 
@@ -213,7 +213,7 @@ class HDMenuFlows {
 
     for (var p in _game.party.players) {
       if (p.isValid()) {
-        final nameStr = p.name.padLeft(20);
+        final nameStr = p.name.text.padLeft(20);
         final unStr = p.unconscious.toString().padLeft(9);
         final deadStr = p.dead.toString().padLeft(7);
         final poiStr = p.poison.toString().padLeft(5);
@@ -233,7 +233,7 @@ class HDMenuFlows {
 
     final choices = [
       "능력을 보고싶은 인물을 선택하시오",
-      ...validPlayers.map((p) => p.name),
+      ...validPlayers.map((p) => p.name.text),
     ];
 
     int selected = await _game.showMenu(choices);
@@ -332,7 +332,7 @@ class HDMenuFlows {
 
     final choices = [
       "누구의 순서를 바꾸겠습니까? (기준점)",
-      ...validPlayers.map((p) => p.name),
+      ...validPlayers.map((p) => p.name.text),
     ];
     int srcIdx = await _game.showMenu(choices);
     if (srcIdx == 0) {
@@ -342,7 +342,7 @@ class HDMenuFlows {
 
     final targetChoices = [
       "누구와 자리를 교환하겠습니까?",
-      ...validPlayers.map((p) => p.name),
+      ...validPlayers.map((p) => p.name.text),
     ];
     int destIdx = await _game.showMenu(targetChoices);
     if (destIdx == 0) {
@@ -377,7 +377,7 @@ class HDMenuFlows {
 
     final choices = [
       "누구를 일행에서 제외시키겠습니까?",
-      ...validPlayers.map((p) => p.name),
+      ...validPlayers.map((p) => p.name.text),
     ];
     int selected = await _game.showMenu(choices);
     if (selected == 0 || selected == 1) {

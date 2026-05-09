@@ -6,10 +6,12 @@ import 'package:flutter/services.dart';
 import 'package:cm2_script/cm2_script.dart';
 
 import '../../application/battle.dart';
+import '../../application/tile_event_dispatcher.dart';
 import '../../hd_game_main.dart';
 import '../../application/select.dart';
 import '../../hd_config.dart';
 import '../../domain/map/map_model.dart';
+import '../../domain/map/tile_properties.dart';
 
 /// Thin adapter over [ScriptEngine]: loads scripts from files/bundle and
 /// registers Hadar-specific commands and functions.
@@ -21,6 +23,44 @@ class HDScriptEngine {
 
   final Map<String, int> _tileMap = {};
   int _currentRow = 0;
+
+  /// Hint set by `Map::SetStartPos` during FLAG_MAP execution.
+  /// Consumed (and cleared) by `executePendingNavigation` to apply the
+  /// fallback start position when no explicit coords were provided.
+  (int, int)? _startPosHint;
+
+  /// Pending map transition stored by the `LoadScript` handler when called
+  /// from within a tile-event dispatch. Consumed by [executePendingNavigation].
+  ({String path, bool hasExplicit, int nx, int ny})? pendingNavigation;
+
+  /// Executes the pending map transition (stored by `LoadScript` during a
+  /// tile event). Follows the same loading path as the startup `LoadScript`
+  /// call: loadMapFromFile → FLAG_MAP run → position → facing.
+  Future<void> executePendingNavigation() async {
+    final nav = pendingNavigation;
+    if (nav == null) return;
+    pendingNavigation = null;
+
+    bool isMap = await HDGameMain().loadMapFromFile(nav.path);
+    if (!isMap) await loadScript('assets/${nav.path}');
+
+    _startPosHint = null;
+    setScriptMode(0);
+    await run(); // FLAG_MAP may call Map::SetStartPos → sets _startPosHint
+
+    if (nav.hasExplicit) {
+      HDGameMain().party.setPosition(nav.nx, nav.ny);
+    } else if (_startPosHint != null) {
+      HDGameMain().party.setPosition(_startPosHint!.$1, _startPosHint!.$2);
+    } else {
+      final map = HDGameMain().map;
+      if (map != null) {
+        HDGameMain().party.setPosition(map.width ~/ 2, map.height ~/ 2);
+      }
+    }
+    _startPosHint = null;
+    _applyEntryFacing();
+  }
 
   HDScriptEngine._internal() {
     _engine = ScriptEngine(
@@ -100,6 +140,46 @@ class HDScriptEngine {
   /// `HDTileEventDispatcher` to decide whether to fall through to static
   /// JSON events. Reset to `false` at the start of every run.
   bool get handled => _engine.handled;
+
+  /// Sets player facing after a map transition (called by LoadScript handler).
+  ///
+  /// Priority:
+  /// 1. Adjacent [Enter] tile → face away from it (stepped through entrance).
+  /// 2. Face toward map center.
+  /// 3. Face down (fallback when already at center).
+  void _applyEntryFacing() {
+    final map = HDGameMain().map;
+    final party = HDGameMain().party;
+    if (map == null) return;
+
+    final px = party.x, py = party.y;
+
+    // (1) adjacent Enter tile
+    for (final (ddx, ddy) in const [(0, 1), (0, -1), (1, 0), (-1, 0)]) {
+      final unit = map.getUnit(px + ddx, py + ddy);
+      if (unit != null &&
+          HDTileProperties.getUnitAction(unit) ==
+              HDTileProperties.ACTION_ENTER) {
+        party.setFace(-ddx, -ddy); // face away from the entrance
+        return;
+      }
+    }
+
+    // (2) face toward map center; dominant axis wins
+    final cx = map.width ~/ 2, cy = map.height ~/ 2;
+    final dx = cx - px, dy = cy - py;
+    if (dx != 0 || dy != 0) {
+      if (dy.abs() >= dx.abs()) {
+        party.setFace(0, dy > 0 ? 1 : -1);
+      } else {
+        party.setFace(dx > 0 ? 1 : -1, 0);
+      }
+      return;
+    }
+
+    // (3) fallback
+    party.setFace(0, 1);
+  }
 
   Future<void> executeStatement(ScriptStatement stmt) =>
       _engine.executeStatement(stmt);
@@ -185,27 +265,32 @@ class HDScriptEngine {
       if (path.startsWith('"') && path.endsWith('"')) {
         path = path.substring(1, path.length - 1);
       }
-      print("Loading Script/Map: $path");
-      bool isMap = await HDGameMain().loadMapFromFile(path);
-      if (!isMap) {
-        await loadScript('assets/$path');
-      }
+      final hasExplicitPos = args.length >= 3;
+      final nx = hasExplicitPos ? (eng.getVal(args[1]) as num).toInt() : 0;
+      final ny = hasExplicitPos ? (eng.getVal(args[2]) as num).toInt() : 0;
 
-      int nx = 0, ny = 0;
-      if (args.length >= 3) {
-        nx = (eng.getVal(args[1]) as num).toInt();
-        ny = (eng.getVal(args[2]) as num).toInt();
+      if (HDTileEventDispatcher().isScriptRunning) {
+        // Store pending navigation and release current map. The widget layer
+        // detects map == null + pendingNavigation != null and re-enters the
+        // same loading path as app startup via HDGameMain.navigateToPending().
+        pendingNavigation = (
+          path: path,
+          hasExplicit: hasExplicitPos,
+          nx: nx,
+          ny: ny,
+        );
+        HDGameMain().clearCurrentMap();
       } else {
-        final map = HDGameMain().map;
-        if (map != null) {
-          nx = map.width ~/ 2;
-          ny = map.height ~/ 2;
-        }
+        // Startup path: execute immediately (map must be ready before init returns).
+        pendingNavigation = (
+          path: path,
+          hasExplicit: hasExplicitPos,
+          nx: nx,
+          ny: ny,
+        );
+        await executePendingNavigation();
       }
-      HDGameMain().party.setPosition(nx, ny);
-
-      setScriptMode(0);
-      await run();
+      eng.handled = true;
       eng.halted = true;
     });
 
@@ -232,7 +317,7 @@ class HDScriptEngine {
     e.registerCommand('Map::SetStartPos', (stmt, eng) async {
       final x = (eng.getVal(stmt.args[0]) as num).toInt();
       final y = (eng.getVal(stmt.args[1]) as num).toInt();
-      HDGameMain().party.setPosition(x, y);
+      _startPosHint = (x, y);
     });
 
     e.registerCommand('Map::ChangeTile', (stmt, eng) async {

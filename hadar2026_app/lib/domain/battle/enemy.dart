@@ -1,13 +1,10 @@
+import '../text/noun.dart';
 import 'enemy_data.dart';
 
 class HDEnemy {
   final HDEnemyData data;
 
-  String name = "";
-  String josaSub1 = ""; // 은/는
-  String josaSub2 = ""; // 이/가
-  String josaObj = ""; // 을/를
-  String josaWith = ""; // 와/과
+  late final HDNoun name;
 
   int strength = 0;
   int mentality = 0;
@@ -27,14 +24,7 @@ class HDEnemy {
   int dead = 0;
 
   HDEnemy(this.data) {
-    name = data.name;
-
-    // Apply Jongsung rule for enemy names
-    bool hasJongsung = _hasJongsung(name);
-    josaSub1 = hasJongsung ? "은" : "는";
-    josaSub2 = hasJongsung ? "이" : "가";
-    josaObj = hasJongsung ? "을" : "를";
-    josaWith = hasJongsung ? "과" : "와";
+    name = HDNoun(data.name);
 
     strength = data.strength;
     mentality = data.mentality;
@@ -50,28 +40,6 @@ class HDEnemy {
 
     hp = endurance * level;
     if (hp <= 0) hp = 1;
-  }
-
-  bool _hasJongsung(String str) {
-    if (str.isEmpty) return false;
-
-    // English names parsing rough approximation
-    // Usually names ending in consonants have jongsung equivalent in Korean mapping
-    // But since original C++ mapped English names as "은/는" via a complex byte mapping of the localized text.
-    // Wait, the enemy names are in English in the source code ("Skeleton", "Orc"),
-    // but maybe they were rendered internally with Korean translations?
-    // Actually `town1.cm2` has Korean. The enemy table has English. Let's assume standard ASCII mapping if it's ascii.
-    int lastCode = str.runes.last;
-
-    // Hangul Check
-    if (lastCode >= 0xAC00 && lastCode <= 0xD7A3) {
-      return (lastCode - 0xAC00) % 28 > 0;
-    }
-
-    // English heuristic (if ending with a, e, i, o, u -> no jongsung, else yes)
-    String lower = String.fromCharCode(lastCode).toLowerCase();
-    if ("aeiouw".contains(lower)) return false;
-    return true; // ends in consonant
   }
 
   bool isConscious() {

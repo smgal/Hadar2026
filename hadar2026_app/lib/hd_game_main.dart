@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'application/game_session.dart';
+import 'application/scripting/script_engine_adapter.dart';
 import 'application/menu_flows.dart';
 import 'application/tile_event_dispatcher.dart';
 import 'domain/game_option.dart';
@@ -61,6 +62,22 @@ class HDGameMain with ChangeNotifier implements UiHost, PartyMovementHost {
     HDWindowManager().clear();
     return _session.loadMapFromFile(fileName);
   }
+
+  /// Releases all current map resources; sets map to null so the widget
+  /// layer can detect the pending transition and show a loading state.
+  void clearCurrentMap() {
+    HDWindowManager().clear();
+    _session.clearCurrentMap();
+  }
+
+  bool get hasPendingNavigation =>
+      HDScriptEngine().pendingNavigation != null;
+
+  /// Loads the map stored by the most recent `LoadScript` call, following
+  /// exactly the same path as the startup `LoadScript` (loadMapFromFile →
+  /// FLAG_MAP run → position → facing).
+  Future<void> navigateToPending() =>
+      HDScriptEngine().executePendingNavigation();
 
   /// Tracks the last `mapVersion` we cleared progress for. Used by the
   /// session listener below.

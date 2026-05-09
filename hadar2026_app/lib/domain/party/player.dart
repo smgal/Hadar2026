@@ -1,45 +1,17 @@
 import '../battle/enemy_data.dart';
+import '../text/noun.dart';
 
 class HDPlayer {
   HDPlayer();
 
-  String _name = "";
+  HDNoun _name = HDNoun.empty;
 
-  String get name => _name;
+  HDNoun get name => _name;
 
   set name(String value) {
-    _name = value;
-    if (_name.isEmpty) {
-      josaSub1 = "";
-      josaSub2 = "";
-      josaObj = "";
-      josaWith = "";
-      return;
-    }
-
-    bool hasJongsung = _hasJongsung(_name);
-    josaSub1 = hasJongsung ? "은" : "는";
-    josaSub2 = hasJongsung ? "이" : "가";
-    josaObj = hasJongsung ? "을" : "를";
-    josaWith = hasJongsung ? "과" : "와";
+    _name = HDNoun(value);
   }
 
-  bool _hasJongsung(String str) {
-    if (str.isEmpty) return false;
-    int charCode = str.runes.last;
-
-    // Check if it's a Korean Hangul syllable (가 ~ 힣)
-    if (charCode < 0xAC00 || charCode > 0xD7A3) return false;
-
-    // Calculate Jongsung index
-    int jongsung = (charCode - 0xAC00) % 28;
-    return jongsung > 0;
-  }
-
-  String josaSub1 = ""; // 은/는
-  String josaSub2 = ""; // 이/가
-  String josaObj = ""; // 을/를
-  String josaWith = ""; // 와/과
   int order = 0;
   int gender = 0; // 0: Male, 1: Female
   int characterClass = 0;
@@ -176,7 +148,7 @@ class HDPlayer {
       case 'accuracy(esp)':
         return accuracy[2];
       case 'name':
-        return name;
+        return _name.text;
       case 'poison':
         return poison;
       case 'unconscious':
@@ -422,11 +394,7 @@ class HDPlayer {
 
   Map<String, dynamic> toJson() {
     return {
-      'name': name,
-      'josaSub1': josaSub1,
-      'josaSub2': josaSub2,
-      'josaObj': josaObj,
-      'josaWith': josaWith,
+      'name': _name.text,
       'order': order,
       'gender': gender,
       'characterClass': characterClass,
@@ -462,10 +430,6 @@ class HDPlayer {
   factory HDPlayer.fromJson(Map<String, dynamic> json) {
     return HDPlayer()
       ..name = json['name'] ?? ""
-      ..josaSub1 = json['josaSub1'] ?? ""
-      ..josaSub2 = json['josaSub2'] ?? ""
-      ..josaObj = json['josaObj'] ?? ""
-      ..josaWith = json['josaWith'] ?? ""
       ..order = json['order'] ?? 0
       ..gender = json['gender'] ?? 0
       ..characterClass = json['characterClass'] ?? 0
