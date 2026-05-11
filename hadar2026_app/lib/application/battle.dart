@@ -90,7 +90,7 @@ class HDBattle with ChangeNotifier {
 
     if (options.length == 1) return -1; // no enemies left?
 
-    int selected = await _host.showMenu(options, clearLogs: false);
+    int selected = await _host.showWindowMenu(options);
     selectedEnemyIndex = -1;
     notifyListeners();
 
@@ -299,7 +299,7 @@ class HDBattle with ChangeNotifier {
           menuStr.add("도망을 시도함");
         }
 
-        int selected = await _host.showMenu(menuStr);
+        int selected = await _host.showWindowMenu(menuStr);
         if (selected != 1) {
           _host.clearLogs();
         }

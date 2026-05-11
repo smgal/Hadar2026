@@ -55,7 +55,7 @@ class Town2MapScript extends HDMapScript {
   @override
   Future<bool> onEnter(int eventId) async {
     if (isArea(36, 5, 39, 5)) {
-      final choice = await game.showMenu([
+      final choice = await game.showWindowMenu([
         "다시 로어성으로 들어가겠습니까?",
         "안으로 들어간다.",
         "들어가지는 않는다",

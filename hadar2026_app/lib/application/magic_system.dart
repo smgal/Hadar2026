@@ -67,7 +67,7 @@ class HDMagicSystem {
       for (var p in gameMain.party.players) {
         if (p.isValid()) pChoices.add(p.name.text);
       }
-      int tSel = await gameMain.showMenu(pChoices);
+      int tSel = await gameMain.showWindowMenu(pChoices);
       if (tSel == 0) return;
 
       player.sp -= spCost;
@@ -235,7 +235,7 @@ class HDMagicSystem {
       choices.add(HDMagicMap.getMagic(minId + i).name.text);
     }
 
-    int selected = await gameMain.showMenu(choices);
+    int selected = await gameMain.showWindowMenu(choices);
     if (selected == 0) return false;
 
     // Check SP/ESP

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../domain/window/game_window.dart';
 import '../domain/window/magic_window_data.dart';
 import '../domain/window/message_window_data.dart';
+import '../domain/window/selection_window_data.dart';
 
 /// Stack of overlay windows + per-type key dispatch.
 ///
@@ -59,6 +60,7 @@ class HDWindowManager extends ChangeNotifier {
   bool _dispatch(HDWindow window, dynamic event) {
     if (window is HDMessageWindow) return _handleMessage(window, event);
     if (window is HDMagicSelectionWindow) return _handleMagic(window, event);
+    if (window is HDSelectionWindow) return _handleSelection(window, event);
     return false;
   }
 
@@ -93,6 +95,25 @@ class HDWindowManager extends ChangeNotifier {
       return true;
     } else if (key == LogicalKeyboardKey.escape ||
         key == LogicalKeyboardKey.keyQ) {
+      window.cancel();
+      return true;
+    }
+    return false;
+  }
+
+  bool _handleSelection(HDSelectionWindow window, dynamic event) {
+    if (event is! KeyEvent) return false;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.keyW) {
+      window.moveCursor(-1);
+      return true;
+    } else if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.keyS) {
+      window.moveCursor(1);
+      return true;
+    } else if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space || key == LogicalKeyboardKey.keyE) {
+      window.confirm();
+      return true;
+    } else if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.keyQ) {
       window.cancel();
       return true;
     }

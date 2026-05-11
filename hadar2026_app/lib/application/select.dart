@@ -30,7 +30,7 @@ class HDSelect {
 
   Future<void> run() async {
     isSelectionActive = true;
-    _lastResult = await HDGameMain().showMenu(items, clearLogs: false);
+    _lastResult = await HDGameMain().showWindowMenu(items);
     isSelectionActive = false;
   }
 

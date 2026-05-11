@@ -55,7 +55,7 @@ class Ground1MapScript extends HDMapScript {
   @override
   Future<bool> onEnter(int eventId) async {
     if (isOn(19, 10)) {
-      final choice = await game.showMenu([
+      final choice = await game.showWindowMenu([
         "당신은 로어성의 입구에 서 있다.",
         "로어성으로 들어 간다",
         "들어가지 않겠다",
@@ -72,7 +72,7 @@ class Ground1MapScript extends HDMapScript {
     }
 
     if (isOn(75, 56)) {
-      final choice = await game.showMenu([
+      final choice = await game.showWindowMenu([
         "여기는 라스트디치성이다.",
         "들어 가 본다",
         "들어가지 않겠다",
@@ -89,7 +89,7 @@ class Ground1MapScript extends HDMapScript {
     }
 
     if (isOn(16, 88)) {
-      final choice = await game.showMenu([
+      final choice = await game.showWindowMenu([
         "여기가 메너스 광산이다",
         "들어 가 본다",
         "들어가지 않겠다",

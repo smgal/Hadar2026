@@ -1,7 +1,9 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../domain/window/game_window.dart';
 import '../../domain/window/message_window_data.dart';
 import '../../domain/window/magic_window_data.dart';
+import '../../domain/window/selection_window_data.dart';
 import '../window_manager.dart';
 
 class HDWindowLayer extends StatelessWidget {
@@ -74,6 +76,9 @@ class HDWindowWidget extends StatelessWidget {
     if (window is HDMagicSelectionWindow) {
       return _buildMagicSelection(window);
     }
+    if (window is HDSelectionWindow) {
+      return _buildSelection(window);
+    }
     return const SizedBox.shrink();
   }
 
@@ -100,12 +105,17 @@ class HDWindowWidget extends StatelessWidget {
         const SizedBox(height: 8),
         Expanded(
           child: ListView.builder(
+            physics: const NeverScrollableScrollPhysics(),
             itemCount: window.mode == HDSelectionMode.category
                 ? 4 // Attack, Heal, Phenomenon, Cancel
-                : window.currentOptions.length + 1,
+                : math.min(window.currentOptions.length + 1, window.maxVisibleItems),
             itemBuilder: (context, index) {
               String label = "";
-              bool isSelected = (index == window.selectedIndex);
+              int actualIndex = index;
+              if (window.mode == HDSelectionMode.magic) {
+                actualIndex = window.displayStartIndex + index;
+              }
+              bool isSelected = (actualIndex == window.selectedIndex);
 
               if (window.mode == HDSelectionMode.category) {
                 if (index == 0) label = "공격 마법";
@@ -113,12 +123,75 @@ class HDWindowWidget extends StatelessWidget {
                 if (index == 2) label = "변화 마법";
                 if (index == 3) label = "취소";
               } else {
-                if (index < window.currentOptions.length) {
-                  label = window.currentOptions[index].name.text;
+                if (actualIndex < window.currentOptions.length) {
+                  label = window.currentOptions[actualIndex].name.text;
                 } else {
                   label = "취소";
                 }
               }
+
+              return Container(
+                color: isSelected ? Colors.white.withOpacity(0.2) : null,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      isSelected ? Icons.play_arrow : null,
+                      color: Colors.yellow,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: isSelected ? Colors.yellow : Colors.white,
+                        fontSize: 16,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelection(HDSelectionWindow window) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (window.choices.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade900,
+              border: Border.all(color: Colors.blue.shade400),
+            ),
+            width: double.infinity,
+            child: Text(
+              window.choices[0],
+              style: const TextStyle(
+                color: Colors.yellow,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: ListView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: math.min(window.choices.length - 1, window.maxVisibleItems),
+            itemBuilder: (context, index) {
+              int actualIndex = window.displayStartIndex + index;
+              if (actualIndex >= window.choices.length) return const SizedBox.shrink();
+              String label = window.choices[actualIndex];
+              bool isSelected = (actualIndex == window.selectedIndex);
 
               return Container(
                 color: isSelected ? Colors.white.withOpacity(0.2) : null,

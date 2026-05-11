@@ -17,6 +17,14 @@ abstract class UiHost {
     bool clearLogs = true,
   });
 
+  /// Shows a popup window menu and resolves to the selected 1-based index,
+  /// or 0 for cancel. [items] index 0 is the title; remaining entries are choices.
+  Future<int> showWindowMenu(
+    List<String> items, {
+    int initialChoice = 1,
+    int enabledCount = -1,
+  });
+
   /// Adds a line of text to the appropriate console pane.
   /// When [isDialogue] is true the text is treated as event/story output
   /// (auto-paginated, waits on overflow); otherwise it is a progress log

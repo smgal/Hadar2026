@@ -17,6 +17,7 @@ import 'presentation/host/flutter_ui_host.dart';
 import 'presentation/input/input_dispatcher.dart';
 import 'presentation/input/input_mode.dart';
 import 'presentation/window_manager.dart';
+import 'domain/window/selection_window_data.dart';
 
 export 'application/ports/ui_host.dart';
 export 'presentation/host/flutter_ui_host.dart' show HDMenu;
@@ -112,6 +113,24 @@ class HDGameMain with ChangeNotifier implements UiHost, PartyMovementHost {
     enabledCount: enabledCount,
     clearLogs: clearLogs,
   );
+
+  Future<int> showWindowMenu(
+    List<String> items, {
+    int initialChoice = 1,
+    int enabledCount = -1,
+  }) async {
+    final window = HDSelectionWindow(
+      choices: items,
+      selectedIndex: initialChoice,
+      enabledCount: enabledCount,
+    );
+    HDWindowManager().addWindow(window);
+    try {
+      return await window.result;
+    } finally {
+      HDWindowManager().removeWindow(window);
+    }
+  }
 
   @override
   Future<void> waitForAnyKey() => _host.waitForAnyKey();

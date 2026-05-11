@@ -47,7 +47,7 @@ class HDMenuFlows {
     // hidden until everything is completely done.
     _game.beginNarrative();
     try {
-      int selected = await _game.showMenu(choices);
+      int selected = await _game.showWindowMenu(choices);
 
       switch (selected) {
         case 0:
@@ -90,7 +90,7 @@ class HDMenuFlows {
     HDBattle().showEnemy();
 
     final preMenu = ["", "적과 교전한다", "도망간다"];
-    int preSel = await _game.showMenu(preMenu, clearLogs: false);
+    int preSel = await _game.showWindowMenu(preMenu);
     if (preSel == 2) {
       final party = _game.party;
       int avgLuck =
@@ -124,7 +124,7 @@ class HDMenuFlows {
     if (validPlayers.isEmpty) return;
 
     final choices = ["누가 마법을 사용하겠습니까 ?", ...validPlayers.map((p) => p.name.text)];
-    int selected = await _game.showMenu(choices);
+    int selected = await _game.showWindowMenu(choices);
     if (selected == 0) return;
 
     final player = validPlayers[selected - 1];
@@ -137,7 +137,7 @@ class HDMenuFlows {
     if (validPlayers.isEmpty) return;
 
     final choices = ["누가 초능력을 사용하겠습니까 ?", ...validPlayers.map((p) => p.name.text)];
-    int selected = await _game.showMenu(choices);
+    int selected = await _game.showWindowMenu(choices);
     if (selected == 0) return;
 
     final player = validPlayers[selected - 1];
@@ -236,7 +236,7 @@ class HDMenuFlows {
       ...validPlayers.map((p) => p.name.text),
     ];
 
-    int selected = await _game.showMenu(choices);
+    int selected = await _game.showWindowMenu(choices);
     if (selected == 0) return; // ESC
 
     final player = validPlayers[selected - 1];
@@ -293,7 +293,7 @@ class HDMenuFlows {
       "게임을 마침", // 6
     ];
 
-    int selected = await _game.showMenu(choices);
+    int selected = await _game.showWindowMenu(choices);
     if (selected == 0) return; // ESC pressed
 
     switch (selected) {
@@ -334,7 +334,7 @@ class HDMenuFlows {
       "누구의 순서를 바꾸겠습니까? (기준점)",
       ...validPlayers.map((p) => p.name.text),
     ];
-    int srcIdx = await _game.showMenu(choices);
+    int srcIdx = await _game.showWindowMenu(choices);
     if (srcIdx == 0) {
       _game.clearLogs();
       return;
@@ -344,7 +344,7 @@ class HDMenuFlows {
       "누구와 자리를 교환하겠습니까?",
       ...validPlayers.map((p) => p.name.text),
     ];
-    int destIdx = await _game.showMenu(targetChoices);
+    int destIdx = await _game.showWindowMenu(targetChoices);
     if (destIdx == 0) {
       _game.clearLogs();
       return;
@@ -379,7 +379,7 @@ class HDMenuFlows {
       "누구를 일행에서 제외시키겠습니까?",
       ...validPlayers.map((p) => p.name.text),
     ];
-    int selected = await _game.showMenu(choices);
+    int selected = await _game.showWindowMenu(choices);
     if (selected == 0 || selected == 1) {
       if (selected == 1) {
         await _game.addLog("당신은 파티를 떠날 수 없습니다.");
@@ -409,7 +409,7 @@ class HDMenuFlows {
       "6명의 적들",
       "7명의 적들",
     ];
-    int sel1 = await _game.showMenu(
+    int sel1 = await _game.showWindowMenu(
       enemyChoices,
       initialChoice: party.maxEnemy - 2,
     );
@@ -424,7 +424,7 @@ class HDMenuFlows {
       "보이는 적들과는 모두 전투하겠다",
       "그들은 피에 굶주려 있다",
     ];
-    int sel2 = await _game.showMenu(
+    int sel2 = await _game.showWindowMenu(
       encounterChoices,
       initialChoice: 6 - party.encounter,
     );
@@ -442,7 +442,7 @@ class HDMenuFlows {
       "게임 데이타 3 (부)",
     ];
 
-    int selected = await _game.showMenu(choices);
+    int selected = await _game.showWindowMenu(choices);
     if (selected <= 1) return false;
 
     int slot = selected - 2;
@@ -474,7 +474,7 @@ class HDMenuFlows {
       "게임 데이타 3 (부)",
     ];
 
-    int selected = await _game.showMenu(choices);
+    int selected = await _game.showWindowMenu(choices);
     if (selected <= 1) return false;
 
     int slot = selected - 2;
@@ -499,7 +499,7 @@ class HDMenuFlows {
     if (exitCode == 0) {
       // EXITCODE_BY_USER
       final menu = ["정말로 끝내겠습니까 ?", "       << 아니오 >>", "       <<   예   >>"];
-      int res = await _game.showMenu(menu);
+      int res = await _game.showWindowMenu(menu);
       if (res == 2) {
         if (!kIsWeb) {
           exit(0);
@@ -531,7 +531,7 @@ class HDMenuFlows {
       await _game.waitForAnyKey();
 
       final menu = ["    어떻게 하시겠습니까 ?", "   이전의 게임을 재개한다", "       게임을 끝낸다"];
-      int res = await _game.showMenu(menu);
+      int res = await _game.showWindowMenu(menu);
       if (res == 1) {
         if (await selectLoadMenu()) {
           throw GameReloadException();

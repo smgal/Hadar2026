@@ -11,6 +11,8 @@ import '../../application/ports/ui_host.dart';
 import '../../domain/console/console_log.dart';
 import '../../hd_config.dart';
 import '../../utils/hd_text_utils.dart';
+import '../../domain/window/selection_window_data.dart';
+import '../window_manager.dart';
 import '../panels/player_sprite.dart';
 
 /// One-shot menu request: a title row plus N selectable choices.
@@ -143,6 +145,25 @@ class HDFlutterUiHost extends ChangeNotifier
     activeMenu = menu;
     notifyListeners();
     return await menu.completer.future;
+  }
+
+  @override
+  Future<int> showWindowMenu(
+    List<String> items, {
+    int initialChoice = 1,
+    int enabledCount = -1,
+  }) async {
+    final window = HDSelectionWindow(
+      choices: items,
+      selectedIndex: initialChoice,
+      enabledCount: enabledCount,
+    );
+    HDWindowManager().addWindow(window);
+    try {
+      return await window.result;
+    } finally {
+      HDWindowManager().removeWindow(window);
+    }
   }
 
   @override

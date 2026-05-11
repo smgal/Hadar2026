@@ -46,7 +46,7 @@ class Den1MapScript extends HDMapScript {
     }
 
     if (isArea(24, 44, 25, 45)) {
-      final choice = await game.showMenu([
+      final choice = await game.showWindowMenu([
         "여기는 로어대륙으로 나가는 출구이다.",
         "일단 나가본다",
         "조금 더 있는다",

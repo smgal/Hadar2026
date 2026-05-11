@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'game_window.dart';
 import '../magic/magic.dart';
@@ -23,6 +24,9 @@ class HDMagicSelectionWindow extends HDWindow {
   int maxId = 0;
   List<HDMagic> currentOptions = [];
 
+  final int maxVisibleItems = 6;
+  int displayStartIndex = 0;
+
   HDMagicSelectionWindow({
     required this.player,
     required this.title,
@@ -41,6 +45,9 @@ class HDMagicSelectionWindow extends HDWindow {
     currentOptions = options;
     mode = HDSelectionMode.magic;
     selectedIndex = 0;
+    displayStartIndex = 0;
+    int displayCount = math.min(currentOptions.length + 1, maxVisibleItems);
+    h = 60 + (displayCount * 36);
     notifyListeners();
   }
 
@@ -51,6 +58,14 @@ class HDMagicSelectionWindow extends HDWindow {
 
     selectedIndex = (selectedIndex + delta) % count;
     if (selectedIndex < 0) selectedIndex = count - 1;
+
+    if (mode == HDSelectionMode.magic) {
+      if (selectedIndex < displayStartIndex) {
+        displayStartIndex = selectedIndex;
+      } else if (selectedIndex >= displayStartIndex + maxVisibleItems) {
+        displayStartIndex = selectedIndex - maxVisibleItems + 1;
+      }
+    }
     notifyListeners();
   }
 
@@ -99,6 +114,8 @@ class HDMagicSelectionWindow extends HDWindow {
     if (mode == HDSelectionMode.magic) {
       mode = HDSelectionMode.category;
       selectedIndex = 0;
+      displayStartIndex = 0;
+      h = 60 + (4 * 36);
       notifyListeners();
     } else {
       _completer.complete(-1);
