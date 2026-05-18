@@ -16,6 +16,12 @@ class HDConfig {
   static const double consoleFontSize = 16.0;
   static const double consoleLineHeight = 1.2;
 
+  /// Vertical gap between header/body/footer sections inside the dialog
+  /// panel. 150% of one body line — distinguishes section boundaries
+  /// without drawing visible separators.
+  static const double dialogSectionGap =
+      consoleFontSize * consoleLineHeight * 1.5;
+
   // Bottom-left: status panel sits under the map viewport (same width).
   static const double statusPanelWidth = 288.0;
   static const double statusPanelHeight = 160.0;
@@ -26,6 +32,14 @@ class HDConfig {
   // (Select::Run, dialogue choices). Sized to mirror the console.
   static const double inputPanelWidth = 512.0;
   static const double inputPanelHeight = 160.0;
+
+  // Popup message window (e.g. signs). Width is fixed regardless of text;
+  // height has a hard cap — overlong messages clip rather than grow the box.
+  // Sign popups always render at exactly these dimensions.
+  static const int messageWindowX = 288; // console-aligned, matches selection
+  static const int messageWindowY = 100;
+  static const int messageWindowWidth = 400;
+  static const int messageWindowHeight = 200;
 
   // --- Scripting Settings ---
   static const int maxFlags = 256;

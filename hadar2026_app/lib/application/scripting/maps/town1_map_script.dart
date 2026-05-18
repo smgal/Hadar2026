@@ -60,12 +60,12 @@ class Town1MapScript extends HDMapScript {
   @override
   Future<bool> onSign(int eventId) async {
     if (isOn(50, 83)) {
-      await talk("여기는 'CASTLE LORE'성\n여러분을 환영합니다\n\n\nLord Ahn");
+      await message("여기는 'CASTLE LORE'성\n여러분을 환영합니다\n\n\nLord Ahn");
       return true;
     }
 
     if (isOn(23, 30)) {
-      await talk("\n여기는 LORE 주점\n여러분 모두를 환영합니다 !!");
+      await message("\n여기는 LORE 주점\n여러분 모두를 환영합니다 !!");
       return true;
     }
     return false;

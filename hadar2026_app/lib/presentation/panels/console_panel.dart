@@ -3,22 +3,27 @@ import '../../hd_game_main.dart';
 import '../../hd_config.dart';
 import '../../utils/hd_text_utils.dart';
 
-const TextStyle _consoleStyle = TextStyle(
+const TextStyle _bodyStyle = TextStyle(
   color: Colors.grey,
   fontSize: HDConfig.consoleFontSize,
   height: HDConfig.consoleLineHeight,
 );
 
-/// Console area (top-right of the 800×480 layout).
+/// Dialog area (top-right of the 800×480 layout).
 ///
-/// Stack-overlay model:
-///  - **Base layer**: progress log. Always mounted, scrollable, auto-follows
-///    the bottom when new lines arrive while the user is at the bottom.
-///  - **Overlay layer**: shown while a narrative cycle is active (dialogue,
-///    menu, or system-result message). Fully covers the base; the base is
-///    inert (`IgnorePointer`) underneath.
-class HDConsolePanel extends StatelessWidget {
-  const HDConsolePanel({super.key});
+/// Three logical sections, separated by [HDConfig.dialogSectionGap]:
+///  - **Header** (top, 1 line): set via `setHeader(...)`. Hidden when
+///    empty so the body floats up.
+///  - **Body**: dialogue lines from `addLog(isDialogue: true)`. When a
+///    script-driven menu is active, it renders at the bottom of the
+///    body — fixed bottom y, growing upward.
+///  - **Footer**: "계속하려면 누르십시오 ..." shown while waiting on a key.
+///
+/// Description text (`addLog(isDialogue: false)` / `Log(...)`) lives in
+/// `HDDescriptionPanel` instead — this widget no longer renders the
+/// progress base layer.
+class HDDialogPanel extends StatelessWidget {
+  const HDDialogPanel({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,19 +34,30 @@ class HDConsolePanel extends StatelessWidget {
         color: Colors.black,
         border: Border.all(color: Colors.grey.shade900, width: 1),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListenableBuilder(
         listenable: HDGameMain(),
         builder: (context, _) {
           final main = HDGameMain();
-          final overlayActive = main.viewMode == HDConsoleViewMode.overlay;
-          return Stack(
-            fit: StackFit.expand,
+          final header = main.dialogHeader;
+          final menu = main.activeMenu;
+          final showMenu = menu != null && main.isScriptRunning;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IgnorePointer(
-                ignoring: overlayActive,
-                child: const _ProgressBaseLayer(),
+              Text.rich(
+                HDTextUtils.parseRichText(header, baseStyle: _bodyStyle),
               ),
-              if (overlayActive) const _NarrativeOverlay(),
+              const SizedBox(height: HDConfig.dialogSectionGap),
+              Expanded(
+                child: _BodyArea(
+                  eventLogs: main.eventLogs,
+                  menu: showMenu ? menu : null,
+                ),
+              ),
+              const SizedBox(height: HDConfig.dialogSectionGap),
+              _Footer(waiting: main.isWaitingForKey),
             ],
           );
         },
@@ -50,160 +66,76 @@ class HDConsolePanel extends StatelessWidget {
   }
 }
 
-/// Base layer: always-mounted, scrollable progress log.
-class _ProgressBaseLayer extends StatefulWidget {
-  const _ProgressBaseLayer();
+/// Body section: dialogue text top-aligned, optional script-driven menu
+/// bottom-anchored. Menu grows upward as items are added.
+class _BodyArea extends StatelessWidget {
+  final List<String> eventLogs;
+  final HDMenu? menu;
 
-  @override
-  State<_ProgressBaseLayer> createState() => _ProgressBaseLayerState();
-}
-
-class _ProgressBaseLayerState extends State<_ProgressBaseLayer> {
-  final ScrollController _controller = ScrollController();
-  int _lastLineCount = 0;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  /// Follow-bottom heuristic: jump to the new bottom only when the user is
-  /// already at (or near) the bottom. If they've scrolled up to read past
-  /// messages, leave the offset alone.
-  void _maybeFollowBottom() {
-    if (!_controller.hasClients) return;
-    final pos = _controller.position;
-    final atBottom = (pos.maxScrollExtent - pos.pixels) < 4.0;
-    if (atBottom) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_controller.hasClients) {
-          _controller.jumpTo(_controller.position.maxScrollExtent);
-        }
-      });
-    }
-  }
+  const _BodyArea({required this.eventLogs, required this.menu});
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: HDGameMain(),
-      builder: (context, _) {
-        final lines = HDGameMain().progressLogs;
-        if (lines.length != _lastLineCount) {
-          _lastLineCount = lines.length;
-          _maybeFollowBottom();
-        }
-        return ListView.builder(
-          controller: _controller,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          physics: const ClampingScrollPhysics(),
-          itemCount: lines.length,
-          itemBuilder: (context, index) {
-            return Text.rich(
-              HDTextUtils.parseRichText(lines[index], baseStyle: _consoleStyle),
-            );
-          },
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final line in eventLogs)
+          Text.rich(HDTextUtils.parseRichText(line, baseStyle: _bodyStyle)),
+        const Spacer(),
+        if (menu != null) _MenuBlock(menu: menu!),
+      ],
     );
   }
 }
 
-/// Overlay layer: events + active menu + PressAnyKey prompt. Opaque
-/// background so the base progress is fully hidden underneath.
-class _NarrativeOverlay extends StatelessWidget {
-  const _NarrativeOverlay();
+class _MenuBlock extends StatelessWidget {
+  final HDMenu menu;
+  const _MenuBlock({required this.menu});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.black,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ListenableBuilder(
-              listenable: HDGameMain(),
-              builder: (context, _) {
-                final main = HDGameMain();
-                final activeMenu = main.activeMenu;
-                final eventLogs = main.eventLogs;
-
-                // Narrative-driven menus (Select::Run, dialogue
-                // choices) render in the bottom-right input panel
-                // instead — they're only displayed here when no
-                // script is running (main menu, battle menu, etc.).
-                final showMenuHere =
-                    activeMenu != null && !main.isScriptRunning;
-                final List<String> rawItems = showMenuHere
-                    ? [...eventLogs, ...activeMenu.items]
-                    : [...eventLogs];
-                final menuStartIndex = showMenuHere ? eventLogs.length : -1;
-
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  itemCount: rawItems.length,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    final raw = rawItems[index];
-
-                    if (showMenuHere &&
-                        menuStartIndex >= 0 &&
-                        index >= menuStartIndex) {
-                      final menuIndex = index - menuStartIndex;
-                      Color overrideColor;
-                      if (menuIndex == 0) {
-                        overrideColor = Colors.red;
-                      } else if (menuIndex == activeMenu.selectedIndex) {
-                        overrideColor = Colors.white;
-                      } else if (menuIndex <= activeMenu.enabledCount) {
-                        overrideColor = Colors.grey;
-                      } else {
-                        overrideColor = Colors.grey.shade900;
-                      }
-                      // Menu items use a single override color; ignore any
-                      // embedded `@X` tags so the cursor highlight is uniform.
-                      return Text.rich(
-                        HDTextUtils.parseRichText(
-                          raw,
-                          baseStyle: _consoleStyle.copyWith(
-                            color: overrideColor,
-                          ),
-                        ),
-                      );
-                    }
-
-                    return Text.rich(
-                      HDTextUtils.parseRichText(raw, baseStyle: _consoleStyle),
-                    );
-                  },
-                );
-              },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < menu.items.length; i++)
+          Text.rich(
+            HDTextUtils.parseRichText(
+              menu.items[i],
+              baseStyle: _bodyStyle.copyWith(color: _colorFor(i)),
             ),
           ),
-          ListenableBuilder(
-            listenable: HDGameMain(),
-            builder: (context, _) {
-              if (HDGameMain().isWaitingForKey) {
-                return Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    "계속하려면 누르십시오 ...",
-                    style: TextStyle(
-                      color: Colors.yellow.shade600,
-                      fontSize: HDConfig.consoleFontSize,
-                    ),
-                  ),
-                );
-              }
-              return const SizedBox(height: 48);
-            },
-          ),
-        ],
+      ],
+    );
+  }
+
+  Color _colorFor(int index) {
+    if (index == 0) return Colors.red; // title row
+    if (index == menu.selectedIndex) return Colors.white; // cursor
+    if (index <= menu.enabledCount) return Colors.grey; // enabled
+    return Colors.grey.shade900; // disabled
+  }
+}
+
+class _Footer extends StatelessWidget {
+  final bool waiting;
+  const _Footer({required this.waiting});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!waiting) {
+      // Reserve the same vertical slot so the body doesn't jump when the
+      // footer toggles on. One line at body height.
+      return const SizedBox(
+        height: HDConfig.consoleFontSize * HDConfig.consoleLineHeight,
+      );
+    }
+    return Text(
+      "계속하려면 누르십시오 ...",
+      style: TextStyle(
+        color: Colors.yellow.shade600,
+        fontSize: HDConfig.consoleFontSize,
+        height: HDConfig.consoleLineHeight,
       ),
     );
   }

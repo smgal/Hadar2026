@@ -193,8 +193,40 @@ class HDScriptEngine {
       if (text.startsWith('"') && text.endsWith('"')) {
         text = text.substring(1, text.length - 1);
       }
+      // All Talk output — including SIGN — flows through the dialog body.
+      // SIGN gets its distinguishing "푯말에 써 있기를:" header set by the
+      // tile dispatcher before the script runs, not via a separate popup.
       print("ScriptEngine [TALK]: $text");
       await HDGameMain().addLog(text);
+    });
+
+    // Description log — "흘러가는 상황 설명" that lands in the
+    // bottom-right description panel rather than the dialog area.
+    // e.g. `Log("일행은 용암 지대로 들어섰다 !!!")`.
+    e.registerCommand('Log', (stmt, eng) async {
+      final args = stmt.args;
+      var text = eng.getVal(args.isNotEmpty ? args[0] : '').toString();
+      if (text.startsWith('"') && text.endsWith('"')) {
+        text = text.substring(1, text.length - 1);
+      }
+      print("ScriptEngine [LOG]: $text");
+      await HDGameMain().addLog(text, isDialogue: false);
+    });
+
+    // Dialog header — top line of the dialog panel. Pass an empty
+    // string to clear. e.g. `SetHeader("경비병과 대화")` renders as
+    // blue text with an auto-appended colon: "@B경비병과 대화:@@".
+    e.registerCommand('SetHeader', (stmt, eng) async {
+      final args = stmt.args;
+      var text = eng.getVal(args.isNotEmpty ? args[0] : '').toString();
+      if (text.startsWith('"') && text.endsWith('"')) {
+        text = text.substring(1, text.length - 1);
+      }
+      // Auto-format: blue color + colon. Raw callers (e.g. the tile
+      // dispatcher) that set the header via host.setHeader() directly
+      // are responsible for their own formatting.
+      if (text.isNotEmpty) text = '@B$text:@@';
+      HDGameMain().setHeader(text);
     });
 
     e.registerCommand('Answer', (stmt, eng) async {

@@ -11,6 +11,7 @@ import '../../application/ports/ui_host.dart';
 import '../../domain/console/console_log.dart';
 import '../../hd_config.dart';
 import '../../utils/hd_text_utils.dart';
+import '../../domain/window/message_window_data.dart';
 import '../../domain/window/selection_window_data.dart';
 import '../window_manager.dart';
 import '../panels/player_sprite.dart';
@@ -70,6 +71,11 @@ class HDFlutterUiHost extends ChangeNotifier
   final HDConsoleLog consoleLog = HDConsoleLog();
   HDMenu? activeMenu;
 
+  /// Dialogue header (top line of the dialog panel). Empty string means
+  /// "no header" and the dialog panel reserves no space for it.
+  String _header = '';
+  String get header => _header;
+
   /// True between [beginNarrative] and [endNarrative]. Holds the overlay
   /// open even when events briefly empty (page flush during a long
   /// dialogue, or a menu→message cycle that hasn't pushed events yet).
@@ -112,9 +118,13 @@ class HDFlutterUiHost extends ChangeNotifier
     for (final line in newLines) {
       if (isDialogue) {
         if (consoleLog.events.length >= _maxLinesPerPage) {
-          // Dialogue: wait for key and clear all
+          // Internal page flush within a single dialogue — same speaker,
+          // same header. Clear only the event body so the header survives
+          // across the PressAnyKey; full clearLogs() (which also wipes the
+          // header) is reserved for narrative-cycle boundaries.
           await waitForAnyKey();
-          clearLogs();
+          consoleLog.clearEvents();
+          notifyListeners();
           await Future.delayed(Duration.zero);
         }
         consoleLog.appendEvent(line);
@@ -152,15 +162,30 @@ class HDFlutterUiHost extends ChangeNotifier
     List<String> items, {
     int initialChoice = 1,
     int enabledCount = -1,
+    int? x,
+    int? y,
   }) async {
     final window = HDSelectionWindow(
       choices: items,
       selectedIndex: initialChoice,
       enabledCount: enabledCount,
+      x: x,
+      y: y,
     );
     HDWindowManager().addWindow(window);
     try {
       return await window.result;
+    } finally {
+      HDWindowManager().removeWindow(window);
+    }
+  }
+
+  @override
+  Future<void> showMessageWindow(String text, {int? x, int? y}) async {
+    final window = HDMessageWindow(text, x: x, y: y);
+    HDWindowManager().addWindow(window);
+    try {
+      await window.waitForClose();
     } finally {
       HDWindowManager().removeWindow(window);
     }
@@ -177,6 +202,17 @@ class HDFlutterUiHost extends ChangeNotifier
   @override
   void clearLogs() {
     consoleLog.clearEvents();
+    // Header lives with the body it titles — clearing the body clears
+    // the header too (covers page-flush, narrative entry, and
+    // endNarrative without each caller having to remember).
+    _header = '';
+    notifyListeners();
+  }
+
+  @override
+  void setHeader(String text) {
+    if (_header == text) return;
+    _header = text;
     notifyListeners();
   }
 
@@ -197,6 +233,7 @@ class HDFlutterUiHost extends ChangeNotifier
       await waitForAnyKey();
     }
     consoleLog.clearEvents();
+    _header = '';
     if (summary != null && summary.isNotEmpty) {
       // Wrap the summary the same way addLog() does, so it survives
       // word-wrap at the panel width and renders identically to other
@@ -221,6 +258,7 @@ class HDFlutterUiHost extends ChangeNotifier
     consoleLog.clearEvents();
     consoleLog.clearProgress();
     activeMenu = null;
+    _header = '';
     _narrativeActive = false;
     _keyWaitCompleter = null;
     _bonfireGame = null;

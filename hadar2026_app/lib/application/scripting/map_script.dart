@@ -30,6 +30,14 @@ abstract class HDMapScript {
     await game.addLog(text, isDialogue: true);
   }
 
+  /// Shows [text] in a fixed-size popup window that closes on Enter/Esc.
+  /// Prefer this for signs and other one-shot messages where the player
+  /// just needs to read and dismiss — the console-based [talk] is for
+  /// dialogue flow that can paginate and combine with menus.
+  Future<void> message(String text) async {
+    await game.showMessageWindow(text);
+  }
+
   bool isFlagSet(int index) {
     // Requires implementation in GameModel / State
     return false;

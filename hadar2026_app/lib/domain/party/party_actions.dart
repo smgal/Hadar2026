@@ -43,8 +43,8 @@ class RestEntryResult {
 /// - dead members don't recover.
 /// - poison blocks both consciousness and HP recovery.
 /// - unconscious members tick down by sum of all levels per round.
-/// - awake members heal by `(L0+L1+L2) * 2` HP, capped at
-///   `endurance * level[0]`. Healing consumes one food.
+/// - awake members heal by `(physical + magic + esp) * 2` HP, capped at
+///   `endurance * level.physical`. Healing consumes one food.
 /// - SP/ESP fully refresh from level + stats every round.
 /// - Party-wide magic effects decay (`magicTorch--`, others reset).
 class HDPartyActions {
@@ -58,7 +58,7 @@ class HDPartyActions {
     } else if (p.dead > 0) {
       outcome = RestOutcome.alreadyDead;
     } else if (p.unconscious > 0 && p.poison == 0) {
-      p.unconscious -= (p.level[0] + p.level[1] + p.level[2]);
+      p.unconscious -= (p.level.physical + p.level.magic + p.level.esp);
       if (p.unconscious <= 0) {
         p.unconscious = 0;
         if (p.hp <= 0) p.hp = 1;
@@ -72,8 +72,8 @@ class HDPartyActions {
     } else if (p.poison > 0) {
       outcome = RestOutcome.poisoned;
     } else {
-      final int recovery = (p.level[0] + p.level[1] + p.level[2]) * 2;
-      final int maxHp = p.endurance * p.level[0];
+      final int recovery = (p.level.physical + p.level.magic + p.level.esp) * 2;
+      final int maxHp = p.endurance * p.level.physical;
 
       final bool fullHp = p.hp >= maxHp;
 
@@ -91,8 +91,8 @@ class HDPartyActions {
     }
 
     // SP/ESP refresh + cap regardless of branch.
-    p.sp = p.mentality * p.level[1];
-    p.esp = p.concentration * p.level[2];
+    p.sp = p.mentality * p.level.magic;
+    p.esp = p.concentration * p.level.esp;
     if (p.sp > p.maxSp) p.sp = p.maxSp;
     if (p.esp > p.maxEsp) p.esp = p.maxEsp;
     if (p.hp > p.maxHp) p.hp = p.maxHp;

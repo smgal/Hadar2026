@@ -3,19 +3,51 @@ import '../../hd_config.dart';
 import '../../hd_game_main.dart';
 import '../../utils/hd_text_utils.dart';
 
-const TextStyle _menuStyle = TextStyle(
-  color: Colors.white,
+const TextStyle _descStyle = TextStyle(
+  color: Colors.grey,
   fontSize: HDConfig.consoleFontSize,
   height: HDConfig.consoleLineHeight,
 );
 
-/// Bottom-right slot. Hosts narrative-driven selection menus only — the
-/// `Select::*` choices and any menu opened by a tile script during a
-/// dialogue cycle. Main menu / battle / save-load menus continue to
-/// render in the console area; this panel is empty whenever a menu
-/// isn't being driven by a running script (`isScriptRunning == false`).
-class HDInputPanel extends StatelessWidget {
-  const HDInputPanel({super.key});
+/// Bottom-right description panel.
+///
+/// Hosts "흘러가는 상황 설명" lines — the slow drip of ambient log text
+/// from `addLog(isDialogue: false)` / cm2 `Log(...)` / terrain triggers
+/// like swamp/lava entry. Always visible, scrollable, auto-follows the
+/// bottom while the user is at the bottom; if they scrolled up to read
+/// past lines, new arrivals don't yank them down.
+///
+/// Replaces the previous narrative-menu panel — script-driven menus now
+/// render at the bottom of the dialog body in [HDDialogPanel].
+class HDDescriptionPanel extends StatefulWidget {
+  const HDDescriptionPanel({super.key});
+
+  @override
+  State<HDDescriptionPanel> createState() => _HDDescriptionPanelState();
+}
+
+class _HDDescriptionPanelState extends State<HDDescriptionPanel> {
+  final ScrollController _controller = ScrollController();
+  int _lastLineCount = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _maybeFollowBottom() {
+    if (!_controller.hasClients) return;
+    final pos = _controller.position;
+    final atBottom = (pos.maxScrollExtent - pos.pixels) < 4.0;
+    if (atBottom) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_controller.hasClients) {
+          _controller.jumpTo(_controller.position.maxScrollExtent);
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,33 +61,19 @@ class HDInputPanel extends StatelessWidget {
       child: ListenableBuilder(
         listenable: HDGameMain(),
         builder: (context, _) {
-          final main = HDGameMain();
-          final menu = main.activeMenu;
-          if (menu == null || !main.isScriptRunning) {
-            return const SizedBox.shrink();
+          final lines = HDGameMain().progressLogs;
+          if (lines.length != _lastLineCount) {
+            _lastLineCount = lines.length;
+            _maybeFollowBottom();
           }
           return ListView.builder(
+            controller: _controller,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: menu.items.length,
-            physics: const NeverScrollableScrollPhysics(),
+            physics: const ClampingScrollPhysics(),
+            itemCount: lines.length,
             itemBuilder: (context, index) {
-              Color overrideColor;
-              if (index == 0) {
-                overrideColor = Colors.red; // title row
-              } else if (index == menu.selectedIndex) {
-                overrideColor = Colors.white; // cursor
-              } else if (index <= menu.enabledCount) {
-                overrideColor = Colors.grey; // enabled but unselected
-              } else {
-                overrideColor = Colors.grey.shade900; // disabled
-              }
-              // Menu items use a single override color; ignore any
-              // embedded `@X` tags so the cursor highlight is uniform.
               return Text.rich(
-                HDTextUtils.parseRichText(
-                  menu.items[index],
-                  baseStyle: _menuStyle.copyWith(color: overrideColor),
-                ),
+                HDTextUtils.parseRichText(lines[index], baseStyle: _descStyle),
               );
             },
           );

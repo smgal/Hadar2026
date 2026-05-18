@@ -102,6 +102,13 @@ class HDTileEventDispatcher {
     MapModel map,
     UiHost host,
   ) async {
+    // SIGN tiles get a default header. Set before script dispatch so a
+    // cm2/native handler that wants a different label can override via
+    // SetHeader; the body output flows into the dialog area like TALK.
+    if (action == HDTileProperties.ACTION_SIGN) {
+      host.setHeader('@B푯말에 써 있기를:');
+    }
+
     final native = HDNativeScriptRunner();
     final cm2Path = HDGameSession().currentMapCm2Path;
     final xs = x.toString().padLeft(2);
@@ -122,7 +129,7 @@ class HDTileEventDispatcher {
       // "handled" return value is the new wiring but at this tier nothing
       // downstream needs it yet — cm2 fallback for native maps is wired
       // in step 4 once a paired-cm2 native map exists.
-      await _emitJsonDialog(map, x, y, host);
+      await _emitJsonDialog(map, x, y, host, action);
       await native.processMapEvent(action, x, y);
       return;
     }
@@ -134,7 +141,7 @@ class HDTileEventDispatcher {
       HDScriptEngine().setScriptMode(action);
       await HDScriptEngine().run();
       if (HDScriptEngine().handled) return;
-      await _emitJsonDialog(map, x, y, host);
+      await _emitJsonDialog(map, x, y, host, action);
       return;
     }
 
@@ -143,7 +150,7 @@ class HDTileEventDispatcher {
     // `processMapEvent` flow (JSON pre-emit + cm2 fallback) so static
     // event dialogue keeps showing on un-paired maps.
     print('[JSN][$tag] ($xs, $ys)');
-    await _emitJsonDialog(map, x, y, host);
+    await _emitJsonDialog(map, x, y, host, action);
     HDScriptEngine().setTargetPos(x, y);
     HDScriptEngine().setScriptMode(action);
     await HDScriptEngine().run();
@@ -154,9 +161,13 @@ class HDTileEventDispatcher {
     int x,
     int y,
     UiHost host,
+    int action,
   ) async {
     for (final ev in map.events) {
       if (ev.x == x && ev.y == y) {
+        // SIGN/TALK/ENTER all share the dialog area now: header (set by
+        // the dispatcher for SIGN, by the script for TALK) + body lines.
+        // No popup; the header carries the role indicator instead.
         for (final line in ev.dialogLines) {
           if (line.isNotEmpty) {
             await host.addLog(line);

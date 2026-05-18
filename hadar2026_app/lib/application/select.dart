@@ -30,7 +30,11 @@ class HDSelect {
 
   Future<void> run() async {
     isSelectionActive = true;
-    _lastResult = await HDGameMain().showWindowMenu(items);
+    // Script-driven selections render at the bottom of the dialog body
+    // (not a centred popup) — keeps the menu visually attached to the
+    // dialogue line that prompted it. clearLogs:false so the prior
+    // dialogue stays on screen above the choices.
+    _lastResult = await HDGameMain().showMenu(items, clearLogs: false);
     isSelectionActive = false;
   }
 

@@ -94,12 +94,12 @@ class HDParty extends ChangeNotifier {
       p.maxSp = 100;
       p.esp = 100;
       p.maxEsp = 100;
-      p.level[0] = 1;
-      p.level[1] = 20; // All Magic
-      p.level[2] = 20; // All ESP
-      p.accuracy[0] = 15;
-      p.accuracy[1] = 15;
-      p.accuracy[2] = 15;
+      p.level.physical = 1;
+      p.level.magic = 20;
+      p.level.esp = 20;
+      p.accuracy.physical = 15;
+      p.accuracy.magic = 15;
+      p.accuracy.esp = 15;
 
       p.weapon = 1; // Short Sword
       p.powOfWeapon = 12;
@@ -119,9 +119,9 @@ class HDParty extends ChangeNotifier {
       p.maxSp = 100;
       p.esp = 80;
       p.maxEsp = 80;
-      p.level[0] = 1;
-      p.level[2] = 1; // ESP level
-      p.accuracy[0] = 10;
+      p.level.physical = 1;
+      p.level.esp = 1;
+      p.accuracy.physical = 10;
 
       p.weapon = 1;
       p.powOfWeapon = 8;

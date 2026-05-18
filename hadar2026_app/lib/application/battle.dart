@@ -150,7 +150,7 @@ class HDBattle with ChangeNotifier {
                 for (var t in enemies) {
                   if (!t.isConscious()) continue;
                   int dmg =
-                      (p.level[1] + p.level[2]) * 5 + Random().nextInt(10);
+                      (p.level.magic + p.level.esp) * 5 + Random().nextInt(10);
                   t.hp -= dmg;
                   await _host.addLog(
                     "${t.name}에게 $dmg의 데미지!",
@@ -169,7 +169,7 @@ class HDBattle with ChangeNotifier {
                 if (targetId != -1) {
                   var t = enemies[targetId];
                   int dmg =
-                      (p.level[1] + p.level[2]) * 8 + Random().nextInt(15);
+                      (p.level.magic + p.level.esp) * 8 + Random().nextInt(15);
                   t.hp -= dmg;
                   await _host.addLog(
                     "${t.name}에게 $dmg의 데미지!",
@@ -251,7 +251,7 @@ class HDBattle with ChangeNotifier {
           p.experience += totExp;
           if (p.checkLevelUp()) {
             await _host.addLog(
-              "${p.name}${p.name.sub1} 전투 레벨이 ${p.level[0]}로 올랐다!",
+              "${p.name}${p.name.sub1} 전투 레벨이 ${p.level.physical}로 올랐다!",
             );
           }
         }
@@ -422,7 +422,7 @@ class HDBattle with ChangeNotifier {
       return;
     }
 
-    if (Random().nextInt(20) > p.accuracy[0]) {
+    if (Random().nextInt(20) > p.accuracy.physical) {
       await _host.addLog("${p.name}의 공격은 빗나갔다....");
       return;
     }
@@ -434,7 +434,7 @@ class HDBattle with ChangeNotifier {
       return;
     }
 
-    int damage = (p.strength * p.powOfWeapon * p.level[0]) ~/ 20;
+    int damage = (p.strength * p.powOfWeapon * p.level.physical) ~/ 20;
     damage -= (damage * Random().nextInt(50)) ~/ 100;
     damage -= (t.ac * t.level * (Random().nextInt(10) + 1)) ~/ 10;
 
@@ -509,7 +509,7 @@ class HDBattle with ChangeNotifier {
     }
 
     int damage = (e.strength * e.level * (Random().nextInt(10) + 1)) ~/ 10;
-    damage -= (t.ac * t.level[0] * (Random().nextInt(10) + 1)) ~/ 10;
+    damage -= (t.ac * t.level.physical * (Random().nextInt(10) + 1)) ~/ 10;
 
     if (damage <= 0) {
       await _host.addLog(

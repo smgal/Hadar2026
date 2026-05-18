@@ -17,6 +17,7 @@ import 'presentation/host/flutter_ui_host.dart';
 import 'presentation/input/input_dispatcher.dart';
 import 'presentation/input/input_mode.dart';
 import 'presentation/window_manager.dart';
+import 'domain/window/message_window_data.dart';
 import 'domain/window/selection_window_data.dart';
 
 export 'application/ports/ui_host.dart';
@@ -94,6 +95,7 @@ class HDGameMain with ChangeNotifier implements UiHost, PartyMovementHost {
 
   List<String> get progressLogs => _host.consoleLog.progress;
   List<String> get eventLogs => _host.consoleLog.events;
+  String get dialogHeader => _host.header;
   HDConsoleViewMode get viewMode => _host.viewMode;
   bool get isWaitingForKey => _host.isWaitingForKey;
 
@@ -118,11 +120,15 @@ class HDGameMain with ChangeNotifier implements UiHost, PartyMovementHost {
     List<String> items, {
     int initialChoice = 1,
     int enabledCount = -1,
+    int? x,
+    int? y,
   }) async {
     final window = HDSelectionWindow(
       choices: items,
       selectedIndex: initialChoice,
       enabledCount: enabledCount,
+      x: x,
+      y: y,
     );
     HDWindowManager().addWindow(window);
     try {
@@ -133,10 +139,24 @@ class HDGameMain with ChangeNotifier implements UiHost, PartyMovementHost {
   }
 
   @override
+  Future<void> showMessageWindow(String text, {int? x, int? y}) async {
+    final window = HDMessageWindow(text, x: x, y: y);
+    HDWindowManager().addWindow(window);
+    try {
+      await window.waitForClose();
+    } finally {
+      HDWindowManager().removeWindow(window);
+    }
+  }
+
+  @override
   Future<void> waitForAnyKey() => _host.waitForAnyKey();
 
   @override
   void clearLogs() => _host.clearLogs();
+
+  @override
+  void setHeader(String text) => _host.setHeader(text);
 
   @override
   void beginNarrative() => _host.beginNarrative();

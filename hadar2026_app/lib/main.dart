@@ -159,14 +159,14 @@ class _MainScreenState extends State<MainScreen> {
                                   },
                                 ),
                               ),
-                              const HDConsolePanel(),
+                              const HDDialogPanel(),
                             ],
                           ),
-                          // Bottom row: status (under map) + input (under console).
+                          // Bottom row: status (under map) + description (under dialog).
                           Row(
                             children: const [
                               HDStatusPanel(),
-                              HDInputPanel(),
+                              HDDescriptionPanel(),
                             ],
                           ),
                         ],

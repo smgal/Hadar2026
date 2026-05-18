@@ -39,7 +39,6 @@ class HDMenuFlows {
       "초능력을 사용한다",
       "여기서 쉰다",
       "게임 선택 상황",
-      "전투 테스트 (시뮬레이션)",
     ];
 
     // Outer narrative cycle: keeps the overlay open across the whole
@@ -47,7 +46,9 @@ class HDMenuFlows {
     // hidden until everything is completely done.
     _game.beginNarrative();
     try {
-      int selected = await _game.showWindowMenu(choices);
+      // Map-side main menu keeps the legacy centred x; all other popups
+      // (battle, magic, save/load, sub-menus…) default to console-aligned.
+      int selected = await _game.showWindowMenu(choices, x: 200);
 
       switch (selected) {
         case 0:
@@ -72,9 +73,6 @@ class HDMenuFlows {
           break;
         case 7:
           await selectGameOption();
-          break;
-        case 8:
-          await showBattleMenu();
           break;
       }
     } finally {
@@ -263,13 +261,13 @@ class HDMenuFlows {
     await _game.addLog("");
 
     await _game.addLog(
-      "무기의 정확성   : ${player.accuracy[0].toString().padLeft(2)}    전투 레벨   : ${player.level[0].toString().padLeft(2)}",
+      "무기의 정확성   : ${player.accuracy.physical.toString().padLeft(2)}    전투 레벨   : ${player.level.physical.toString().padLeft(2)}",
     );
     await _game.addLog(
-      "정신력의 정확성 : ${player.accuracy[1].toString().padLeft(2)}    마법 레벨   : ${player.level[1].toString().padLeft(2)}",
+      "정신력의 정확성 : ${player.accuracy.magic.toString().padLeft(2)}    마법 레벨   : ${player.level.magic.toString().padLeft(2)}",
     );
     await _game.addLog(
-      "초감각의 정확성 : ${player.accuracy[2].toString().padLeft(2)}    초감각 레벨 : ${player.level[2].toString().padLeft(2)}",
+      "초감각의 정확성 : ${player.accuracy.esp.toString().padLeft(2)}    초감각 레벨 : ${player.level.esp.toString().padLeft(2)}",
     );
     await _game.addLog("## 경험치   : ${player.experience}");
     await _game.addLog("");

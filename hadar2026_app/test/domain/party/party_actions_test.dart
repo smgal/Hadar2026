@@ -26,9 +26,9 @@ HDPlayer _makePlayer({
     ..unconscious = unconscious
     ..dead = dead
     ..poison = poison;
-  p.level[0] = level0;
-  p.level[1] = level1;
-  p.level[2] = level2;
+  p.level.physical = level0;
+  p.level.magic = level1;
+  p.level.esp = level2;
   return p;
 }
 

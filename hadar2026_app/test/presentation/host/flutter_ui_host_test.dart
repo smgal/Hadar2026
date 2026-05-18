@@ -114,4 +114,34 @@ void main() {
     });
   });
 
+  group('HDFlutterUiHost.header', () {
+    test('starts empty', () {
+      expect(host().header, isEmpty);
+    });
+
+    test('setHeader stores the value', () {
+      host().setHeader('@B경비병과 대화:');
+      expect(host().header, '@B경비병과 대화:');
+    });
+
+    test('clearLogs wipes the header (lives with the body it titles)', () {
+      host().setHeader('@B경비병과 대화:');
+      host().consoleLog.appendEvent('안녕하세요');
+
+      host().clearLogs();
+
+      expect(host().header, isEmpty);
+      expect(host().consoleLog.events, isEmpty);
+    });
+
+    test('endNarrative wipes the header', () async {
+      host().beginNarrative();
+      host().setHeader('@B푯말에 써 있기를:');
+      host().consoleLog.appendEvent('이곳은 마을입니다.');
+
+      await host().endNarrative(autoFlush: false);
+
+      expect(host().header, isEmpty);
+    });
+  });
 }

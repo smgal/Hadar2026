@@ -1,5 +1,6 @@
 import '../battle/enemy_data.dart';
 import '../text/noun.dart';
+import 'skill_stats.dart';
 
 class HDPlayer {
   HDPlayer();
@@ -33,8 +34,8 @@ class HDPlayer {
   int maxEsp = 0;
   int experience = 0;
 
-  List<int> accuracy = [0, 0, 0];
-  List<int> level = [0, 0, 0];
+  SkillStats accuracy = SkillStats();
+  SkillStats level = SkillStats();
 
   int poison = 0;
   int unconscious = 0;
@@ -136,17 +137,17 @@ class HDPlayer {
       case 'ac':
         return ac;
       case 'level':
-        return level[0];
+        return level.physical;
       case 'level(magic)':
-        return level[1];
+        return level.magic;
       case 'level(esp)':
-        return level[2];
+        return level.esp;
       case 'accuracy':
-        return accuracy[0];
+        return accuracy.physical;
       case 'accuracy(magic)':
-        return accuracy[1];
+        return accuracy.magic;
       case 'accuracy(esp)':
-        return accuracy[2];
+        return accuracy.esp;
       case 'name':
         return _name.text;
       case 'poison':
@@ -162,7 +163,7 @@ class HDPlayer {
 
   bool checkLevelUp() {
     bool leveledUp = false;
-    // Exp table matches original game (0 to 19+). We will use level[0] as current tier.
+    // Exp table matches original game (0 to 19+). level.physical is the current tier.
     final expTable = [
       0,
       0,
@@ -187,23 +188,23 @@ class HDPlayer {
       5100000,
     ];
 
-    while (level[0] < expTable.length - 1 &&
-        experience >= expTable[level[0] + 1]) {
-      level[0]++;
+    while (level.physical < expTable.length - 1 &&
+        experience >= expTable[level.physical + 1]) {
+      level.physical++;
 
       // Calculate stat growth
       strength += 1 + (strength ~/ 10);
       endurance += 2;
       agility += 1;
-      accuracy[0] += 1;
+      accuracy.physical += 1;
 
       if (mentality > 0) mentality += 1;
       if (concentration > 0) concentration += 1;
 
       // Update Max HP / SP
-      maxHp = endurance * level[0];
-      maxSp = mentality * level[1];
-      maxEsp = concentration * level[2];
+      maxHp = endurance * level.physical;
+      maxSp = mentality * level.magic;
+      maxEsp = concentration * level.esp;
 
       hp = maxHp; // Heal on level up
       sp = maxSp;
@@ -232,14 +233,14 @@ class HDPlayer {
     luck = 10;
     ac = data.ac;
 
-    level[0] = data.level;
-    level[1] = data.castLevel * 3;
-    if (level[1] == 0) level[1] = 1;
-    level[2] = 1;
+    level.physical = data.level;
+    level.magic = data.castLevel * 3;
+    if (level.magic == 0) level.magic = 1;
+    level.esp = 1;
 
-    maxHp = endurance * level[0];
-    maxSp = mentality * level[1];
-    maxEsp = concentration * level[2];
+    maxHp = endurance * level.physical;
+    maxSp = mentality * level.magic;
+    maxEsp = concentration * level.esp;
 
     hp = maxHp;
     sp = maxSp;
@@ -269,16 +270,16 @@ class HDPlayer {
       4560000,
     ];
 
-    if (level[0] < expTable.length) {
-      experience = expTable[level[0]];
+    if (level.physical < expTable.length) {
+      experience = expTable[level.physical];
     } else {
       experience = 5100000;
     }
 
     final accuracyData = data.accuracy;
-    accuracy[0] = accuracyData[0];
-    accuracy[1] = accuracyData[1];
-    accuracy[2] = 0;
+    accuracy.physical = accuracyData[0];
+    accuracy.magic = accuracyData[1];
+    accuracy.esp = 0;
 
     poison = 0;
     unconscious = 0;
@@ -363,22 +364,22 @@ class HDPlayer {
         ac = intVal;
         break;
       case 'level':
-        level[0] = intVal;
+        level.physical = intVal;
         break;
       case 'level(magic)':
-        level[1] = intVal;
+        level.magic = intVal;
         break;
       case 'level(esp)':
-        level[2] = intVal;
+        level.esp = intVal;
         break;
       case 'accuracy':
-        accuracy[0] = intVal;
+        accuracy.physical = intVal;
         break;
       case 'accuracy(magic)':
-        accuracy[1] = intVal;
+        accuracy.magic = intVal;
         break;
       case 'accuracy(esp)':
-        accuracy[2] = intVal;
+        accuracy.esp = intVal;
         break;
       case 'poison':
         poison = intVal;
@@ -413,8 +414,8 @@ class HDPlayer {
       'esp': esp,
       'maxEsp': maxEsp,
       'experience': experience,
-      'accuracy': accuracy,
-      'level': level,
+      'accuracy': accuracy.toJson(),
+      'level': level.toJson(),
       'poison': poison,
       'unconscious': unconscious,
       'dead': dead,
@@ -448,8 +449,10 @@ class HDPlayer {
       ..esp = json['esp'] ?? 0
       ..maxEsp = json['maxEsp'] ?? 0
       ..experience = json['experience'] ?? 0
-      ..accuracy = List<int>.from(json['accuracy'] ?? [0, 0, 0])
-      ..level = List<int>.from(json['level'] ?? [0, 0, 0])
+      ..accuracy = SkillStats.fromJson(
+          Map<String, dynamic>.from(json['accuracy'] ?? const {}))
+      ..level = SkillStats.fromJson(
+          Map<String, dynamic>.from(json['level'] ?? const {}))
       ..poison = json['poison'] ?? 0
       ..unconscious = json['unconscious'] ?? 0
       ..dead = json['dead'] ?? 0

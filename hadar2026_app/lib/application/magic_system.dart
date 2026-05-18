@@ -17,7 +17,7 @@ class HDMagicSystem {
       return;
     }
 
-    if (player.level[1] == 0) {
+    if (player.level.magic == 0) {
       await gameMain.addLog("당신에게는 아직 능력이 없습니다.");
       await gameMain.waitForAnyKey();
       gameMain.clearLogs();
@@ -77,7 +77,7 @@ class HDMagicSystem {
       );
 
       if (magicId == 19) {
-        int recovery = (player.level[1] * 5);
+        int recovery = (player.level.magic * 5);
         target.hp += recovery;
         if (target.hp > target.maxHp) target.hp = target.maxHp;
         await gameMain.addLog("${target.name}의 건강이 회복되었다!");
@@ -114,7 +114,7 @@ class HDMagicSystem {
       return;
     }
 
-    if (player.level[2] == 0 && !gameMain.party.canUseEsp) {
+    if (player.level.esp == 0 && !gameMain.party.canUseEsp) {
       await gameMain.addLog("당신에게는 아직 능력이 없습니다.");
       await gameMain.waitForAnyKey();
       gameMain.clearLogs();
@@ -221,7 +221,7 @@ class HDMagicSystem {
       spCost = 10;
     }
 
-    int availableSpells = (cmd == 6) ? player.level[2] : player.level[1];
+    int availableSpells = (cmd == 6) ? player.level.esp : player.level.magic;
     if (availableSpells > (maxId - minId + 1))
       availableSpells = (maxId - minId + 1);
 

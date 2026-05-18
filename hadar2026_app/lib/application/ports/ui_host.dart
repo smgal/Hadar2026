@@ -19,11 +19,23 @@ abstract class UiHost {
 
   /// Shows a popup window menu and resolves to the selected 1-based index,
   /// or 0 for cancel. [items] index 0 is the title; remaining entries are choices.
+  ///
+  /// [x] / [y] override the window's top-left position; null falls back
+  /// to the host's default (console-aligned). The map-side main menu
+  /// passes the legacy centred x to keep its current placement.
   Future<int> showWindowMenu(
     List<String> items, {
     int initialChoice = 1,
     int enabledCount = -1,
+    int? x,
+    int? y,
   });
+
+  /// Shows a read-and-dismiss popup with [text] and resolves when the
+  /// user closes it (Enter or Esc). Use this for signs and other
+  /// one-shot messages — fixed size, no selection. For multi-page
+  /// dialogue, use `addLog` + `waitForAnyKey` against the console.
+  Future<void> showMessageWindow(String text, {int? x, int? y});
 
   /// Adds a line of text to the appropriate console pane.
   /// When [isDialogue] is true the text is treated as event/story output
@@ -35,8 +47,20 @@ abstract class UiHost {
   /// equivalent).
   Future<void> waitForAnyKey();
 
-  /// Clears the dialogue/event log pane.
+  /// Clears the dialogue/event log pane. Also clears the dialogue header
+  /// (set via [setHeader]) so a new dialogue cycle starts without stale
+  /// header text — the user-visible rule is "the header lives with the
+  /// body it titles."
   void clearLogs();
+
+  /// Sets the dialogue header line (top row of the dialogue panel).
+  /// Pass an empty string to hide the header. Header text may include
+  /// `@X..@@` color tags; conventionally `@B` (blue) is used.
+  ///
+  /// Cleared automatically whenever the body is cleared ([clearLogs] or
+  /// page-flush after a long dialogue), so callers don't need to balance
+  /// set/clear pairs around each Talk page.
+  void setHeader(String text);
 
   /// Marks the start of a narrative cycle (dialogue, menu, system result).
   /// Keeps the overlay layer visible even when [events] briefly empties

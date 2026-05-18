@@ -22,9 +22,6 @@ class HDWindowManager extends ChangeNotifier {
   List<HDWindow> get windows => List.unmodifiable(_windows);
 
   void addWindow(HDWindow window) {
-    print(
-      "HDWindowManager: Adding window $window. Total: ${_windows.length + 1}",
-    );
     _windows.add(window);
     notifyListeners();
   }
@@ -107,13 +104,17 @@ class HDWindowManager extends ChangeNotifier {
     if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.keyW) {
       window.moveCursor(-1);
       return true;
-    } else if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.keyS) {
+    } else if (key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.keyS) {
       window.moveCursor(1);
       return true;
-    } else if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space || key == LogicalKeyboardKey.keyE) {
+    } else if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.space ||
+        key == LogicalKeyboardKey.keyE) {
       window.confirm();
       return true;
-    } else if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.keyQ) {
+    } else if (key == LogicalKeyboardKey.escape ||
+        key == LogicalKeyboardKey.keyQ) {
       window.cancel();
       return true;
     }
