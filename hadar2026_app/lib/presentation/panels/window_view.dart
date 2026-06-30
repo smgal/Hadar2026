@@ -15,6 +15,7 @@ class HDWindowLayer extends StatelessWidget {
       listenable: HDWindowManager(),
       builder: (context, child) {
         final windows = HDWindowManager().windows;
+        print("HDWindowLayer: Rebuild with ${windows.length} windows");
         return Stack(
           fit: StackFit.expand,
           children: windows.map((w) => HDWindowWidget(window: w)).toList(),
@@ -38,6 +39,9 @@ class HDWindowWidget extends StatelessWidget {
           // print("Window ${window.hashCode} is not visible");
           return const SizedBox.shrink();
         }
+        print(
+          "HDWindowWidget: Building window ${window.hashCode} at ${window.x},${window.y} ${window.w}x${window.h}",
+        );
 
         // Convert game coordinates to logical pixels?
         // Assuming 1:1 for now or 800x600 fixed container.
@@ -152,60 +156,54 @@ class HDWindowWidget extends StatelessWidget {
             hasMoreAbove: window.hasMoreAbove,
             hasMoreBelow: window.hasMoreBelow,
             child: ListView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: window.mode == HDSelectionMode.category
-                  ? 3 // Attack, Heal, Phenomenon (cancel via ESC)
-                  : math.min(
-                      window.currentOptions.length,
-                      window.maxVisibleItems,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: window.mode == HDSelectionMode.category
+                ? 3 // Attack, Heal, Phenomenon (cancel via ESC)
+                : math.min(window.currentOptions.length, window.maxVisibleItems),
+            itemBuilder: (context, index) {
+              String label = "";
+              int actualIndex = index;
+              if (window.mode == HDSelectionMode.magic) {
+                actualIndex = window.displayStartIndex + index;
+              }
+              bool isSelected = (actualIndex == window.selectedIndex);
+
+              if (window.mode == HDSelectionMode.category) {
+                if (index == 0) label = "공격 마법";
+                if (index == 1) label = "치료 마법";
+                if (index == 2) label = "변화 마법";
+              } else {
+                if (actualIndex < window.currentOptions.length) {
+                  label = window.currentOptions[actualIndex].name.text;
+                }
+              }
+
+              return Container(
+                color: isSelected ? Colors.white.withOpacity(0.2) : null,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      isSelected ? Icons.play_arrow : null,
+                      color: Colors.yellow,
+                      size: 16,
                     ),
-              itemBuilder: (context, index) {
-                String label = "";
-                int actualIndex = index;
-                if (window.mode == HDSelectionMode.magic) {
-                  actualIndex = window.displayStartIndex + index;
-                }
-                bool isSelected = (actualIndex == window.selectedIndex);
-
-                if (window.mode == HDSelectionMode.category) {
-                  if (index == 0) label = "공격 마법";
-                  if (index == 1) label = "치료 마법";
-                  if (index == 2) label = "변화 마법";
-                } else {
-                  if (actualIndex < window.currentOptions.length) {
-                    label = window.currentOptions[actualIndex].name.text;
-                  }
-                }
-
-                return Container(
-                  color: isSelected ? Colors.white.withOpacity(0.2) : null,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        isSelected ? Icons.play_arrow : null,
-                        color: Colors.yellow,
-                        size: 16,
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: isSelected ? Colors.yellow : Colors.white,
+                        fontSize: 16,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        label,
-                        style: TextStyle(
-                          color: isSelected ? Colors.yellow : Colors.white,
-                          fontSize: 16,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
           ),
         ),
       ],
@@ -326,7 +324,10 @@ class _BlinkingDismissHintState extends State<_BlinkingDismissHint>
         opacity: Tween<double>(begin: 0.3, end: 1.0).animate(_controller),
         child: Text(
           "계속하려면 누르십시오 ...",
-          style: TextStyle(color: Colors.yellow.shade600, fontSize: 14),
+          style: TextStyle(
+            color: Colors.yellow.shade600,
+            fontSize: 14,
+          ),
         ),
       ),
     );

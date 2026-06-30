@@ -9,6 +9,9 @@ const TextStyle _bodyStyle = TextStyle(
   height: HDConfig.consoleLineHeight,
 );
 
+const Color _dialogBackgroundColor = Color(0xFF515151);
+const Color _headerBackgroundColor = Color(0xFF515151);
+
 /// Dialog area (top-right of the 800×480 layout).
 ///
 /// Three logical sections, separated by [HDConfig.dialogSectionGap]:
@@ -31,7 +34,7 @@ class HDDialogPanel extends StatelessWidget {
       width: HDConfig.consoleWidth,
       height: HDConfig.consoleHeight,
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: _dialogBackgroundColor,
         border: Border.all(color: Colors.grey.shade900, width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -46,10 +49,16 @@ class HDDialogPanel extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text.rich(
-                HDTextUtils.parseRichText(header, baseStyle: _bodyStyle),
-              ),
-              const SizedBox(height: HDConfig.dialogSectionGap),
+              if (header.isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  color: _headerBackgroundColor,
+                  child: Text.rich(
+                    HDTextUtils.parseRichText(header, baseStyle: _bodyStyle),
+                  ),
+                ),
+                const SizedBox(height: HDConfig.dialogSectionGap),
+              ],
               Expanded(
                 child: _BodyArea(
                   eventLogs: main.eventLogs,

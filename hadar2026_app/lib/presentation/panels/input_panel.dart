@@ -9,6 +9,8 @@ const TextStyle _descStyle = TextStyle(
   height: HDConfig.consoleLineHeight,
 );
 
+const Color _descriptionBackgroundColor = Color(0xFF515151);
+
 /// Bottom-right description panel.
 ///
 /// Hosts "흘러가는 상황 설명" lines — the slow drip of ambient log text
@@ -55,7 +57,7 @@ class _HDDescriptionPanelState extends State<HDDescriptionPanel> {
       width: HDConfig.inputPanelWidth,
       height: HDConfig.inputPanelHeight,
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: _descriptionBackgroundColor,
         border: Border.all(color: Colors.grey.shade900, width: 1),
       ),
       child: ListenableBuilder(
