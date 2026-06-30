@@ -1,6 +1,6 @@
 # Hadar 2026 App (또 다른 지식의 성전 복각 프로젝트)
 
-classic 한국 고전 RPG **"또 다른 지식의 성전 (Hadar)"**의 Flutter/Dart 리메이크 클라이언트 애플리케이션입니다.  
+classic 한국 고전 RPG **"또 다른 지식의 성전 (Hadar)"** 의 Flutter/Dart 리메이크 클라이언트 애플리케이션입니다.  
 타일 맵 월드는 `Bonfire` / `Flame` 엔진을 기반으로 구현되었으며, 데스크톱 셸 구동을 위해 `window_manager` 패키지를 사용합니다.
 
 ### 🎮 웹 데모 (Web Demo)
