@@ -9,7 +9,7 @@ Flutter/Dart remake of the classic Korean RPG "또 다른 지식의 성전 (Hada
 - `hadar2026_app/` — the Flutter app (Bonfire/Flame engine, `window_manager` for desktop). Entry point `lib/main.dart`.
 - `packages/cm2_script/` — standalone Dart package: parser + interpreter for the CM2 scripting language. Pulled in via local path dep.
 - `cm2_script_sample/` — CUI demo exercising every cm2_script feature.
-- `tools/` — Python scripts for converting/extracting legacy Hadar binary data (maps, enemies, sprites).
+- `tools/` — Python scripts for converting/extracting legacy Hadar binary data (maps, enemies, sprites), plus `tools/mapEditor/` — a TypeScript/Vite web map editor (pnpm) that reads/writes `hadar2026_app/assets/maps/*.json` in place while preserving the full RPG Maker MV format (see `tools/mapEditor/README.md`).
 - `REF_hadar/` (C++ original), `REF_UNITY_LoreEp1/` (Unity port), `REF_FLUTTER_lore2026/` (sibling Flutter port — git submodule). Read-only reference implementations; do not edit.
 
 ## Common commands
@@ -34,6 +34,14 @@ dart test test/parser_test.dart    # single file
 cd cm2_script_sample
 dart pub get
 dart run bin/run.dart
+
+# Map editor (web UI for assets/maps/*.json)
+cd tools/mapEditor
+pnpm install
+pnpm dev        # http://localhost:5310 — edits hadar2026_app/assets in place
+# AI-facing semantic REST API on the same server: GET /api/ai returns the full
+# machine-readable guide (batch edits, events CRUD, passability, validate,
+# preview.png). MCP wrapper: node tools/mapEditor/mcp/server.mjs (dev server must be running).
 ```
 
 `flame` is pinned to `1.35.1` via `dependency_overrides` and `bonfire` is pinned to exactly `3.16.1` in `hadar2026_app/pubspec.yaml` — don't bump them casually. bonfire 3.17.x assumes flame 1.36+ (`RenderGameWidget(behavior:)`) and will not compile against flame 1.35.1.

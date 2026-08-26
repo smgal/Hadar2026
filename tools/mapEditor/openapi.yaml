@@ -1,0 +1,1040 @@
+openapi: 3.0.3
+info:
+  title: Hadar Map Editor API
+  version: "1.0.0"
+  description: |
+    `tools/mapEditor`의 Vite dev 서버가 제공하는 HTTP API 전체 명세.
+
+    두 개의 표면으로 나뉜다:
+
+    - **AI API** (`/api/ai/*`, 태그 `AI`) — MCP·에이전트·스크립트가 맵을 프로그래밍 방식으로
+      생성·조회·편집하기 위한 시맨틱 REST API. 레이어 이름·타일 인덱스 같은 도메인 개념
+      단위로 동작한다. **자연어 사용 가이드는 `GET /api/ai`가 markdown으로 반환** —
+      레이어 의미, 타일 액션 규칙, 빛/그림자 공식, 이벤트 명명 규약 등 이 스펙만으로는
+      알 수 없는 도메인 지식이 담겨 있으므로 실제 편집 전에 반드시 먼저 읽을 것.
+    - **Editor API** (`/api/map*`, `/api/image`, 태그 `Editor`) — 브라우저 UI 전용 저수준
+      API. 원시 RPG Maker MV JSON을 통째로 GET/PUT한다. AI 클라이언트는 이쪽 대신
+      `AI` 태그의 엔드포인트를 사용할 것.
+
+    모든 쓰기 연산은 파일을 즉시 디스크에 저장한다(트랜잭션/커밋 개념 없음, `.tmp` 파일에
+    쓰고 rename하는 원자적 저장만 있음). 저장소가 git 관리라면 되돌리기는 git으로 한다.
+
+    문서화되지 않은 `/api/*` 경로나 지원하지 않는 메서드로 요청하면 **405** 와 함께
+    `{error, hint}` 가 돌아온다(HTML 폴백으로 새지 않는다).
+servers:
+  - url: http://localhost:5310
+    description: |
+      로컬 dev 서버 (pnpm dev). 포트는 vite.config.ts server.port 설정을 따름.
+      항상 localhost 라는 게 이 문서의 실수가 아니라 실제 설계다 — 인증 없이 로컬
+      파일시스템을 직접 읽고 쓰므로 localhost 밖으로 노출하도록 만들어지지 않았다.
+
+security: []
+# 이 API 는 인증이 없다 — 로컬 1인 개발용 dev 서버라는 전제 (DEVLOG.md 4.10 참고).
+# localhost 밖으로 노출할 계획이 생기면 이 문서에도 보안 스킴을 먼저 추가할 것.
+
+tags:
+  - name: AI
+    description: AI/스크립트용 시맨틱 API. 전체 사용법은 GET /api/ai 참고.
+  - name: Editor
+    description: 브라우저 UI 전용 저수준 API. 원시 MV JSON을 그대로 주고받음.
+
+paths:
+  # ── AI API ────────────────────────────────────────────────────────
+
+  /api/ai:
+    get:
+      tags: [AI]
+      operationId: getGuide
+      summary: 사용 가이드 (markdown)
+      description: 레이어 의미·타일 규칙·빛 공식·이벤트 규약·권장 워크플로를 담은 전체 가이드. `/api/ai/guide`와 동일.
+      responses:
+        "200":
+          description: 가이드 본문
+          content:
+            text/markdown:
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/UnexpectedError"
+
+  /api/ai/guide:
+    get:
+      tags: [AI]
+      operationId: getGuideAlias
+      summary: 사용 가이드 (GET /api/ai 의 별칭)
+      responses:
+        "200":
+          description: 가이드 본문
+          content:
+            text/markdown:
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/UnexpectedError"
+
+  /api/ai/current:
+    get:
+      tags: [AI]
+      operationId: getCurrentMap
+      summary: 브라우저 에디터가 지금 열고 있는 맵
+      description: |
+        브라우저 UI는 2초마다 `/api/map/rev`를 폴링한다. 그 폴링을 신호로 삼아
+        "지금 열려 있는 맵"을 추정한다. 최근 10초 내 폴링이 없었으면 비활성으로 간주해
+        `file: null`을 반환한다 — 이 경우 사용자에게 대상 맵을 직접 물어볼 것.
+      responses:
+        "200":
+          description: 현재 맵 상태
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentMapResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedError"
+
+  /api/ai/palette:
+    get:
+      tags: [AI]
+      operationId: getPalette
+      summary: 전체 타일 카탈로그 (A5 지면 128종 + B 오브젝트 255종의 액션 분류)
+      responses:
+        "200":
+          description: 팔레트 카탈로그
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaletteCatalog"
+        default:
+          $ref: "#/components/responses/UnexpectedError"
+
+  /api/ai/tile.png:
+    get:
+      tags: [AI]
+      operationId: getTileImage
+      summary: 타일 하나의 48×48 PNG 미리보기
+      description: "`a5` 또는 `b` 중 정확히 하나를 지정해야 함 — 둘 다 주거나 둘 다 없으면 400."
+      parameters:
+        - name: a5
+          in: query
+          description: A5 지면 타일 인덱스
+          schema: { type: integer, minimum: 0, maximum: 127 }
+        - name: b
+          in: query
+          description: B 오브젝트 타일 id
+          schema: { type: integer, minimum: 1, maximum: 255 }
+      responses:
+        "200":
+          description: 48×48 PNG
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/ai/maps:
+    get:
+      tags: [AI]
+      operationId: listMaps
+      summary: 편집 가능한 맵 목록
+      responses:
+        "200":
+          description: 맵 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  maps:
+                    type: array
+                    items: { $ref: "#/components/schemas/MapListItem" }
+        default:
+          $ref: "#/components/responses/UnexpectedError"
+    post:
+      tags: [AI]
+      operationId: createMap
+      summary: 새 맵 생성
+      description: RPG Maker MV 표준 필드를 모두 갖춘 새 맵 파일을 만든다. `registerAs`를 주면 `MapInfos.json`에도 등록되어 게임(`HDMapNavigation.loadByName`)이 이름으로 찾을 수 있게 된다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateMapRequest" }
+      responses:
+        "201":
+          description: 생성됨
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CreateMapResponse" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: |
+            파일이 이미 존재하거나(file), MapInfos 에 이미 있는 이름(registerAs).
+            **주의**: registerAs 충돌인 경우 맵 파일 자체는 이미 만들어진 뒤다(부분 성공) —
+            같은 file 로 재시도하면 이번엔 file 충돌 409 가 난다. 응답 hint 참고.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/ai/maps/{file}:
+    parameters:
+      - $ref: "#/components/parameters/FileParam"
+    get:
+      tags: [AI]
+      operationId: getMapSummary
+      summary: 맵 요약 (크기, 레이어별 값 히스토그램, 이벤트 전체)
+      responses:
+        "200":
+          description: 맵 요약
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MapSummary" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/ai/maps/{file}/region:
+    parameters:
+      - $ref: "#/components/parameters/FileParam"
+    get:
+      tags: [AI]
+      operationId: readRegion
+      summary: 한 레이어의 타일 값을 2D 배열로 읽기
+      parameters:
+        - $ref: "#/components/parameters/LayerParam"
+        - $ref: "#/components/parameters/RegionX"
+        - $ref: "#/components/parameters/RegionY"
+        - $ref: "#/components/parameters/RegionW"
+        - $ref: "#/components/parameters/RegionH"
+        - name: as
+          in: query
+          description: "'a5' 지정 시 ground/ground2 레이어 값을 A5 인덱스로 변환해 반환 (그 외 레이어는 무시됨)"
+          schema: { type: string, enum: [a5] }
+      responses:
+        "200":
+          description: 영역 값
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RegionResponse" }
+        "400":
+          description: layer 누락/알 수 없음, 또는 영역이 20000칸 초과
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/ai/maps/{file}/edit:
+    parameters:
+      - $ref: "#/components/parameters/FileParam"
+    post:
+      tags: [AI]
+      operationId: editMap
+      summary: 배치 편집 — ops 배열을 순서대로 적용 후 한 번 저장
+      description: |
+        여러 변경을 한 번에 모아 보낼 것 — ops 하나마다 별도 요청을 보내면 매번
+        파일 전체를 읽고 쓰게 되어 비효율적이고, 그 사이 다른 클라이언트의 변경과
+        경쟁 조건이 생길 수 있다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ops]
+              properties:
+                ops:
+                  type: array
+                  minItems: 1
+                  items: { $ref: "#/components/schemas/EditOp" }
+      responses:
+        "200":
+          description: 적용 결과
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EditResponse" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/ai/maps/{file}/events:
+    parameters:
+      - $ref: "#/components/parameters/FileParam"
+    get:
+      tags: [AI]
+      operationId: listEvents
+      summary: 이벤트 목록 (시맨틱 뷰)
+      responses:
+        "200":
+          description: 이벤트 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  file: { type: string }
+                  events:
+                    type: array
+                    items: { $ref: "#/components/schemas/EventView" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [AI]
+      operationId: createEvent
+      summary: 이벤트 생성
+      description: "`name`을 생략하고 `type`만 주면 해당 타입의 다음 번호로 자동 명명(예: `TALK001`). 좌표를 생략하면 (0,0)에 생성됨 — 이후 `PATCH`로 이동."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateEventRequest" }
+      responses:
+        "201":
+          description: 생성됨
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  file: { type: string }
+                  rev: { type: string }
+                  event: { $ref: "#/components/schemas/EventView" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/ai/maps/{file}/events/{id}:
+    parameters:
+      - $ref: "#/components/parameters/FileParam"
+      - name: id
+        in: path
+        required: true
+        description: 이벤트 id (= MV `events` 배열 인덱스)
+        schema: { type: integer, minimum: 1 }
+    get:
+      tags: [AI]
+      operationId: getEvent
+      summary: 이벤트 하나 조회
+      responses:
+        "200":
+          description: 이벤트
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EventView" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [AI]
+      operationId: updateEvent
+      summary: 이벤트 부분 수정
+      description: "주어진 필드만 갱신한다. `dialogLines`를 수정하면 이벤트 첫 페이지의 커맨드 목록이 표준형(101+401들+0)으로 재구성된다 — 원래 조건분기 등 다른 커맨드가 있었다면 사라진다."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateEventRequest" }
+      responses:
+        "200":
+          description: 수정됨
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  file: { type: string }
+                  rev: { type: string }
+                  event: { $ref: "#/components/schemas/EventView" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [AI]
+      operationId: deleteEvent
+      summary: 이벤트 삭제
+      responses:
+        "200":
+          description: 삭제됨
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  file: { type: string }
+                  rev: { type: string }
+                  deleted: { type: integer }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/ai/maps/{file}/passability:
+    parameters:
+      - $ref: "#/components/parameters/FileParam"
+    get:
+      tags: [AI]
+      operationId: getPassability
+      summary: 통행/액션 판정을 2D 배열로 조회
+      description: 게임의 실제 통행 규칙(이벤트 > objUpper 오브젝트 > 지면 순 판정)을 그대로 적용한 결과. 경로 연결 여부 검증에 사용.
+      parameters:
+        - $ref: "#/components/parameters/RegionX"
+        - $ref: "#/components/parameters/RegionY"
+        - $ref: "#/components/parameters/RegionW"
+        - $ref: "#/components/parameters/RegionH"
+      responses:
+        "200":
+          description: 통행 판정 영역
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PassabilityResponse" }
+        "400":
+          description: 영역이 20000칸 초과
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/ai/maps/{file}/validate:
+    parameters:
+      - $ref: "#/components/parameters/FileParam"
+    get:
+      tags: [AI]
+      operationId: validateMap
+      summary: 맵 무결성 검사
+      description: 값 범위, 이벤트 id/좌표/이름 규약, data 배열 길이를 검사. 편집 후 호출 권장.
+      responses:
+        "200":
+          description: 검사 결과
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ValidateResponse" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/ai/maps/{file}/preview.png:
+    parameters:
+      - $ref: "#/components/parameters/FileParam"
+    get:
+      tags: [AI]
+      operationId: getPreview
+      summary: 맵을 PNG로 렌더링
+      description: 게임 렌더러(HDWorldMap)와 동일한 합성 순서(지면→objLower→objUpper→야간 그림자)로 서버가 직접 합성한다. 이벤트는 타입별 색 테두리로 표시됨(마젠타=TALK, 시안=SIGN, 초록=EVENT, 노랑=ENTER, 주황=NPC).
+      parameters:
+        - $ref: "#/components/parameters/RegionX"
+        - $ref: "#/components/parameters/RegionY"
+        - $ref: "#/components/parameters/RegionW"
+        - $ref: "#/components/parameters/RegionH"
+        - name: tile
+          in: query
+          description: 타일당 출력 픽셀 수
+          schema: { type: integer, minimum: 2, maximum: 48, default: 16 }
+        - name: night
+          in: query
+          description: 야간 뷰 여부
+          schema: { type: string, enum: ["0", "1"], default: "0" }
+        - name: moonlight
+          in: query
+          description: "달빛 여부. '0'이면 완전 암전 구역이 더 어둡게(이중 렌더) 표시됨"
+          schema: { type: string, enum: ["0", "1"], default: "1" }
+        - name: playerX
+          in: query
+          description: 광원(플레이어) 위치 x — 지정 시 야간 시야 미리보기 활성화
+          schema: { type: integer }
+        - name: playerY
+          in: query
+          description: 광원(플레이어) 위치 y
+          schema: { type: integer }
+        - name: sight
+          in: query
+          description: 시야 반경
+          schema: { type: integer, minimum: 1, maximum: 5, default: 2 }
+        - name: events
+          in: query
+          description: 이벤트 테두리 표시 여부
+          schema: { type: string, enum: ["0", "1"], default: "1" }
+      responses:
+        "200":
+          description: 렌더링된 PNG
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        "400":
+          description: 출력 픽셀 수가 1600만을 초과
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Editor API (UI 전용, 저수준) ─────────────────────────────────
+
+  /api/maps:
+    get:
+      tags: [Editor]
+      operationId: listMapsRaw
+      summary: "[UI 전용] 맵 목록 + MapInfos.json 원본"
+      description: AI 클라이언트는 대신 `GET /api/ai/maps`를 사용할 것.
+      responses:
+        "200":
+          description: 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assetsDir: { type: string }
+                  aiApi: { type: string, example: /api/ai }
+                  maps:
+                    type: array
+                    items: { $ref: "#/components/schemas/MapListItem" }
+                  mapInfos:
+                    type: array
+                    items: {}
+                    description: MapInfos.json 원본 배열 (요소는 null 또는 객체)
+        "500":
+          description: maps 디렉토리를 찾을 수 없음
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        default:
+          $ref: "#/components/responses/UnexpectedError"
+
+  /api/map/rev:
+    get:
+      tags: [Editor]
+      operationId: getMapRev
+      summary: "[UI 전용] 파일의 현재 버전(rev) 조회"
+      description: 브라우저 UI가 외부 변경 감지를 위해 2초마다 폴링한다. 이 호출 자체가 `GET /api/ai/current`가 참조하는 "현재 맵" 신호로도 쓰인다.
+      parameters:
+        - name: file
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: rev
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rev: { $ref: "#/components/schemas/Rev" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/map:
+    get:
+      tags: [Editor]
+      operationId: getMapRaw
+      summary: "[UI 전용] 맵 JSON 원본 조회"
+      description: 응답 헤더 `X-Map-Rev`에 현재 버전이 담긴다. AI 클라이언트는 대신 `GET /api/ai/maps/{file}`(요약) 또는 `/region`(원시 값)을 사용할 것.
+      parameters:
+        - name: file
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: RPG Maker MV 맵 JSON 원본
+          headers:
+            X-Map-Rev:
+              schema: { $ref: "#/components/schemas/Rev" }
+          content:
+            application/json:
+              schema: { type: object }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Editor]
+      operationId: saveMapRaw
+      summary: "[UI 전용] 맵 JSON 원본 저장 (낙관적 잠금)"
+      description: |
+        `rev`를 지정하면 저장 직전 디스크의 현재 rev와 비교해, 다르면(그 사이 다른 클라이언트가
+        저장했으면) 409를 반환한다. `force=1`이면 이 검사를 건너뛰고 무조건 덮어쓴다.
+        AI 클라이언트는 이 저수준 PUT 대신 `/api/ai/maps/{file}/edit` 같은 시맨틱 쓰기
+        엔드포인트를 사용할 것 — 이쪽은 파일 전체를 통째로 교체하므로 동시 편집 시
+        서로의 변경을 지울 위험이 크다.
+      parameters:
+        - name: file
+          in: query
+          required: true
+          schema: { type: string }
+        - name: rev
+          in: query
+          description: 클라이언트가 로드했던 시점의 rev. 충돌 감지에 사용.
+          schema: { $ref: "#/components/schemas/Rev" }
+        - name: force
+          in: query
+          description: "'1'이면 rev 불일치를 무시하고 강제 저장"
+          schema: { type: string, enum: ["0", "1"], default: "0" }
+      requestBody:
+        required: true
+        description: RPG Maker MV 맵 JSON 전체
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: 저장됨
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  bytes: { type: integer }
+                  rev: { $ref: "#/components/schemas/Rev" }
+        "400":
+          description: 잘못된 파일 이름 또는 유효하지 않은 JSON
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: 파일이 외부에서 변경됨 (낙관적 잠금 충돌)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string }
+                  currentRev: { $ref: "#/components/schemas/Rev" }
+
+  /api/image:
+    get:
+      tags: [Editor]
+      operationId: getImage
+      summary: "[UI 전용] 타일 시트 이미지 원본 (Lore_A5.png / Lore_B.png)"
+      parameters:
+        - name: file
+          in: query
+          required: true
+          schema: { type: string, example: Lore_A5.png }
+      responses:
+        "200":
+          description: PNG 이미지
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  parameters:
+    FileParam:
+      name: file
+      in: path
+      required: true
+      description: "맵 파일 이름 (경로 없이, .json 포함). '..' 를 포함할 수 없다. 예: TOWN1.json"
+      schema: { type: string, pattern: "^(?!.*\\.\\.)[^/\\\\]+\\.json$" }
+      example: TOWN1.json
+    LayerParam:
+      name: layer
+      in: query
+      required: true
+      description: "레이어 이름 또는 z 인덱스"
+      schema:
+        oneOf:
+          - type: string
+            enum: [ground, ground2, objLower, objUpper, shadow, light, region]
+          - type: integer
+            minimum: 0
+            maximum: 5
+      example: ground
+    RegionX:
+      name: x
+      in: query
+      description: 영역 시작 x (기본 0)
+      schema: { type: integer, default: 0 }
+    RegionY:
+      name: y
+      in: query
+      description: 영역 시작 y (기본 0)
+      schema: { type: integer, default: 0 }
+    RegionW:
+      name: w
+      in: query
+      description: "영역 너비 (기본 맵 전체 너비). 요청 영역은 맵과의 **교집합**으로 잘린다 — 응답의 x/y/w/h 가 실제 처리된 영역이다."
+      schema: { type: integer, minimum: 1 }
+    RegionH:
+      name: h
+      in: query
+      description: 영역 높이 (기본 맵 전체 높이)
+      schema: { type: integer, minimum: 1 }
+
+  responses:
+    UnexpectedError:
+      description: 예기치 못한 서버 오류 (파일시스템 오류 등)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    BadRequest:
+      description: 잘못된 요청
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: 파일 또는 리소스를 찾을 수 없음
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: 에러 메시지 (한국어)
+        hint:
+          type: string
+          description: 복구 방법 힌트. 있을 때는 이 값을 따라 재시도할 것.
+      example:
+        error: "알 수 없는 layer: wrong"
+        hint: "사용 가능: ground(0), ground2(1), objLower(2), objUpper(3), shadow|light(4), region(5)"
+
+    Rev:
+      type: string
+      description: 파일 버전 식별자 (내부적으로 mtime 밀리초). 값의 의미를 해석하지 말고 동일성 비교에만 사용할 것.
+      example: "1787450964198.082"
+
+    CurrentMapResponse:
+      type: object
+      properties:
+        file:
+          type: string
+          nullable: true
+          description: 활성 상태(최근 10초 내 폴링)면 파일명, 아니면 null
+        lastSeenFile:
+          type: string
+          nullable: true
+          description: 활성 여부와 무관하게 마지막으로 관측된 파일명
+        ageSeconds:
+          type: integer
+          nullable: true
+          description: 마지막 관측 이후 경과 초. 관측 이력이 없으면 null
+        hint:
+          type: string
+
+    MapListItem:
+      type: object
+      properties:
+        file: { type: string }
+        width: { type: integer }
+        height: { type: integer }
+        displayName: { type: string }
+        eventCount: { type: integer }
+        rev: { $ref: "#/components/schemas/Rev" }
+
+    CreateMapRequest:
+      type: object
+      required: [file, width, height]
+      properties:
+        file:
+          type: string
+          pattern: "^(?!.*\\.\\.)[A-Za-z0-9_.\\-가-힣]+\\.json$"
+          example: Map020.json
+        width: { type: integer, minimum: 1, maximum: 256 }
+        height: { type: integer, minimum: 1, maximum: 256 }
+        displayName:
+          type: string
+          description: 게임에 표시되는 맵 이름
+        groundA5:
+          type: integer
+          minimum: 0
+          maximum: 127
+          default: 0
+          description: 전체 지면을 채울 A5 인덱스
+        registerAs:
+          type: string
+          description: "MapInfos.json 에 등록할 논리 이름 (게임의 HDMapNavigation.loadByName 이 찾는 이름)"
+          example: CAVE1
+
+    CreateMapResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        file: { type: string }
+        rev: { $ref: "#/components/schemas/Rev" }
+        registered:
+          nullable: true
+          description: registerAs 를 지정했을 때 MapInfos.json 에 추가된 항목. 지정 안 했으면 null
+          type: object
+
+    LayerHistogramEntry:
+      type: object
+      properties:
+        value: { type: integer, description: raw 데이터 값 }
+        a5: { type: integer, description: "ground/ground2 레이어일 때만 존재하는 A5 인덱스" }
+        count: { type: integer }
+
+    LayerHistogram:
+      type: object
+      properties:
+        distinctValues: { type: integer }
+        nonZero: { type: integer }
+        top:
+          type: array
+          maxItems: 10
+          items: { $ref: "#/components/schemas/LayerHistogramEntry" }
+
+    MapSummary:
+      type: object
+      properties:
+        file: { type: string }
+        rev: { $ref: "#/components/schemas/Rev" }
+        width: { type: integer }
+        height: { type: integer }
+        displayName: { type: string }
+        tilesetId: { type: integer, nullable: true }
+        layers:
+          type: object
+          properties:
+            ground: { $ref: "#/components/schemas/LayerHistogram" }
+            ground2: { $ref: "#/components/schemas/LayerHistogram" }
+            objLower: { $ref: "#/components/schemas/LayerHistogram" }
+            objUpper: { $ref: "#/components/schemas/LayerHistogram" }
+            shadow: { $ref: "#/components/schemas/LayerHistogram" }
+            region: { $ref: "#/components/schemas/LayerHistogram" }
+        events:
+          type: array
+          items: { $ref: "#/components/schemas/EventView" }
+
+    RegionResponse:
+      type: object
+      properties:
+        file: { type: string }
+        rev: { $ref: "#/components/schemas/Rev" }
+        layer: { type: integer, description: "해석된 z 인덱스 (0~5)" }
+        encoding: { type: string, enum: [raw, a5] }
+        x: { type: integer }
+        y: { type: integer }
+        w: { type: integer }
+        h: { type: integer }
+        rows:
+          type: array
+          description: 행 우선 2D 배열, rows[i] 의 길이 == w
+          items:
+            type: array
+            items: { type: integer }
+
+    EditOp:
+      description: |
+        `op` 필드로 종류를 구분한다. 값 지정은 `value`(원시값) / `a5`(지면 인덱스, ground·ground2 전용) /
+        `b`(오브젝트 타일 id, objLower·objUpper 전용) 중 정확히 하나를 사용 — 이 셋은 서버가
+        `oneOf`로 강제하지 않고 우선순위(a5 > b > value)로 해석하므로, 스펙상으로는 여러 개를
+        같이 보내도 유효하지만 하나만 보낼 것을 권장한다.
+      type: object
+      required: [op]
+      properties:
+        op:
+          type: string
+          enum: [set, rect, fill, setCells, resize, setDisplayName]
+        layer:
+          description: "set/rect/fill/setCells 에 필수. 레이어 이름 또는 z 인덱스"
+          oneOf:
+            - type: string
+              enum: [ground, ground2, objLower, objUpper, shadow, light, region]
+            - type: integer
+        x: { type: integer, description: "set/rect/fill/setCells 의 대상 x" }
+        y: { type: integer, description: "set/rect/fill/setCells 의 대상 y" }
+        w: { type: integer, description: "rect 전용 너비" }
+        h: { type: integer, description: "rect 전용 높이" }
+        value: { type: integer, description: "원시 값 직접 지정" }
+        a5: { type: integer, minimum: 0, maximum: 127, description: "지면 A5 인덱스 (1536+a5 로 기록)" }
+        b: { type: integer, minimum: 0, maximum: 255, description: "오브젝트 B 타일 id" }
+        rows:
+          type: array
+          description: "setCells 전용 — 2D 숫자 배열을 (x,y) 를 좌상단으로 붙여넣음"
+          items:
+            type: array
+            items: { type: integer }
+        as:
+          type: string
+          enum: [a5]
+          description: "setCells 전용 — 'a5' 지정 시 rows 의 각 값을 A5 인덱스로 해석"
+        width: { type: integer, minimum: 1, maximum: 256, description: "resize 전용 새 너비" }
+        height: { type: integer, minimum: 1, maximum: 256, description: "resize 전용 새 높이" }
+        displayName: { type: string, description: "setDisplayName 전용" }
+      example:
+        op: rect
+        layer: ground
+        x: 0
+        y: 0
+        w: 10
+        h: 10
+        a5: 84
+
+    OpResult:
+      type: object
+      properties:
+        op: { type: string }
+        changed:
+          type: integer
+          description: 실제로 값이 바뀐 칸 수 (이미 같은 값이면 세지 않음)
+
+    EditResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        file: { type: string }
+        rev: { $ref: "#/components/schemas/Rev" }
+        results:
+          type: array
+          items: { $ref: "#/components/schemas/OpResult" }
+        totalChanged: { type: integer }
+        warnings:
+          type: array
+          items: { type: string }
+          description: "치명적이진 않지만 확인이 필요한 사항 (예: 범위 밖 op 무시, 레이어와 안 맞는 값 종류 사용)"
+
+    HadarEvent:
+      type: object
+      nullable: true
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          description: "'warp' | 'oneshot' | 'talk' | 'sign' 등. 게임 코드가 이 문자열로 분기하므로 자유 형식."
+          example: warp
+        payload:
+          type: object
+          description: "kind 에 따른 데이터. warp: {map,x,y}. oneshot: {flag}. talk/sign 은 무시됨."
+          example: { map: TOWN1, x: 10, y: 20 }
+
+    EventView:
+      type: object
+      properties:
+        id: { type: integer }
+        name:
+          type: string
+          description: "접두사가 게임의 타입 판정에 쓰임: TALK/SIGN/EVENT/ENTER/NPC"
+        type:
+          type: string
+          enum: [TALK, SIGN, EVENT, ENTER, NPC, UNKNOWN]
+          description: name 접두사로부터 파생된 값 (읽기 전용)
+        note: { type: string }
+        x: { type: integer }
+        y: { type: integer }
+        dialogLines:
+          type: array
+          items: { type: string }
+        hadarEvent:
+          $ref: "#/components/schemas/HadarEvent"
+
+    CreateEventRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [TALK, SIGN, EVENT, ENTER, NPC]
+          description: "name 을 생략했을 때 자동 명명(TALK001 등)에 사용"
+        name:
+          type: string
+          description: "직접 명명. type 대신 사용 가능"
+        x: { type: integer }
+        y: { type: integer }
+        note: { type: string }
+        dialogLines:
+          type: array
+          items: { type: string }
+        hadarEvent:
+          $ref: "#/components/schemas/HadarEvent"
+
+    UpdateEventRequest:
+      type: object
+      description: 모든 필드 선택. 주어진 필드만 갱신됨.
+      properties:
+        name: { type: string }
+        note: { type: string }
+        x: { type: integer }
+        y: { type: integer }
+        dialogLines:
+          type: array
+          items: { type: string }
+        hadarEvent:
+          allOf:
+            - $ref: "#/components/schemas/HadarEvent"
+          description: "null 을 명시하면 확장 제거. 필드 자체를 생략하면 기존 값 유지."
+
+    PassabilityResponse:
+      type: object
+      properties:
+        file: { type: string }
+        rev: { $ref: "#/components/schemas/Rev" }
+        x: { type: integer }
+        y: { type: integer }
+        w: { type: integer }
+        h: { type: integer }
+        rows:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+              enum: [MOVE, BLOCK, WATER, SWAMP, LAVA, CLIFF, ENTER, SIGN, TALK, EVENT]
+        legend: { type: string }
+
+    Issue:
+      type: object
+      properties:
+        severity: { type: string, enum: [error, warning, info] }
+        message: { type: string }
+
+    ValidateResponse:
+      type: object
+      properties:
+        file: { type: string }
+        rev: { $ref: "#/components/schemas/Rev" }
+        ok:
+          type: boolean
+          description: severity=error 인 issue 가 하나도 없으면 true
+        issues:
+          type: array
+          items: { $ref: "#/components/schemas/Issue" }
+
+    PaletteTileA5:
+      type: object
+      properties:
+        a5: { type: integer }
+        rawValue: { type: integer, description: "1536 + a5" }
+        action:
+          type: string
+          enum: [MOVE, BLOCK, WATER, SWAMP, LAVA, ENTER, CLIFF]
+
+    PaletteTileB:
+      type: object
+      properties:
+        b: { type: integer }
+        action:
+          type: string
+          enum: [MOVE, BLOCK, SIGN, ENTER, TALK]
+        reserved:
+          type: string
+          enum: [night-shadow-overlay]
+          description: "id 240~255 는 야간 그림자 오버레이 전용 — 오브젝트로 배치하지 말 것"
+
+    PaletteCatalog:
+      type: object
+      properties:
+        note: { type: string }
+        a5:
+          type: array
+          items: { $ref: "#/components/schemas/PaletteTileA5" }
+        b:
+          type: array
+          items: { $ref: "#/components/schemas/PaletteTileB" }

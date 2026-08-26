@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hadar 맵 에디터</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header id="toolbar">
+        <select id="mapSelect" title="맵 선택"></select>
+        <button id="saveBtn" title="저장 (Ctrl+S)">저장</button>
+        <span id="dirtyDot" title="저장되지 않은 변경">●</span>
+        <span class="sep"></span>
+        <button id="undoBtn" title="실행 취소 (Ctrl+Z)">↩</button>
+        <button id="redoBtn" title="다시 실행 (Ctrl+Shift+Z)">↪</button>
+        <span class="sep"></span>
+        <span id="toolButtons">
+          <button data-tool="pencil" class="toolBtn" title="붓 (B)">✏️</button>
+          <button data-tool="rect" class="toolBtn" title="사각형 (R)">▭</button>
+          <button data-tool="fill" class="toolBtn" title="채우기 (F)">🪣</button>
+          <button data-tool="picker" class="toolBtn" title="스포이드 (I / Alt+클릭)">💉</button>
+          <button data-tool="eraser" class="toolBtn" title="지우개 (X / 우클릭)">🧽</button>
+        </span>
+        <span class="sep"></span>
+        <button id="zoomOutBtn" title="축소">−</button>
+        <span id="zoomLabel">100%</span>
+        <button id="zoomInBtn" title="확대">＋</button>
+        <span class="sep"></span>
+        <label><input type="checkbox" id="gridChk" checked /> 격자(G)</label>
+        <label><input type="checkbox" id="passChk" /> 통행</label>
+        <span class="sep"></span>
+        <label><input type="checkbox" id="nightChk" /> 야간(N)</label>
+        <span id="nightOpts" class="hidden">
+          <label><input type="checkbox" id="moonChk" checked /> 달빛</label>
+          <label><input type="checkbox" id="lightChk" /> 광원</label>
+          <span id="sightOpts" class="hidden">
+            시야 <input type="range" id="sightRange" min="1" max="4" value="2" />
+            <span id="sightLabel">2</span>
+          </span>
+        </span>
+      </header>
+
+      <div id="middle">
+        <div id="canvasWrap">
+          <canvas id="mapCanvas"></canvas>
+        </div>
+        <aside id="sidebar">
+          <section>
+            <h3>맵 정보</h3>
+            <div id="mapInfo" class="row">-</div>
+            <div class="row">
+              표시 이름 <input type="text" id="displayNameInput" />
+            </div>
+            <div class="row">
+              크기 <input type="number" id="resizeW" min="1" max="256" class="num" /> ×
+              <input type="number" id="resizeH" min="1" max="256" class="num" />
+              <button id="resizeBtn">리사이즈</button>
+            </div>
+          </section>
+          <section>
+            <h3>레이어</h3>
+            <div id="layerList"></div>
+          </section>
+          <section>
+            <h3 id="paletteTitle">팔레트</h3>
+            <div id="paletteRoot"></div>
+          </section>
+          <section id="eventsSection" class="hidden">
+            <h3>이벤트</h3>
+            <div id="eventsRoot"></div>
+          </section>
+        </aside>
+      </div>
+
+      <footer id="statusbar">
+        <span id="posSpan">(-, -)</span>
+        <span id="valsSpan"></span>
+        <span id="actionSpan"></span>
+        <span id="hintSpan"></span>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

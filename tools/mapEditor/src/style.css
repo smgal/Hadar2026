@@ -1,0 +1,297 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #14161c;
+  color: #d8dce6;
+  font: 13px/1.5 -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ── 툴바 ─────────────────────────────────────── */
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  background: #1e2129;
+  border-bottom: 1px solid #2c3040;
+}
+
+#toolbar .sep {
+  width: 1px;
+  height: 18px;
+  background: #3a4054;
+  margin: 0 4px;
+}
+
+button {
+  background: #2a2f3d;
+  color: #d8dce6;
+  border: 1px solid #3a4054;
+  border-radius: 4px;
+  padding: 3px 9px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+button:hover {
+  background: #363c4e;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+button.active {
+  background: #3563c4;
+  border-color: #5a8aec;
+}
+
+select,
+input[type='text'],
+input[type='number'],
+textarea {
+  background: #232733;
+  color: #d8dce6;
+  border: 1px solid #3a4054;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 13px;
+}
+
+input.num {
+  width: 58px;
+}
+
+label {
+  user-select: none;
+  white-space: nowrap;
+}
+
+#dirtyDot {
+  color: #f0a030;
+  visibility: hidden;
+}
+
+#dirtyDot.on {
+  visibility: visible;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ── 본문 ─────────────────────────────────────── */
+#middle {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+#canvasWrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #14161c;
+}
+
+#mapCanvas {
+  position: absolute;
+  inset: 0;
+  cursor: crosshair;
+}
+
+#mapCanvas.panning {
+  cursor: grab;
+}
+
+#sidebar {
+  width: 356px;
+  overflow-y: auto;
+  background: #1a1d25;
+  border-left: 1px solid #2c3040;
+  padding: 8px 10px 24px;
+}
+
+#sidebar section {
+  margin-bottom: 14px;
+}
+
+#sidebar h3 {
+  margin: 6px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b93a8;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+}
+
+.row input[type='text'] {
+  flex: 1;
+}
+
+/* ── 레이어 목록 ───────────────────────────────── */
+.layerRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.layerRow:hover {
+  background: #232733;
+}
+
+.layerRow.active {
+  background: #2a3a5c;
+}
+
+.layerRow .eye {
+  cursor: pointer;
+}
+
+/* ── 팔레트 ───────────────────────────────────── */
+#paletteRoot canvas {
+  display: block;
+  image-rendering: pixelated;
+  border: 1px solid #3a4054;
+  cursor: pointer;
+}
+
+.palInfo {
+  margin-top: 6px;
+  color: #9aa2b8;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.chip {
+  padding: 2px 8px;
+  border: 1px solid #3a4054;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.chip.sel {
+  background: #3563c4;
+  border-color: #5a8aec;
+  color: #fff;
+}
+
+/* ── 이벤트 패널 ───────────────────────────────── */
+#eventList {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid #2c3040;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.evRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 3px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid #232733;
+}
+
+.evRow:hover {
+  background: #232733;
+}
+
+.evRow.sel {
+  background: #2a3a5c;
+}
+
+.evBadge {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  padding: 0 5px;
+  border-radius: 3px;
+  color: #14161c;
+  font-weight: 700;
+}
+
+.evName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.evPos {
+  color: #8b93a8;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+
+#eventsRoot textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
+#eventsRoot .field {
+  margin: 6px 0;
+}
+
+#eventsRoot .field > span {
+  display: block;
+  color: #8b93a8;
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+/* ── 상태바 ───────────────────────────────────── */
+#statusbar {
+  display: flex;
+  gap: 18px;
+  padding: 4px 12px;
+  background: #1e2129;
+  border-top: 1px solid #2c3040;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  color: #9aa2b8;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+#actionSpan {
+  color: #d8dce6;
+}
+
+#hintSpan {
+  margin-left: auto;
+  color: #6b7288;
+}
