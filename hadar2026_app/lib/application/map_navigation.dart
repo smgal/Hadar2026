@@ -1,10 +1,9 @@
 import 'dart:convert';
 
-import 'package:flutter/services.dart' show rootBundle;
-
 import '../domain/map/map_bundle.dart';
 import '../domain/map/map_model.dart';
 import '../application/map_loader.dart';
+import 'ports/host_binding.dart';
 
 /// Resolves a logical map name (e.g. "TOWN1") to a [MapBundle] —
 /// the (cm2, json) pair indexed by `assets/maps/MapInfos.json`.
@@ -32,7 +31,7 @@ class HDMapNavigation {
       String? cm2Path;
 
       try {
-        final mapInfosStr = await rootBundle.loadString(
+        final mapInfosStr = await HDHosts().assets.loadString(
           'assets/maps/MapInfos.json',
         );
         final List<dynamic> mapInfos = jsonDecode(mapInfosStr);

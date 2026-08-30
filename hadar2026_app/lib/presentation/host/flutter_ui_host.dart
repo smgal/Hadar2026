@@ -13,7 +13,7 @@ import '../../hd_config.dart';
 import '../../utils/hd_text_utils.dart';
 import '../../domain/window/message_window_data.dart';
 import '../../domain/window/selection_window_data.dart';
-import '../window_manager.dart';
+import '../../application/window_manager.dart';
 import '../panels/player_sprite.dart';
 
 /// One-shot menu request: a title row plus N selectable choices.
@@ -263,6 +263,9 @@ class HDFlutterUiHost extends ChangeNotifier
     _keyWaitCompleter = null;
     _bonfireGame = null;
   }
+
+  @override
+  void refresh() => notifyListeners();
 
   @override
   Future<void> preloadAssets() async {

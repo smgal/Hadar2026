@@ -300,14 +300,7 @@ class HDPlayerSprite extends SimplePlayer with BlockMovementCollision {
     if (map != null && tileIdAtNext != null) {
       final action = HDTileProperties.getUnitAction(map.getUnit(nextX, nextY));
 
-      String flags = "";
-      if (action == HDTileProperties.ACTION_TALK) flags += "Tak";
-      if (action == HDTileProperties.ACTION_SIGN) flags += "Sig";
-      if (action == HDTileProperties.ACTION_EVENT) flags += "Evt";
-      if (action == HDTileProperties.ACTION_ENTER) flags += "Ent";
-      if (action == HDTileProperties.ACTION_WATER) flags += "Wtr";
-      if (action == HDTileProperties.ACTION_SWAMP) flags += "Swm";
-      if (action == HDTileProperties.ACTION_LAVA) flags += "Lav";
+      final String flags = action.debugTag;
 
       final currentLog = "MOVE: (${nextX.toString().padLeft(2)}, ${nextY.toString().padLeft(2)}) - id(${tileIdAtNext.toString().padLeft(2)}) [$flags]";
       if (flags.isNotEmpty && currentLog != _lastMoveLog) {
@@ -363,9 +356,7 @@ class HDPlayerSprite extends SimplePlayer with BlockMovementCollision {
         final action = HDTileProperties.getUnitAction(
           map.getUnit(nextX, nextY),
         );
-        if (action == HDTileProperties.ACTION_TALK ||
-            action == HDTileProperties.ACTION_SIGN ||
-            action == HDTileProperties.ACTION_ENTER) {
+        if (action.isInteractive) {
           // Only trigger if we haven't interacted with THIS tile in THIS press session
           if (_lastInteractedX != nextX || _lastInteractedY != nextY) {
             await HDGameMain().checkTileEvent(

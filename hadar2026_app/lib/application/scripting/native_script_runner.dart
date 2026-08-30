@@ -1,10 +1,12 @@
 import 'dart:async';
-import '../../hd_game_main.dart';
 import 'maps/town1_map_script.dart';
 import 'maps/ground1_map_script.dart';
 import 'maps/town2_map_script.dart';
 import 'maps/den1_map_script.dart';
 import 'map_script.dart';
+import '../../domain/map/tile_properties.dart';
+import '../game_session.dart';
+import '../window_manager.dart';
 
 class HDNativeScriptRunner {
   static final HDNativeScriptRunner _instance =
@@ -15,7 +17,8 @@ class HDNativeScriptRunner {
   HDMapScript? currentMapScript;
 
   // Equivalents to GameRes.flag and GameRes.variable in Unity
-  // They should be stored in HDGameMain eventually but we put them here for now
+  // Script-owned state that must survive map transitions (per-map cm2
+  // loads wipe `HDScriptEngine` globals), so it lives here, not there.
   Map<int, bool> flags = {};
   Map<int, int> variables = {};
 
@@ -30,7 +33,7 @@ class HDNativeScriptRunner {
     // Reset native-script state for a fresh run: clear flags/variables
     // and set the party's initial facing. The first map is loaded later
     // by `startup.cm2` via the `LoadScript` command, not here.
-    final gameModel = HDGameMain();
+    final gameModel = HDGameSession();
     gameModel.party.faced = 1;
 
     flags.clear();
@@ -42,7 +45,7 @@ class HDNativeScriptRunner {
     int? targetX,
     int? targetY,
   }) async {
-    final gameModel = HDGameMain();
+    final gameModel = HDGameSession();
 
     // Optionally update coordinates before loading the map
     if (targetX != null && targetY != null) {
@@ -53,6 +56,7 @@ class HDNativeScriptRunner {
     // Native script swap (onUnload / factory / onLoad) lives inside
     // `HDGameSession.loadMapFromFile` so that the cm2 `LoadScript`
     // path stays in sync too. Don't duplicate it here.
+    HDWindowManager().clear();
     await gameModel.loadMapFromFile('$scriptName.json');
   }
 
@@ -61,24 +65,27 @@ class HDNativeScriptRunner {
   /// — the dispatcher uses this to fall through to cm2 / JSON tiers.
   ///
   /// ACT_TYPE: 1=Talk, 2=Sign, 3=Event, 4=Enter.
-  Future<bool> processMapEvent(int actType, int x, int y) async {
-    if (currentMapScript == null) return false;
+  Future<bool> processMapEvent(HDTileAction action, int x, int y) async {
+    final script = currentMapScript;
+    if (script == null) return false;
 
-    currentMapScript!.tx = x;
-    currentMapScript!.ty = y;
+    script.tx = x;
+    script.ty = y;
 
-    switch (actType) {
-      case 1:
-        return await currentMapScript!.onTalk(0);
-      case 2:
-        return await currentMapScript!.onSign(0);
-      case 3:
-        return await currentMapScript!.onEvent(0);
-      case 4:
-        return await currentMapScript!.onEnter(0);
-    }
-
-    return false;
+    // Exhaustive: a new HDTileAction that needs a hook will fail to
+    // compile here instead of silently falling through to `false`.
+    return switch (action) {
+      HDTileAction.talk => await script.onTalk(0),
+      HDTileAction.sign => await script.onSign(0),
+      HDTileAction.event => await script.onEvent(0),
+      HDTileAction.enter => await script.onEnter(0),
+      HDTileAction.none ||
+      HDTileAction.water ||
+      HDTileAction.swamp ||
+      HDTileAction.lava ||
+      HDTileAction.cliff ||
+      HDTileAction.move => false,
+    };
   }
 
   bool isFlagSet(int flagId) {

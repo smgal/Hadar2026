@@ -6,31 +6,31 @@ void main() {
     test('parses command with no args', () {
       final stmt = parseCommand('foo()');
       expect(stmt, isA<CommandStatement>());
-      expect((stmt as CommandStatement).command, equals('foo'));
+      expect(stmt.command, equals('foo'));
       expect(stmt.args, isEmpty);
     });
 
     test('parses command with one string arg', () {
       final stmt = parseCommand('Talk("Hello")');
-      expect((stmt as CommandStatement).command, equals('Talk'));
+      expect(stmt.command, equals('Talk'));
       expect(stmt.args, equals(['"Hello"']));
     });
 
     test('parses command with numeric args', () {
       final stmt = parseCommand('Map::Init(20, 15)');
-      expect((stmt as CommandStatement).command, equals('Map::Init'));
+      expect(stmt.command, equals('Map::Init'));
       expect(stmt.args, equals(['20', '15']));
     });
 
     test('parses command with multiple args', () {
       final stmt = parseCommand('Add(1, 2, 3)');
-      expect((stmt as CommandStatement).command, equals('Add'));
+      expect(stmt.command, equals('Add'));
       expect(stmt.args, equals(['1', '2', '3']));
     });
 
     test('line without parens becomes command with no args', () {
       final stmt = parseCommand('variable');
-      expect((stmt as CommandStatement).command, equals('variable'));
+      expect(stmt.command, equals('variable'));
       expect(stmt.args, isEmpty);
     });
   });

@@ -55,12 +55,8 @@ class HDTileEventDispatcher {
       // the whole sequence (Talk → PressAnyKey → next Talk → …) without
       // flashing back to the progress base layer between pages.
 
-      final bool isScriptedAction = isInteraction
-          ? (action == HDTileProperties.ACTION_TALK ||
-                action == HDTileProperties.ACTION_SIGN ||
-                action == HDTileProperties.ACTION_ENTER)
-          : (action == HDTileProperties.ACTION_EVENT ||
-                action == HDTileProperties.ACTION_ENTER);
+      final bool isScriptedAction =
+          isInteraction ? action.isInteractive : action.isStepOn;
 
       if (isScriptedAction) {
         host.beginNarrative();
@@ -74,15 +70,27 @@ class HDTileEventDispatcher {
         // progress base layer — they're the "you suddenly feel cold"
         // flavor messages that should flow with movement, not pop up an
         // overlay.
-        if (action == HDTileProperties.ACTION_SWAMP) {
-          await host.addLog("일행은 독이 있는 늪에 들어갔다 !!!", isDialogue: false);
-        } else if (action == HDTileProperties.ACTION_LAVA) {
-          await host.addLog("일행은 용암지대로 들어섰다 !!!", isDialogue: false);
-        } else if (action == HDTileProperties.ACTION_WATER) {
-          if (party.walkOnWater > 0) {
-            party.walkOnWater--;
-            party.notifyListeners();
-          }
+        switch (action) {
+          case HDTileAction.swamp:
+            await host.addLog(
+              "일행은 독이 있는 늪에 들어갔다 !!!",
+              isDialogue: false,
+            );
+          case HDTileAction.lava:
+            await host.addLog("일행은 용암지대로 들어섰다 !!!", isDialogue: false);
+          case HDTileAction.water:
+            if (party.walkOnWater > 0) {
+              party.walkOnWater--;
+              party.notifyListeners();
+            }
+          case HDTileAction.none:
+          case HDTileAction.talk:
+          case HDTileAction.sign:
+          case HDTileAction.event:
+          case HDTileAction.enter:
+          case HDTileAction.cliff:
+          case HDTileAction.move:
+            break;
         }
       }
     } finally {
@@ -96,7 +104,7 @@ class HDTileEventDispatcher {
   }
 
   Future<void> _dispatchScripted(
-    int action,
+    HDTileAction action,
     int x,
     int y,
     MapModel map,
@@ -105,7 +113,7 @@ class HDTileEventDispatcher {
     // SIGN tiles get a default header. Set before script dispatch so a
     // cm2/native handler that wants a different label can override via
     // SetHeader; the body output flows into the dialog area like TALK.
-    if (action == HDTileProperties.ACTION_SIGN) {
+    if (action == HDTileAction.sign) {
       host.setHeader('@B푯말에 써 있기를:');
     }
 
@@ -113,15 +121,7 @@ class HDTileEventDispatcher {
     final cm2Path = HDGameSession().currentMapCm2Path;
     final xs = x.toString().padLeft(2);
     final ys = y.toString().padLeft(2);
-    final tag = const {
-      HDTileProperties.ACTION_TALK: 'Tak',
-      HDTileProperties.ACTION_SIGN: 'Sig',
-      HDTileProperties.ACTION_EVENT: 'Evt',
-      HDTileProperties.ACTION_ENTER: 'Ent',
-      HDTileProperties.ACTION_WATER: 'Wtr',
-      HDTileProperties.ACTION_SWAMP: 'Swm',
-      HDTileProperties.ACTION_LAVA: 'Lav',
-    }[action] ?? '???';
+    final tag = action.debugTag.isEmpty ? '???' : action.debugTag;
 
     if (native.currentMapScript != null) {
       // Native map (legacy behaviour preserved): emit JSON dialogLines
@@ -138,7 +138,7 @@ class HDTileEventDispatcher {
       // cm2-paired map (new model): cm2 first, JSON fallback when cm2
       // didn't mark the tile as handled.
       HDScriptEngine().setTargetPos(x, y);
-      HDScriptEngine().setScriptMode(action);
+      HDScriptEngine().setScriptMode(action.scriptMode);
       await HDScriptEngine().run();
       if (HDScriptEngine().handled) return;
       await _emitJsonDialog(map, x, y, host, action);
@@ -152,7 +152,7 @@ class HDTileEventDispatcher {
     print('[JSN][$tag] ($xs, $ys)');
     await _emitJsonDialog(map, x, y, host, action);
     HDScriptEngine().setTargetPos(x, y);
-    HDScriptEngine().setScriptMode(action);
+    HDScriptEngine().setScriptMode(action.scriptMode);
     await HDScriptEngine().run();
   }
 
@@ -161,7 +161,7 @@ class HDTileEventDispatcher {
     int x,
     int y,
     UiHost host,
-    int action,
+    HDTileAction action,
   ) async {
     for (final ev in map.events) {
       if (ev.x == x && ev.y == y) {

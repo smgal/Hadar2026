@@ -1,26 +1,27 @@
 import '../domain/party/player.dart';
 import '../domain/magic/magic.dart';
 import '../domain/window/magic_window_data.dart';
-import '../hd_game_main.dart';
-import '../presentation/window_manager.dart';
+import 'ports/host_binding.dart';
+import 'game_session.dart';
+import 'window_manager.dart';
 
 class HDMagicSystem {
   static Future<void> castSpell(HDPlayer player) async {
-    final gameMain = HDGameMain();
+    final ui = HDHosts().ui;
 
     if (!player.isConscious()) {
-      await gameMain.addLog(
+      await ui.addLog(
         "${player.name}${player.name.sub1} 마법을 사용할 수 있는 상태가 아닙니다.",
       );
-      await gameMain.waitForAnyKey();
-      gameMain.clearLogs();
+      await ui.waitForAnyKey();
+      ui.clearLogs();
       return;
     }
 
     if (player.level.magic == 0) {
-      await gameMain.addLog("당신에게는 아직 능력이 없습니다.");
-      await gameMain.waitForAnyKey();
-      gameMain.clearLogs();
+      await ui.addLog("당신에게는 아직 능력이 없습니다.");
+      await ui.waitForAnyKey();
+      ui.clearLogs();
       return;
     }
 
@@ -55,24 +56,24 @@ class HDMagicSystem {
     int spCost = (magicId >= 33) ? 10 : 5;
 
     if (player.sp < spCost) {
-      await gameMain.addLog("마법 지수가 충분하지 않습니다.");
-      await gameMain.waitForAnyKey();
-      gameMain.clearLogs();
+      await ui.addLog("마법 지수가 충분하지 않습니다.");
+      await ui.waitForAnyKey();
+      ui.clearLogs();
       return;
     }
 
     // Logic for Heal
     if (magicId >= 19 && magicId <= 32) {
       final pChoices = ["누구에게 사용할 것입니까?"];
-      for (var p in gameMain.party.players) {
+      for (var p in HDGameSession().party.players) {
         if (p.isValid()) pChoices.add(p.name.text);
       }
-      int tSel = await gameMain.showWindowMenu(pChoices);
+      int tSel = await ui.showWindowMenu(pChoices);
       if (tSel == 0) return;
 
       player.sp -= spCost;
-      var target = gameMain.party.players[tSel - 1];
-      await gameMain.addLog(
+      var target = HDGameSession().party.players[tSel - 1];
+      await ui.addLog(
         "${player.name}${player.name.sub1} ${target.name}에게 ${magic.name}${magic.name.obj} 시전했다!",
       );
 
@@ -80,44 +81,44 @@ class HDMagicSystem {
         int recovery = (player.level.magic * 5);
         target.hp += recovery;
         if (target.hp > target.maxHp) target.hp = target.maxHp;
-        await gameMain.addLog("${target.name}의 건강이 회복되었다!");
+        await ui.addLog("${target.name}의 건강이 회복되었다!");
       }
     } else if (magicId >= 33 && magicId <= 39) {
       player.sp -= spCost;
       if (magicId == 33) {
-        gameMain.party.magicTorch += 10;
-        await gameMain.addLog("주위가 횃불의 기운으로 밝아졌다.");
+        HDGameSession().party.magicTorch += 10;
+        await ui.addLog("주위가 횃불의 기운으로 밝아졌다.");
       } else if (magicId == 34) {
-        gameMain.party.levitation = 1;
-        await gameMain.addLog("일행의 몸이 가벼워졌다.");
+        HDGameSession().party.levitation = 1;
+        await ui.addLog("일행의 몸이 가벼워졌다.");
       }
     } else {
       player.sp -= spCost;
-      await gameMain.addLog(
+      await ui.addLog(
         "${player.name}${player.name.sub1} ${magic.name}${magic.name.obj} 시전했다! (전투 외)",
       );
     }
 
-    await gameMain.waitForAnyKey();
-    gameMain.clearLogs();
+    await ui.waitForAnyKey();
+    ui.clearLogs();
   }
 
   static Future<void> useESP(HDPlayer player) async {
-    final gameMain = HDGameMain();
+    final ui = HDHosts().ui;
 
     if (!player.isConscious()) {
-      await gameMain.addLog(
+      await ui.addLog(
         "${player.name}${player.name.sub1} 초감각을 사용할 수 있는 상태가 아닙니다.",
       );
-      await gameMain.waitForAnyKey();
-      gameMain.clearLogs();
+      await ui.waitForAnyKey();
+      ui.clearLogs();
       return;
     }
 
-    if (player.level.esp == 0 && !gameMain.party.canUseEsp) {
-      await gameMain.addLog("당신에게는 아직 능력이 없습니다.");
-      await gameMain.waitForAnyKey();
-      gameMain.clearLogs();
+    if (player.level.esp == 0 && !HDGameSession().party.canUseEsp) {
+      await ui.addLog("당신에게는 아직 능력이 없습니다.");
+      await ui.waitForAnyKey();
+      ui.clearLogs();
       return;
     }
 
@@ -143,19 +144,19 @@ class HDMagicSystem {
     // 5 = 염력 (전투용)
     if (magicId == 45) {
       final m = HDMagicMap.getMagic(45);
-      await gameMain.addLog(
+      await ui.addLog(
         "${m.name}${m.name.sub1} 전투 모드에서만 사용됩니다.",
       );
-      await gameMain.waitForAnyKey();
-      gameMain.clearLogs();
+      await ui.waitForAnyKey();
+      ui.clearLogs();
       return;
     }
 
     int spCost = 10;
     if (player.esp < spCost) {
-      await gameMain.addLog("ESP 지수가 충분하지 않습니다.");
-      await gameMain.waitForAnyKey();
-      gameMain.clearLogs();
+      await ui.addLog("ESP 지수가 충분하지 않습니다.");
+      await ui.waitForAnyKey();
+      ui.clearLogs();
       return;
     }
 
@@ -164,19 +165,19 @@ class HDMagicSystem {
 
     if (magicId == 41) {
       // 41: 투시
-      await gameMain.addLog(
+      await ui.addLog(
         "${player.name}${player.name.sub1} ${magic.name}${magic.name.obj} 사용했다!",
       );
 
       // Logic would go here
     } else {
-      await gameMain.addLog(
+      await ui.addLog(
         "${player.name}${player.name.sub1} ${magic.name}${magic.name.obj} 사용했다!",
       );
     }
 
-    await gameMain.waitForAnyKey();
-    gameMain.clearLogs();
+    await ui.waitForAnyKey();
+    ui.clearLogs();
   }
 
   static Future<bool> castBattleSpellUI(
@@ -184,7 +185,7 @@ class HDMagicSystem {
     int cmd,
     List<int> commandArgs,
   ) async {
-    final gameMain = HDGameMain();
+    final ui = HDHosts().ui;
 
     // cmd:
     // 2: 한 명의 적에게 마법 공격 (1~3)
@@ -226,7 +227,7 @@ class HDMagicSystem {
       availableSpells = (maxId - minId + 1);
 
     if (availableSpells <= 0) {
-      await gameMain.addLog("사용 가능한 기술이 없습니다.");
+      await ui.addLog("사용 가능한 기술이 없습니다.");
       return false;
     }
 
@@ -235,20 +236,20 @@ class HDMagicSystem {
       choices.add(HDMagicMap.getMagic(minId + i).name.text);
     }
 
-    int selected = await gameMain.showWindowMenu(choices);
+    int selected = await ui.showWindowMenu(choices);
     if (selected == 0) return false;
 
     // Check SP/ESP
     if (cmd == 6) {
       if (player.esp < spCost) {
-        await gameMain.addLog("ESP 지수가 충분하지 않습니다.");
-        await gameMain.waitForAnyKey();
+        await ui.addLog("ESP 지수가 충분하지 않습니다.");
+        await ui.waitForAnyKey();
         return false;
       }
     } else {
       if (player.sp < spCost) {
-        await gameMain.addLog("마법 지수가 충분하지 않습니다.");
-        await gameMain.waitForAnyKey();
+        await ui.addLog("마법 지수가 충분하지 않습니다.");
+        await ui.waitForAnyKey();
         return false;
       }
     }

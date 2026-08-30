@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import '../../hd_game_main.dart';
-import '../window_manager.dart';
+import '../../application/window_manager.dart';
+import 'window_key_dispatcher.dart';
 import 'input_mode.dart';
 
 /// Routes hardware/virtual key events to the right subsystem based on the
@@ -45,7 +46,7 @@ class HDInputDispatcher {
       timeStamp: Duration.zero,
     );
 
-    if (HDWindowManager().handleInput(event)) return true;
+    if (HDWindowKeyDispatcher().handleInput(event)) return true;
 
     if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.keyQ) {
       HDWindowManager().hideTopWindow();

@@ -4,22 +4,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../domain/game_option.dart';
 import '../domain/map/map_model.dart';
 import '../application/scripting/script_engine_adapter.dart';
-import '../hd_game_main.dart';
+import 'game_session.dart';
+import 'ports/host_binding.dart';
 
 class HDSaveManager {
   static const String _savePrefix = 'hadar_save_';
 
   static Future<bool> saveGame(int index) async {
-    final gameMain = HDGameMain();
+    final session = HDGameSession();
     try {
       final prefs = await SharedPreferences.getInstance();
 
       final Map<String, dynamic> data = {
         'version': 1,
-        'party': gameMain.party.toJson(),
-        'gameSystem': gameMain.gameSystem.toJson(),
-        'gameOption': gameMain.gameOption.toJson(),
-        'map': gameMain.map?.toJson(),
+        'party': session.party.toJson(),
+        'gameSystem': session.gameSystem.toJson(),
+        'gameOption': session.gameOption.toJson(),
+        'map': session.map?.toJson(),
       };
 
       final jsonString = jsonEncode(data);
@@ -34,7 +35,7 @@ class HDSaveManager {
   }
 
   static Future<bool> loadGame(int index) async {
-    final gameMain = HDGameMain();
+    final session = HDGameSession();
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? jsonString = prefs.getString('${_savePrefix}$index');
@@ -50,14 +51,14 @@ class HDSaveManager {
       int? savedY;
       int? savedFaced;
       if (data['party'] != null) {
-        gameMain.party.fromJson(data['party']);
-        savedX = gameMain.party.x;
-        savedY = gameMain.party.y;
-        savedFaced = gameMain.party.faced;
+        session.party.fromJson(data['party']);
+        savedX = session.party.x;
+        savedY = session.party.y;
+        savedFaced = session.party.faced;
       }
 
       if (data['gameSystem'] != null) {
-        gameMain.gameSystem.fromJson(data['gameSystem']);
+        session.gameSystem.fromJson(data['gameSystem']);
       }
 
       // 2. Load Script definition first (to get named variables/constants)
@@ -69,10 +70,10 @@ class HDSaveManager {
 
         // 3. Restore Saved Options (Flags, Variables) AFTER script init
         // so that saved states overwrite any default assignments in script
-        gameMain.gameOption.flags = savedOption.flags;
-        gameMain.gameOption.variables = savedOption.variables;
-        gameMain.gameOption.mapType = savedOption.mapType;
-        gameMain.gameOption.scriptFile = savedOption.scriptFile;
+        session.gameOption.flags = savedOption.flags;
+        session.gameOption.variables = savedOption.variables;
+        session.gameOption.mapType = savedOption.mapType;
+        session.gameOption.scriptFile = savedOption.scriptFile;
       }
 
       // 4. Script definitions are already loaded via loadScript in step 2.
@@ -82,18 +83,18 @@ class HDSaveManager {
       // We do this LAST because Script Mode 0 (Map::Init) might have reset the map
       if (data['map'] != null) {
         final loadedMap = MapModel.fromJson(data['map']);
-        gameMain.setNewMap(loadedMap);
+        session.setNewMap(loadedMap);
       }
 
       // 6. Final Position Restoration
       // We do this LAST because Script Mode 0 (Map::Init/Map::SetStartPos) might have reset the position
       if (savedX != null && savedY != null) {
-        gameMain.party.setPosition(savedX, savedY);
-        gameMain.party.faced = savedFaced ?? 0;
+        session.party.setPosition(savedX, savedY);
+        session.party.faced = savedFaced ?? 0;
       }
 
-      gameMain.mapVersion++;
-      gameMain.notifyListeners();
+      session.mapVersion++;
+      HDHosts().ui.refresh();
 
       return true;
     } catch (e) {

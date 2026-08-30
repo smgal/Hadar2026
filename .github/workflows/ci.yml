@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# 같은 브랜치에 새 푸시가 오면 진행 중이던 실행은 취소
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: hadar2026_app (analyze + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: hadar2026_app
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          # REF_FLUTTER_lore2026 은 읽기 전용 레퍼런스 서브모듈이라 받지 않음
+          submodules: false
+
+      - name: Setup Flutter 🚀
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies 📦
+        run: flutter pub get
+
+      # `dart format` 게이트는 아직 없음: repo 가 정렬돼 있지 않아 20여 파일이
+      # 바뀜. 한 번 일괄 포맷하고 나면 여기에
+      # `dart format --output=none --set-exit-if-changed lib test` 를 추가할 것.
+      # info 77건은 기존부터 있던 스타일 린트(constant_identifier_names,
+      # avoid_print, withOpacity deprecation)라 지금은 게이트하지 않음.
+      # error/warning 만 막아서 새 회귀는 잡되 CI 가 처음부터 빨갛지 않게 함.
+      # 기존 info 를 정리하고 나면 이 플래그를 떼면 됨.
+      - name: Analyze 🔍
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test 🧪
+        run: flutter test
+
+      - name: Check layering invariants 🧱
+        run: |
+          fail=0
+
+          check() {
+            local label="$1"; shift
+            local hits
+            hits="$(grep -rn "$@" lib/application/ lib/domain/ || true)"
+            if [ -n "$hits" ]; then
+              echo "::error::layering violation — $label"
+              echo "$hits"
+              fail=1
+            else
+              echo "ok: $label"
+            fi
+          }
+
+          # application/ 과 domain/ 은 presentation 계층과 파사드를 몰라야 함
+          check "application/domain must not import presentation/ or hd_game_main.dart" \
+            -E "^import .*(presentation/|hd_game_main\.dart)"
+
+          # 렌더링 라이브러리는 presentation/ 전용
+          check "application/domain must not import material/bonfire/flame" \
+            -E "package:flutter/material|package:bonfire|package:flame"
+
+          exit $fail
+
+  cm2_script:
+    name: packages/cm2_script (analyze + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/cm2_script
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Dart 🎯
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install Dependencies 📦
+        run: dart pub get
+
+      - name: Analyze 🔍
+        run: dart analyze
+
+      - name: Test 🧪
+        run: dart test

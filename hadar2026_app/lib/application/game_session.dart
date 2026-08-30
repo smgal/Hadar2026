@@ -23,10 +23,10 @@ String _resolveCm2Asset(String cm2Ref) =>
 /// (loaders, script engine) — and stays free of `flutter/material` or
 /// rendering libraries.
 ///
-/// `HDGameMain` exposes session fields/methods as facade getters so
-/// existing call sites (`HDGameMain().party`, `HDGameMain().sessionId`,
-/// `HDGameMain().init()`, `HDGameMain().loadMapFromFile(...)`) keep
-/// working.
+/// This is the single source of truth for session state. `HDGameMain`
+/// re-exposes the same fields as facade getters so existing UI call
+/// sites (`HDGameMain().party`, `…sessionId`, `…init()`) keep working,
+/// but `application/` code talks to `HDGameSession()` directly.
 class HDGameSession extends ChangeNotifier {
   static final HDGameSession _instance = HDGameSession._internal();
   factory HDGameSession() => _instance;
@@ -90,7 +90,8 @@ class HDGameSession extends ChangeNotifier {
     // Tear down lingering battle state from the previous map so that
     // enemies/playerCommands registered but never consumed don't leak
     // across transitions. (Window stack is cleared one layer up in
-    // `HDGameMain.loadMapFromFile` since it's a presentation concern.)
+    // callers via `HDWindowManager().clear()` since the stack is an
+    // overlay concern, not session state.)
     HDBattle().init();
 
     if (bundle.json != null) {

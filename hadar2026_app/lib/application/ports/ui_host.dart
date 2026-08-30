@@ -80,6 +80,15 @@ abstract class UiHost {
   /// caller doesn't have to remember whether the script paused or not.
   Future<void> endNarrative({String? summary, bool autoFlush = true});
 
+  /// Asks the rendering surface to redraw. Use after mutating session
+  /// state in place (tile overrides, map-type swaps, a restored save)
+  /// where no other notification would fire.
+  ///
+  /// Deliberately distinct from a *session-changed* notification: a map
+  /// transition additionally resets the per-map progress scrollback,
+  /// whereas [refresh] is a pure repaint request.
+  void refresh();
+
   /// One-time preload of any assets the host needs to render the world
   /// (sprite sheets, tile sheets, fonts, …). Called once during boot
   /// before the gameplay session starts. Headless / CLI hosts may

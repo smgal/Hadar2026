@@ -1,13 +1,13 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:cm2_script/cm2_script.dart';
 
 import '../../application/battle.dart';
 import '../../application/tile_event_dispatcher.dart';
-import '../../hd_game_main.dart';
+import '../game_reload_exception.dart';
+import '../game_session.dart';
+import '../ports/host_binding.dart';
+import '../window_manager.dart';
 import '../../application/select.dart';
 import '../../hd_config.dart';
 import '../../domain/map/map_model.dart';
@@ -41,7 +41,8 @@ class HDScriptEngine {
     if (nav == null) return;
     pendingNavigation = null;
 
-    bool isMap = await HDGameMain().loadMapFromFile(nav.path);
+    HDWindowManager().clear();
+    bool isMap = await HDGameSession().loadMapFromFile(nav.path);
     if (!isMap) await loadScript('assets/${nav.path}');
 
     _startPosHint = null;
@@ -49,13 +50,13 @@ class HDScriptEngine {
     await run(); // FLAG_MAP may call Map::SetStartPos → sets _startPosHint
 
     if (nav.hasExplicit) {
-      HDGameMain().party.setPosition(nav.nx, nav.ny);
+      HDGameSession().party.setPosition(nav.nx, nav.ny);
     } else if (_startPosHint != null) {
-      HDGameMain().party.setPosition(_startPosHint!.$1, _startPosHint!.$2);
+      HDGameSession().party.setPosition(_startPosHint!.$1, _startPosHint!.$2);
     } else {
-      final map = HDGameMain().map;
+      final map = HDGameSession().map;
       if (map != null) {
-        HDGameMain().party.setPosition(map.width ~/ 2, map.height ~/ 2);
+        HDGameSession().party.setPosition(map.width ~/ 2, map.height ~/ 2);
       }
     }
     _startPosHint = null;
@@ -66,10 +67,7 @@ class HDScriptEngine {
     _engine = ScriptEngine(
       contentLoader: (path) async {
         final assetPath = path.startsWith('assets/') ? path : 'assets/$path';
-        if (!kIsWeb && await File(assetPath).exists()) {
-          return File(assetPath).readAsString();
-        }
-        return rootBundle.loadString(assetPath);
+        return HDHosts().assets.loadString(assetPath);
       },
     );
     _registerHadarCommands();
@@ -94,11 +92,7 @@ class HDScriptEngine {
   Future<void> loadScript(String assetPath) async {
     String content;
     try {
-      if (!kIsWeb && await File(assetPath).exists()) {
-        content = await File(assetPath).readAsString();
-      } else {
-        content = await rootBundle.loadString(assetPath);
-      }
+      content = await HDHosts().assets.loadString(assetPath);
     } catch (e) {
       print("ScriptEngine: [ERROR] Failed to load $assetPath: $e");
       return;
@@ -111,7 +105,7 @@ class HDScriptEngine {
     _currentRow = 0;
 
     await _engine.loadFromString(content);
-    HDGameMain().gameOption.scriptFile = assetPath;
+    HDGameSession().gameOption.scriptFile = assetPath;
     print(
       "ScriptEngine: Loaded ${_engine.currentScript.length} root statements from $assetPath",
     );
@@ -148,8 +142,8 @@ class HDScriptEngine {
   /// 2. Face toward map center.
   /// 3. Face down (fallback when already at center).
   void _applyEntryFacing() {
-    final map = HDGameMain().map;
-    final party = HDGameMain().party;
+    final map = HDGameSession().map;
+    final party = HDGameSession().party;
     if (map == null) return;
 
     final px = party.x, py = party.y;
@@ -158,8 +152,7 @@ class HDScriptEngine {
     for (final (ddx, ddy) in const [(0, 1), (0, -1), (1, 0), (-1, 0)]) {
       final unit = map.getUnit(px + ddx, py + ddy);
       if (unit != null &&
-          HDTileProperties.getUnitAction(unit) ==
-              HDTileProperties.ACTION_ENTER) {
+          HDTileProperties.getUnitAction(unit) == HDTileAction.enter) {
         party.setFace(-ddx, -ddy); // face away from the entrance
         return;
       }
@@ -197,7 +190,7 @@ class HDScriptEngine {
       // SIGN gets its distinguishing "푯말에 써 있기를:" header set by the
       // tile dispatcher before the script runs, not via a separate popup.
       print("ScriptEngine [TALK]: $text");
-      await HDGameMain().addLog(text);
+      await HDHosts().ui.addLog(text);
     });
 
     // Description log — "흘러가는 상황 설명" that lands in the
@@ -210,7 +203,7 @@ class HDScriptEngine {
         text = text.substring(1, text.length - 1);
       }
       print("ScriptEngine [LOG]: $text");
-      await HDGameMain().addLog(text, isDialogue: false);
+      await HDHosts().ui.addLog(text, isDialogue: false);
     });
 
     // Dialog header — top line of the dialog panel. Pass an empty
@@ -226,7 +219,7 @@ class HDScriptEngine {
       // dispatcher) that set the header via host.setHeader() directly
       // are responsible for their own formatting.
       if (text.isNotEmpty) text = '@B$text:@@';
-      HDGameMain().setHeader(text);
+      HDHosts().ui.setHeader(text);
     });
 
     e.registerCommand('Answer', (stmt, eng) async {
@@ -236,13 +229,13 @@ class HDScriptEngine {
         text = text.substring(1, text.length - 1);
       }
       print("ScriptEngine [ANSWER]: $text");
-      await HDGameMain().addLog('@G$text@@');
+      await HDHosts().ui.addLog('@G$text@@');
     });
 
     e.registerCommand('PressAnyKey', (stmt, eng) async {
       print("PressAnyKey...");
-      await HDGameMain().waitForAnyKey();
-      HDGameMain().clearLogs();
+      await HDHosts().ui.waitForAnyKey();
+      HDHosts().ui.clearLogs();
     });
 
     e.registerCommand('Map::Init', (stmt, eng) async {
@@ -251,7 +244,7 @@ class HDScriptEngine {
       final h = int.parse(args[1]);
       final newMap = MapModel();
       newMap.init(w, h);
-      HDGameMain().setNewMap(newMap);
+      HDGameSession().setNewMap(newMap);
       _currentRow = 0;
       print("Map Init: ${w}x$h");
     });
@@ -272,7 +265,7 @@ class HDScriptEngine {
       if (rowStr.startsWith('"') && rowStr.endsWith('"')) {
         rowStr = rowStr.substring(1, rowStr.length - 1);
       }
-      final map = HDGameMain().map!;
+      final map = HDGameSession().map!;
       for (int x = 0; x < rowStr.length && x < map.width; x++) {
         final char = rowStr[x];
         final tileId = _tileMap[char] ?? 0;
@@ -311,7 +304,8 @@ class HDScriptEngine {
           nx: nx,
           ny: ny,
         );
-        HDGameMain().clearCurrentMap();
+        HDWindowManager().clear();
+        HDGameSession().clearCurrentMap();
       } else {
         // Startup path: execute immediately (map must be ready before init returns).
         pendingNavigation = (
@@ -332,7 +326,8 @@ class HDScriptEngine {
         path = path.substring(1, path.length - 1);
       }
       print("ScriptEngine: Loading map file $path");
-      await HDGameMain().loadMapFromFile(path);
+      HDWindowManager().clear();
+      await HDGameSession().loadMapFromFile(path);
     });
 
     e.registerCommand('Battle::Init', (_, __) async => HDBattle().init());
@@ -356,13 +351,13 @@ class HDScriptEngine {
       final cx = (eng.getVal(stmt.args[0]) as num).toInt();
       final cy = (eng.getVal(stmt.args[1]) as num).toInt();
       final tileId = (eng.getVal(stmt.args[2]) as num).toInt();
-      HDGameMain().map?.setTile(cx, cy, tileId);
+      HDGameSession().map?.setTile(cx, cy, tileId);
     });
 
-    e.registerCommand('WarpPrevPos', (_, __) async => HDGameMain().party.warpToPrev());
+    e.registerCommand('WarpPrevPos', (_, __) async => HDGameSession().party.warpToPrev());
 
-    final flags = () => HDGameMain().gameOption.flags;
-    final vars = () => HDGameMain().gameOption.variables;
+    final flags = () => HDGameSession().gameOption.flags;
+    final vars = () => HDGameSession().gameOption.variables;
 
     e.registerCommand('Flag::Set', (stmt, eng) async {
       final flagId = eng.getVal(stmt.args[0]);
@@ -400,8 +395,8 @@ class HDScriptEngine {
       final pIdx = (eng.getVal(stmt.args[0]) as num).toInt() - 1;
       final attr = stmt.args[1].replaceAll('"', '');
       final valAttr = eng.getVal(stmt.args[2]);
-      if (pIdx >= 0 && pIdx < HDGameMain().party.players.length) {
-        HDGameMain().party.players[pIdx].changeAttribute(attr, valAttr);
+      if (pIdx >= 0 && pIdx < HDGameSession().party.players.length) {
+        HDGameSession().party.players[pIdx].changeAttribute(attr, valAttr);
       }
     });
     e.registerCommand('Enemy::ChangeAttribute', (stmt, eng) async {
@@ -415,8 +410,8 @@ class HDScriptEngine {
     e.registerCommand('Player::AssignFromEnemyData', (stmt, eng) async {
       final pIdxEn = (eng.getVal(stmt.args[0]) as num).toInt() - 1;
       final enemyIdToAs = (eng.getVal(stmt.args[1]) as num).toInt();
-      if (pIdxEn >= 0 && pIdxEn < HDGameMain().party.players.length) {
-        HDGameMain().party.players[pIdxEn].assignFromEnemyData(enemyIdToAs);
+      if (pIdxEn >= 0 && pIdxEn < HDGameSession().party.players.length) {
+        HDGameSession().party.players[pIdxEn].assignFromEnemyData(enemyIdToAs);
       }
     });
 
@@ -425,7 +420,7 @@ class HDScriptEngine {
 
     e.registerCommand('Party::PlusGold', (stmt, eng) async {
       final amount = (eng.getVal(stmt.args[0]) as num).toInt();
-      HDGameMain().party.gold += amount;
+      HDGameSession().party.gold += amount;
     });
 
     e.registerCommand('Party::Move', (stmt, eng) async {
@@ -434,14 +429,14 @@ class HDScriptEngine {
       // Delegate to PartyMovementHost: presentation-backed hosts play
       // the walk animation and sync coords; headless hosts just bump
       // the domain coordinates. The script doesn't care which.
-      await HDGameMain().animatePartyMove(dx, dy);
+      await HDHosts().movement.animatePartyMove(dx, dy);
     });
 
     e.registerCommand('Map::SetType', (stmt, eng) async {
       final type = (eng.getVal(stmt.args[0]) as num).toInt();
-      HDGameMain().gameOption.mapType = type;
-      HDGameMain().map?.tileOverrides.clear();
-      HDGameMain().notifyListeners();
+      HDGameSession().gameOption.mapType = type;
+      HDGameSession().map?.tileOverrides.clear();
+      HDHosts().ui.refresh();
     });
 
     e.registerCommand('Map::SetEncounter', (stmt, eng) async {
@@ -466,39 +461,39 @@ class HDScriptEngine {
     e.registerCommand('Tile::CopyTile', (stmt, eng) async {
       final from = (eng.getVal(stmt.args[0]) as num).toInt();
       final to = (eng.getVal(stmt.args[1]) as num).toInt();
-      final map = HDGameMain().map;
+      final map = HDGameSession().map;
       if (map != null) {
         map.tileOverrides[to] = from;
-        HDGameMain().mapVersion++;
-        HDGameMain().notifyListeners();
+        HDGameSession().mapVersion++;
+        HDHosts().ui.refresh();
       }
     });
 
     e.registerCommand('Tile::CopyToDefaultTile', (stmt, eng) async {
       final typeToDflt = (eng.getVal(stmt.args[0]) as num).toInt();
-      final map = HDGameMain().map;
+      final map = HDGameSession().map;
       if (map != null) {
         map.tileOverrides.clear();
-        HDGameMain().mapVersion++;
-        HDGameMain().notifyListeners();
+        HDGameSession().mapVersion++;
+        HDHosts().ui.refresh();
       }
       print("Stub: Tile::CopyToDefault(type: $typeToDflt)");
     });
     e.registerCommand('Tile::CopyToDefaultSprite', (stmt, eng) async {
       final typeToDflt = (eng.getVal(stmt.args[0]) as num).toInt();
-      final map = HDGameMain().map;
+      final map = HDGameSession().map;
       if (map != null) {
         map.tileOverrides.clear();
-        HDGameMain().mapVersion++;
-        HDGameMain().notifyListeners();
+        HDGameSession().mapVersion++;
+        HDHosts().ui.refresh();
       }
       print("Stub: Tile::CopyToDefault(type: $typeToDflt)");
     });
   }
 
   Future<void> _refreshDisplay() async {
-    HDGameMain().refresh();
-    HDGameMain().gameOption.refresh();
+    HDHosts().ui.refresh();
+    HDGameSession().gameOption.refresh();
     await Future.delayed(const Duration(milliseconds: 16));
   }
 
@@ -508,7 +503,7 @@ class HDScriptEngine {
     e.registerFunction('Flag::IsSet', (args, __) {
       final idx = (args.isNotEmpty && args[0] is num) ? (args[0] as num).toInt() : -1;
       if (idx >= 0 && idx < HDConfig.maxFlags) {
-        return HDGameMain().gameOption.flags[idx] ? 1 : 0;
+        return HDGameSession().gameOption.flags[idx] ? 1 : 0;
       }
       return 0;
     });
@@ -516,7 +511,7 @@ class HDScriptEngine {
     e.registerFunction('Variable::Get', (args, __) {
       final idx = (args.isNotEmpty && args[0] is num) ? (args[0] as num).toInt() : -1;
       if (idx >= 0 && idx < HDConfig.maxVariables) {
-        return HDGameMain().gameOption.variables[idx];
+        return HDGameSession().gameOption.variables[idx];
       }
       return 0;
     });
@@ -529,7 +524,7 @@ class HDScriptEngine {
       if (eng.targetX != -1 && eng.targetY != -1) {
         on = (eng.targetX == x && eng.targetY == y);
       } else {
-        on = (HDGameMain().party.x == x && HDGameMain().party.y == y);
+        on = (HDGameSession().party.x == x && HDGameSession().party.y == y);
       }
       return on ? 1 : 0;
     });
@@ -540,28 +535,28 @@ class HDScriptEngine {
       final y1 = (args[1] as num).toInt();
       final x2 = (args[2] as num).toInt();
       final y2 = (args[3] as num).toInt();
-      final px = eng.targetX != -1 ? eng.targetX : HDGameMain().party.x;
-      final py = eng.targetY != -1 ? eng.targetY : HDGameMain().party.y;
+      final px = eng.targetX != -1 ? eng.targetX : HDGameSession().party.x;
+      final py = eng.targetY != -1 ? eng.targetY : HDGameSession().party.y;
       return (px >= x1 && px <= x2 && py >= y1 && py <= y2) ? 1 : 0;
     });
 
     e.registerFunction('Battle::Result', (_, __) => HDBattle().result());
     e.registerFunction('Select::Result', (_, __) => HDSelect().result());
-    e.registerFunction('Party::PosX', (_, __) => HDGameMain().party.x);
-    e.registerFunction('Party::PosY', (_, __) => HDGameMain().party.y);
+    e.registerFunction('Party::PosX', (_, __) => HDGameSession().party.x);
+    e.registerFunction('Party::PosY', (_, __) => HDGameSession().party.y);
 
     e.registerFunction('Player::GetName', (args, __) {
       final idx = (args.isNotEmpty && args[0] is num) ? (args[0] as num).toInt() - 1 : 0;
-      if (idx >= 0 && idx < HDGameMain().party.players.length) {
-        return HDGameMain().party.players[idx].name;
+      if (idx >= 0 && idx < HDGameSession().party.players.length) {
+        return HDGameSession().party.players[idx].name;
       }
       return "Unknown";
     });
 
     e.registerFunction('Player::GetGenderName', (args, __) {
       final idx = (args.isNotEmpty && args[0] is num) ? (args[0] as num).toInt() - 1 : 0;
-      if (idx >= 0 && idx < HDGameMain().party.players.length) {
-        return HDGameMain().party.players[idx].getGenderName();
+      if (idx >= 0 && idx < HDGameSession().party.players.length) {
+        return HDGameSession().party.players[idx].getGenderName();
       }
       return "Unknown";
     });
@@ -570,16 +565,16 @@ class HDScriptEngine {
       if (args.length < 2) return 0;
       final pIdx = (args[0] as num).toInt() - 1;
       final attr = args[1].toString();
-      if (pIdx >= 0 && pIdx < HDGameMain().party.players.length) {
-        return HDGameMain().party.players[pIdx].getAttribute(attr);
+      if (pIdx >= 0 && pIdx < HDGameSession().party.players.length) {
+        return HDGameSession().party.players[pIdx].getAttribute(attr);
       }
       return 0;
     });
 
     e.registerFunction('Player::IsAvailable', (args, __) {
       final idx = (args.isNotEmpty && args[0] is num) ? (args[0] as num).toInt() - 1 : 0;
-      if (idx >= 0 && idx < HDGameMain().party.players.length) {
-        return HDGameMain().party.players[idx].isValid() ? 1 : 0;
+      if (idx >= 0 && idx < HDGameSession().party.players.length) {
+        return HDGameSession().party.players[idx].isValid() ? 1 : 0;
       }
       return 0;
     });

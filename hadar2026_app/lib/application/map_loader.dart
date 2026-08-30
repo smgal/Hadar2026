@@ -1,8 +1,7 @@
-import 'dart:io';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
+
 import '../domain/map/map_model.dart';
+import 'ports/host_binding.dart';
 
 class HDMapLoader {
   Future<MapModel> loadMap(String assetPath) async {
@@ -11,11 +10,7 @@ class HDMapLoader {
 
     try {
       print("MapLoader: Loading from $assetPath");
-      if (!kIsWeb && await File(assetPath).exists()) {
-        jsonString = await File(assetPath).readAsString();
-      } else {
-        jsonString = await rootBundle.loadString(assetPath);
-      }
+      jsonString = await HDHosts().assets.loadString(assetPath);
     } catch (e) {
       throw Exception("File not found or unreadable: $assetPath ($e)");
     }

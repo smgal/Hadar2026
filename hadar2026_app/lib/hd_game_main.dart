@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'application/game_session.dart';
+import 'application/ports/host_binding.dart';
 import 'application/scripting/script_engine_adapter.dart';
 import 'application/menu_flows.dart';
 import 'application/tile_event_dispatcher.dart';
@@ -13,21 +14,16 @@ import 'domain/party/party.dart';
 import 'domain/system/game_system.dart';
 import 'application/ports/movement_host.dart';
 import 'application/ports/ui_host.dart';
+import 'presentation/host/bundle_asset_source.dart';
 import 'presentation/host/flutter_ui_host.dart';
 import 'presentation/input/input_dispatcher.dart';
 import 'presentation/input/input_mode.dart';
-import 'presentation/window_manager.dart';
-import 'domain/window/message_window_data.dart';
-import 'domain/window/selection_window_data.dart';
+import 'application/window_manager.dart';
 
+export 'application/game_reload_exception.dart';
 export 'application/ports/ui_host.dart';
 export 'presentation/host/flutter_ui_host.dart' show HDMenu;
 export 'presentation/input/input_mode.dart';
-
-class GameReloadException implements Exception {
-  final String message;
-  GameReloadException([this.message = "Game reloaded"]);
-}
 
 /// Thin facade over the layered subsystems:
 /// - `HDGameSession`        session state (party, map, options, init flow)
@@ -116,38 +112,24 @@ class HDGameMain with ChangeNotifier implements UiHost, PartyMovementHost {
     clearLogs: clearLogs,
   );
 
+  @override
   Future<int> showWindowMenu(
     List<String> items, {
     int initialChoice = 1,
     int enabledCount = -1,
     int? x,
     int? y,
-  }) async {
-    final window = HDSelectionWindow(
-      choices: items,
-      selectedIndex: initialChoice,
-      enabledCount: enabledCount,
-      x: x,
-      y: y,
-    );
-    HDWindowManager().addWindow(window);
-    try {
-      return await window.result;
-    } finally {
-      HDWindowManager().removeWindow(window);
-    }
-  }
+  }) => _host.showWindowMenu(
+    items,
+    initialChoice: initialChoice,
+    enabledCount: enabledCount,
+    x: x,
+    y: y,
+  );
 
   @override
-  Future<void> showMessageWindow(String text, {int? x, int? y}) async {
-    final window = HDMessageWindow(text, x: x, y: y);
-    HDWindowManager().addWindow(window);
-    try {
-      await window.waitForClose();
-    } finally {
-      HDWindowManager().removeWindow(window);
-    }
-  }
+  Future<void> showMessageWindow(String text, {int? x, int? y}) =>
+      _host.showMessageWindow(text, x: x, y: y);
 
   @override
   Future<void> waitForAnyKey() => _host.waitForAnyKey();
@@ -181,9 +163,17 @@ class HDGameMain with ChangeNotifier implements UiHost, PartyMovementHost {
     return HDInputMode.map;
   }
 
+  @override
   void refresh() => notifyListeners();
 
   HDGameMain._internal() {
+    // Composition root: hand the application layer its ports so nothing
+    // under `application/` has to name a presentation class.
+    HDHosts().bind(
+      ui: _host,
+      movement: _host,
+      assets: HDBundleAssetSource(),
+    );
     HDInputDispatcher().registerGlobalHandler();
     _lastObservedMapVersion = _session.mapVersion;
     // Forward host + session changes so a single ListenableBuilder on

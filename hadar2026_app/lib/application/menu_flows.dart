@@ -9,25 +9,26 @@ import '../application/magic_system.dart';
 import '../application/save_manager.dart';
 import '../domain/party/party_actions.dart';
 import '../domain/party/player.dart';
-import '../hd_game_main.dart';
+import 'game_reload_exception.dart';
+import 'game_session.dart';
+import 'ports/host_binding.dart';
+import 'ports/ui_host.dart';
 
 /// Top-level menus driven by the main game shell: command menu, party
-/// inspection, rest, save/load, difficulty, game-over. Each call drives the
-/// host (`UiHost`) for prompts and reads/writes domain state through
-/// [HDGameMain] (party, sessionId, etc.).
+/// inspection, rest, save/load, difficulty, game-over. Each call drives
+/// the `UiHost` port for prompts and reads/writes session state through
+/// [HDGameSession] (party, sessionId, …).
 ///
-/// Notes:
-/// - Lives in `application/` because it composes UI flow with domain
-///   actions but holds no rendering of its own.
-/// - The current `HDGameMain` dependency is a transitional shortcut. As the
-///   god object shrinks, this class should be reachable purely via
-///   `UiHost` + `HDParty` + a handful of domain services.
+/// Lives in `application/` because it composes UI flow with domain
+/// actions but holds no rendering of its own — it names no presentation
+/// class, so a headless host can drive every flow here.
 class HDMenuFlows {
   static final HDMenuFlows _instance = HDMenuFlows._internal();
   factory HDMenuFlows() => _instance;
   HDMenuFlows._internal();
 
-  HDGameMain get _game => HDGameMain();
+  UiHost get _game => HDHosts().ui;
+  HDGameSession get _session => HDGameSession();
 
   Future<void> showMainMenu() async {
     final choices = [
@@ -90,7 +91,7 @@ class HDMenuFlows {
     final preMenu = ["", "적과 교전한다", "도망간다"];
     int preSel = await _game.showWindowMenu(preMenu);
     if (preSel == 2) {
-      final party = _game.party;
+      final party = _session.party;
       int avgLuck =
           party.players
               .where((p) => p.isValid())
@@ -117,7 +118,7 @@ class HDMenuFlows {
   }
 
   Future<void> _selectPlayerForMagic() async {
-    final party = _game.party;
+    final party = _session.party;
     final validPlayers = party.players.where((p) => p.isValid()).toList();
     if (validPlayers.isEmpty) return;
 
@@ -130,7 +131,7 @@ class HDMenuFlows {
   }
 
   Future<void> _selectPlayerForESP() async {
-    final party = _game.party;
+    final party = _session.party;
     final validPlayers = party.players.where((p) => p.isValid()).toList();
     if (validPlayers.isEmpty) return;
 
@@ -143,7 +144,7 @@ class HDMenuFlows {
   }
 
   Future<void> restHere() async {
-    final party = _game.party;
+    final party = _session.party;
     _game.clearLogs();
 
     for (final p in party.players) {
@@ -185,7 +186,7 @@ class HDMenuFlows {
   }
 
   Future<void> showPartyStatus() async {
-    final party = _game.party;
+    final party = _session.party;
     _game.clearLogs();
 
     await _game.addLog("X 축 = ${party.x}");
@@ -209,7 +210,7 @@ class HDMenuFlows {
     await _game.addLog("                이름    중독  의식불명    죽음");
     await _game.addLog("");
 
-    for (var p in _game.party.players) {
+    for (var p in _session.party.players) {
       if (p.isValid()) {
         final nameStr = p.name.text.padLeft(20);
         final unStr = p.unconscious.toString().padLeft(9);
@@ -225,7 +226,7 @@ class HDMenuFlows {
   }
 
   Future<void> showCharacterStatus() async {
-    final party = _game.party;
+    final party = _session.party;
     final validPlayers = party.players.where((p) => p.isValid()).toList();
     if (validPlayers.isEmpty) return;
 
@@ -317,7 +318,7 @@ class HDMenuFlows {
   }
 
   Future<void> _sortParty() async {
-    final party = _game.party;
+    final party = _session.party;
     List<HDPlayer> validPlayers = party.players
         .where((p) => p.isValid())
         .toList();
@@ -362,7 +363,7 @@ class HDMenuFlows {
   }
 
   Future<void> _dismissPartyMember() async {
-    final party = _game.party;
+    final party = _session.party;
     List<HDPlayer> validPlayers = party.players
         .where((p) => p.isValid())
         .toList();
@@ -398,7 +399,7 @@ class HDMenuFlows {
   }
 
   Future<void> selectDifficulty() async {
-    final party = _game.party;
+    final party = _session.party;
     final enemyChoices = [
       "한번에 출현하는 적들의 최대치를 기입하십시오",
       "3명의 적들",
@@ -449,7 +450,7 @@ class HDMenuFlows {
 
     bool loadSuccess = await HDSaveManager.loadGame(slot);
     if (loadSuccess) {
-      _game.sessionId++;
+      _session.sessionId++;
       await _game.addLog("게임을 무사히 불러왔습니다");
       await _game.waitForAnyKey();
       _game.clearLogs();

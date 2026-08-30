@@ -4,7 +4,7 @@ import '../../domain/window/game_window.dart';
 import '../../domain/window/message_window_data.dart';
 import '../../domain/window/magic_window_data.dart';
 import '../../domain/window/selection_window_data.dart';
-import '../window_manager.dart';
+import '../../application/window_manager.dart';
 
 class HDWindowLayer extends StatelessWidget {
   const HDWindowLayer({super.key});

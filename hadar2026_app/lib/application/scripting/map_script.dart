@@ -1,8 +1,8 @@
 import 'dart:async';
-import '../../hd_game_main.dart';
+import 'map_script_context.dart';
 
 abstract class HDMapScript {
-  final HDGameMain game = HDGameMain();
+  final HDMapScriptContext game = const HDMapScriptContext();
 
   String get mapName;
 

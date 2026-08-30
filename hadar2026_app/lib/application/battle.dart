@@ -6,7 +6,9 @@ import '../domain/battle/enemy_data.dart';
 import '../domain/magic/magic.dart';
 import '../domain/party/party.dart';
 import '../domain/party/player.dart';
-import '../hd_game_main.dart';
+import 'game_reload_exception.dart';
+import 'game_session.dart';
+import 'ports/host_binding.dart';
 import 'ports/ui_host.dart';
 import 'magic_system.dart';
 import 'menu_flows.dart';
@@ -16,9 +18,9 @@ class HDBattle with ChangeNotifier {
   factory HDBattle() => _instance;
   HDBattle._internal();
 
-  // --- domain/host accessors (transitional: still pulled from HDGameMain) ---
-  UiHost get _host => HDGameMain();
-  HDParty get _party => HDGameMain().party;
+  // --- domain/host accessors (ports + session, no facade) ---
+  UiHost get _host => HDHosts().ui;
+  HDParty get _party => HDGameSession().party;
 
   bool isBattleActive = false;
   List<HDEnemy> enemies = [];
