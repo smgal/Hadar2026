@@ -12,6 +12,45 @@ Flutter/Dart remake of the classic Korean RPG "또 다른 지식의 성전 (Hada
 - `tools/` — Python scripts for converting/extracting legacy Hadar binary data (maps, enemies, sprites), plus `tools/mapEditor/` — a TypeScript/Vite web map editor (pnpm) that reads/writes `hadar2026_app/assets/maps/*.json` in place while preserving the full RPG Maker MV format (see `tools/mapEditor/README.md`).
 - `REF_hadar/` (C++ original), `REF_UNITY_LoreEp1/` (Unity port), `REF_FLUTTER_lore2026/` (sibling Flutter port — git submodule). Read-only reference implementations; do not edit.
 
+## 기획·이슈 문서 (AI 자동 시나리오 생성 작업)
+
+이 레포에는 "배포 전에 AI 로 맵·대화·퀘스트를 생성하는" 작업의 기획서와 이슈 보드가 있다.
+**그 작업을 하려면 아래를 먼저 읽어야 한다.** 두 디렉토리는 역할이 다르고 우선순위가 정해져 있다.
+
+| 디렉토리 | 역할 | 우선순위 |
+|---|---|---|
+| `issues/` | **실행 계획과 이슈 보드.** 무엇부터 할지는 여기가 정본 | **실행에 관해서는 최우선** |
+| `blueprint/` | 설계 SSoT 34개 장(약 43,000줄). 왜·무엇을 | 설계 근거 |
+
+**작업 착수 순서**
+1. `issues/DECISION-LOG.md` — **반드시 먼저.** 현재 노선과 **1차 판정이 폐기된 이유**.
+   1차 판정(P0→P1→GATE→P2)을 따르면 잘못된 일을 하게 된다.
+2. `issues/MILESTONES.md` §0~§1 — 현재 노선은
+   **G1(아이템·장비 이식) → G2(전투 정합) → S1(샘플 퀘스트) → S2(실측 걸림돌) → S3(AI 생성)**
+3. `issues/BOARD.md` — 착수 가능한 이슈
+4. 설계 근거가 필요하면 `blueprint/` — 단 **BP-01·BP-50·BP-51 은 1차 노선 기준**이라 참고만 할 것
+
+**항상 정본인 두 파일** (코드를 만지기 전에 확인)
+- `blueprint/_meta/GROUND_TRUTH.md` — **코드 실측 사실.** 부록 A~M 에 검증된 잠복 결함과 정정 이력.
+  코드에 대한 주장은 여기와 일치해야 한다. 어긋나면 이 파일을 먼저 고친다.
+- `blueprint/_meta/DECISIONS.md` — 확정 설계 결정 D-01~D-31(개정 이력 포함, D-24 는 결번).
+  주제별 소유 장 표(D-18)가 "어느 문서를 고쳐야 하는가" 를 정한다.
+
+**현재 노선의 핵심 사실** (틀리기 쉬운 부분이라 못박아 둔다)
+- 퀘스트는 **이미 저작 가능하다.** 원작 방식은 `assets/flag4ep1.cm2`(이름 붙인 플래그 상수) +
+  `assets/L1_ep1d0~d5_1.cm2`(2,441줄). **퀘스트 아이템은 플래그로 표현**되며 인벤토리는 필요 없다.
+- 새 맵·등장인물 추가는 **코드 변경 0**: `MapInfos.json` 항목 + `assets/maps/Map0NN.json` + `assets/Map0NN.cm2`.
+  (`LORE_EP` = `Map002.json` + `Map002.cm2` 가 작동 예. 다음 빈 id 는 16)
+- cm2 의 **중첩 `include` 는 매 `run()` 재실행된다**(부록 L, 실행 검증). 최상위 `include` 만 init 전용이다.
+  → 한 맵에 퀘스트 여러 개를 파일 단위로 분리하는 것이 **엔진 변경 없이 가능**하다.
+- **아이템·장비는 "설계" 가 아니라 "이식" 이다** — `REF_UNITY_LoreEp1/src_as_cs/ObjItem.cs`(877줄) ·
+  `GameEventEquipment.cs`(448줄) · `ObjTypes.cs`(`ITEM_TYPE`: 부위 개념 `ARMOR`/`HEAD`/`LEG`/`ORNAMENT` 포함)에
+  완성된 원작 구현이 있다. 현재 Dart 는 `weapon`/`shield`/`armor` **정수 3칸**뿐이고 `"무기1"` 이 플레이어에게 보인다.
+  **G1 이 S1 보다 먼저인 이유**: 플래그로 아이템을 표현해 퀘스트를 만들면 나중에 전부 다시 써야 한다(3차 판정).
+- **선언적** 콘텐츠 팩·저널·솔버·MCP 는 **보류**다(`issues/deferred/`, 26건). 폐기가 아니라
+  cm2 노선이 실제로 막힐 때 꺼내 쓴다. **G1 의 아이템은 이 보류 노선이 아니라 원작 이식이다.**
+- 마법은 선택 UI·이름만 있고 **효과가 레벨 기반 공식 2개로 뭉쳐 있다**(`battle.dart:155,174`). 45종 개별 효과 없음 — **별 트랙**.
+
 ## Common commands
 
 ```bash
