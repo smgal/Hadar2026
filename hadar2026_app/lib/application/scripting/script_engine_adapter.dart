@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cm2_script/cm2_script.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../application/battle.dart';
 import '../../application/tile_event_dispatcher.dart';
@@ -10,7 +11,11 @@ import '../ports/host_binding.dart';
 import '../window_manager.dart';
 import '../../application/select.dart';
 import '../../hd_config.dart';
+import '../../application/menu_flows.dart';
+import '../../domain/item/item_data.dart';
+import '../../domain/item/item_id.dart';
 import '../../domain/map/map_model.dart';
+import '../../domain/party/player.dart';
 import '../../domain/map/tile_properties.dart';
 
 /// Thin adapter over [ScriptEngine]: loads scripts from files/bundle and
@@ -89,13 +94,23 @@ class HDScriptEngine {
     _engine.targetY = y;
   }
 
-  Future<void> loadScript(String assetPath) async {
+  /// Loads [assetPath] into the engine. Returns whether it succeeded.
+  ///
+  /// **A failed load leaves nothing behind.** It used to return early
+  /// before `clearRuntimeState()`, so the previous map's script,
+  /// variables and contexts stayed loaded and kept running on the new
+  /// map's tiles — and because `HDTileEventDispatcher` picks the cm2
+  /// tier whenever `currentMapCm2Path != null`, that stale script was
+  /// what ran (GROUND_TRUTH A-2). Callers that track "which map's cm2 is
+  /// loaded" must drop that path when this returns false.
+  Future<bool> loadScript(String assetPath) async {
     String content;
     try {
       content = await HDHosts().assets.loadString(assetPath);
     } catch (e) {
       print("ScriptEngine: [ERROR] Failed to load $assetPath: $e");
-      return;
+      _resetLoadedScript();
+      return false;
     }
 
     print("ScriptEngine: Loading script content from $assetPath");
@@ -109,6 +124,18 @@ class HDScriptEngine {
     print(
       "ScriptEngine: Loaded ${_engine.currentScript.length} root statements from $assetPath",
     );
+    return true;
+  }
+
+  /// Drops the currently loaded script and everything derived from it.
+  ///
+  /// `clearRuntimeState()` alone keeps `currentScript`, so the statements
+  /// of the previous map would still be there to run.
+  void _resetLoadedScript() {
+    _engine.clearRuntimeState();
+    _engine.currentScript = [];
+    _tileMap.clear();
+    _currentRow = 0;
   }
 
   Future<void> loadFromString(String content) async {
@@ -364,6 +391,8 @@ class HDScriptEngine {
       final idx = flagId is num ? flagId.toInt() : int.tryParse(flagId.toString()) ?? -1;
       if (idx >= 0 && idx < HDConfig.maxFlags) {
         flags()[idx] = true;
+      } else {
+        _warnOutOfRange('Flag::Set', idx, HDConfig.maxFlags);
       }
     });
     e.registerCommand('Flag::Reset', (stmt, eng) async {
@@ -371,6 +400,8 @@ class HDScriptEngine {
       final idx = flagIdReset is num ? flagIdReset.toInt() : int.tryParse(flagIdReset.toString()) ?? -1;
       if (idx >= 0 && idx < HDConfig.maxFlags) {
         flags()[idx] = false;
+      } else {
+        _warnOutOfRange('Flag::Reset', idx, HDConfig.maxFlags);
       }
     });
     e.registerCommand('Variable::Set', (stmt, eng) async {
@@ -378,6 +409,8 @@ class HDScriptEngine {
       final val = eng.getVal(stmt.args[1]);
       if (idx >= 0 && idx < HDConfig.maxVariables) {
         vars()[idx] = (val as num).toInt();
+      } else {
+        _warnOutOfRange('Variable::Set', idx, HDConfig.maxVariables);
       }
     });
     e.registerCommand('Variable::Add', (stmt, eng) async {
@@ -388,6 +421,76 @@ class HDScriptEngine {
       }
       if (idxAdd >= 0 && idxAdd < HDConfig.maxVariables) {
         vars()[idxAdd] += inc;
+      } else {
+        _warnOutOfRange('Variable::Add', idxAdd, HDConfig.maxVariables);
+      }
+    });
+
+    // ---- 원작에 구현이 있는데 등록만 빠져 있던 심볼 (G2-02) ----
+
+    e.registerCommand('GameOver', (_, _) async {
+      // 원작 `game::proccessGameOver(EXITCODE_BY_FORCE)`
+      // (`hd_base_extern.cpp:151-153`). EXITCODE 는 USER/ACCIDENT/ENEMY/
+      // FORCE = 0/1/2/3 이고 이 심볼은 인자 없는 강제 종료다.
+      await HDMenuFlows().processGameOver(3);
+    });
+
+    e.registerCommand('Player::ApplyAttribute', (stmt, eng) async {
+      // 원작 `hd_class_pc_player.cpp:376-381` — hp/sp/esp 를 최대치로 채운다.
+      final p = _playerArg(eng.getVal(stmt.args[0]), 'Player::ApplyAttribute');
+      if (p == null) return;
+      p.hp = p.maxHp;
+      p.sp = p.maxSp;
+      p.esp = p.maxEsp;
+    });
+
+    e.registerCommand('Player::ReviseAttribute', (stmt, eng) async {
+      // 원작 `hd_class_pc_player.cpp:369-374` — 최대치를 넘은 값을 깎는다.
+      // `menace.cm2:48-54` 가 ac 를 0 으로 만든 뒤 이것을 부른다.
+      final p = _playerArg(eng.getVal(stmt.args[0]), 'Player::ReviseAttribute');
+      if (p == null) return;
+      if (p.hp > p.maxHp) p.hp = p.maxHp;
+      if (p.sp > p.maxSp) p.sp = p.maxSp;
+      if (p.esp > p.maxEsp) p.esp = p.maxEsp;
+    });
+
+    e.registerCommand('Map::SetLightArea', (stmt, eng) async {
+      final r = _rectArg(stmt, eng, 'Map::SetLightArea');
+      if (r == null) return;
+      HDGameSession().lightAreas.set(r[0], r[1], r[2], r[3]);
+      HDHosts().ui.refresh();
+    });
+
+    e.registerCommand('Map::ResetLightArea', (stmt, eng) async {
+      final r = _rectArg(stmt, eng, 'Map::ResetLightArea');
+      if (r == null) return;
+      if (!HDGameSession().lightAreas.reset(r[0], r[1], r[2], r[3])) {
+        debugPrint(
+          '[cm2] Map::ResetLightArea(${r.join(",")}) matched no area that '
+          'Map::SetLightArea had created',
+        );
+      }
+      HDHosts().ui.refresh();
+    });
+
+    e.registerCommand('Item::Give', (stmt, eng) async {
+      final id = _itemArg(eng.getVal(stmt.args[0]), 'Item::Give');
+      if (id == null) return;
+      if (!HDGameSession().party.give(id)) {
+        debugPrint(
+          '[cm2] Item::Give: backpack full — "${itemById(id)!.name}" not '
+          'added, existing slots untouched',
+        );
+      }
+    });
+
+    e.registerCommand('Item::Take', (stmt, eng) async {
+      final id = _itemArg(eng.getVal(stmt.args[0]), 'Item::Take');
+      if (id == null) return;
+      if (!HDGameSession().party.take(id)) {
+        debugPrint(
+          '[cm2] Item::Take: the party has no "${itemById(id)!.name}"',
+        );
       }
     });
 
@@ -497,6 +600,71 @@ class HDScriptEngine {
     await Future.delayed(const Duration(milliseconds: 16));
   }
 
+  /// 범위 밖 정수 인자를 알린다.
+  ///
+  /// 이 계열의 커맨드들은 가드에 `else` 가 없어 `Flag::Set(300)` 이
+  /// **아무 로그도 없이** 사라졌다(부록 F-1). 미등록 심볼의 침묵
+  /// (§9, "Unknown command" 는 그래도 찍힌다)과 원인이 다른 별개 실패다.
+  static void _warnOutOfRange(String symbol, int idx, int max) {
+    debugPrint(
+      'ScriptEngine: [WARN] $symbol($idx) is outside [0, $max) — ignored',
+    );
+  }
+
+  /// cm2 가 넘긴 정수를 아이템 id 로 읽는다. 카탈로그에 없는 값이면
+  /// **경고를 남기고** null — 범위 밖 인자를 조용히 흘려보내는 것이
+  /// 부록 F-1 이 기록한 현행 결함이라 그 패턴을 따르지 않는다.
+  static HDItemId? _itemArg(dynamic raw, String symbol) {
+    final wire = raw is num
+        ? raw.toInt()
+        : int.tryParse(raw.toString()) ?? -1;
+    final id = HDItemId.tryFromWire(wire);
+    if (id == null || itemById(id) == null) {
+      debugPrint(
+        '[cm2] $symbol: $wire does not name an item — ignored. Use a '
+        'constant from assets/item4ep1.cm2.',
+      );
+      return null;
+    }
+    return id;
+  }
+
+  /// cm2 의 1-base 인물 번호를 파티 구성원으로 읽는다
+  /// (`Player::ChangeAttribute` 가 쓰는 관례와 동일).
+  static HDPlayer? _playerArg(dynamic raw, String symbol) {
+    final n = raw is num ? raw.toInt() : int.tryParse(raw.toString()) ?? 0;
+    final idx = n - 1;
+    final players = HDGameSession().party.players;
+    if (idx < 0 || idx >= players.length) {
+      debugPrint(
+        '[cm2] $symbol: player $n is outside 1..${players.length} — ignored',
+      );
+      return null;
+    }
+    return players[idx];
+  }
+
+  /// `Map::SetLightArea(x1,y1,x2,y2)` 의 네 인자를 읽는다.
+  static List<int>? _rectArg(CommandStatement stmt, ScriptEngine eng,
+      String symbol) {
+    if (stmt.args.length < 4) {
+      debugPrint('[cm2] $symbol needs four coordinates — ignored');
+      return null;
+    }
+    final v = <int>[];
+    for (var i = 0; i < 4; i++) {
+      final raw = eng.getVal(stmt.args[i]);
+      final n = raw is num ? raw.toInt() : int.tryParse(raw.toString());
+      if (n == null || n < 0) {
+        debugPrint('[cm2] $symbol: argument $i ($raw) is not a coordinate '
+            '— ignored');
+        return null;
+      }
+      v.add(n);
+    }
+    return v;
+  }
+
   void _registerHadarFunctions() {
     final e = _engine;
 
@@ -505,7 +673,48 @@ class HDScriptEngine {
       if (idx >= 0 && idx < HDConfig.maxFlags) {
         return HDGameSession().gameOption.flags[idx] ? 1 : 0;
       }
+      // The return value stays 0: changing it would flip existing cm2
+      // branches. Only the silence goes away.
+      _warnOutOfRange('Flag::IsSet', idx, HDConfig.maxFlags);
       return 0;
+    });
+
+    // **함수**로 등록해야 한다. 커맨드로 두거나 빠뜨리면 cm2 가
+    // "Unknown function" 후 0 을 반환해 조건이 조용히 오분기한다 —
+    // 이 심볼이 미등록이던 동안 `L1_ep1d2.cm2:200` 의
+    // `Not(Party::CheckIf(CHECKIF_LEVITATION))` 이 항상 참이라
+    // **부양 마법 중에도 절벽에서 떨어졌다**(부록 M-3).
+    e.registerFunction('Party::CheckIf', (args, _) {
+      final raw = args.isNotEmpty && args[0] is num
+          ? (args[0] as num).toInt()
+          : -1;
+      final party = HDGameSession().party;
+      // assets/const.cm2:42-46 의 CHECKIF_* 순서 그대로.
+      switch (raw) {
+        case 0: // CHECKIF_MAGICTORCH
+          return party.magicTorch > 0 ? 1 : 0;
+        case 1: // CHECKIF_LEVITATION
+          return party.levitation > 0 ? 1 : 0;
+        case 2: // CHECKIF_WALKONWATER
+          return party.walkOnWater > 0 ? 1 : 0;
+        case 3: // CHECKIF_WALKONSWAMP
+          return party.walkOnSwamp > 0 ? 1 : 0;
+        case 4: // CHECKIF_MINDCONTROL
+          return party.mindControl > 0 ? 1 : 0;
+        default:
+          debugPrint(
+            '[cm2] Party::CheckIf($raw) is outside 0..4 — returning 0. '
+            'Use a CHECKIF_* constant from assets/const.cm2.',
+          );
+          return 0;
+      }
+    });
+
+    e.registerFunction('Item::Has', (args, _) {
+      if (args.isEmpty) return 0;
+      final id = _itemArg(args[0], 'Item::Has');
+      if (id == null) return 0;
+      return HDGameSession().party.has(id) ? 1 : 0;
     });
 
     e.registerFunction('Variable::Get', (args, __) {
@@ -513,6 +722,7 @@ class HDScriptEngine {
       if (idx >= 0 && idx < HDConfig.maxVariables) {
         return HDGameSession().gameOption.variables[idx];
       }
+      _warnOutOfRange('Variable::Get', idx, HDConfig.maxVariables);
       return 0;
     });
 

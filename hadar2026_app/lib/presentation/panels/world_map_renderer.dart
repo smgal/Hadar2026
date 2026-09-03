@@ -1,6 +1,7 @@
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 
+import '../../application/game_session.dart';
 import '../../domain/lighting/sight_calculator.dart';
 import '../../domain/map/map_model.dart';
 import '../../domain/party/party.dart';
@@ -193,13 +194,17 @@ class HDWorldMap extends WorldMap {
       party: party,
       mapName: mapName,
     );
-    int lightBit = HDSightCalculator.lightBitFor(
-      mapX: x,
-      mapY: y,
-      playerX: pX,
-      playerY: pY,
-      sightRange: sightRange,
-    );
+    // cm2 `Map::SetLightArea` 로 밝혀 둔 칸은 시야 반경과 무관하게
+    // 완전히 밝다 — 원작 `map::setLight` 와 같다.
+    int lightBit = HDGameSession().lightAreas.isLit(x, y)
+        ? 15
+        : HDSightCalculator.lightBitFor(
+            mapX: x,
+            mapY: y,
+            playerX: pX,
+            playerY: pY,
+            sightRange: sightRange,
+          );
     int ix = ((shadowVal ^ 15) | lightBit) ^ 15;
 
     bool isThisTileBackOut = !inMoonlight && (ix == 15);

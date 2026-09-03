@@ -15,8 +15,13 @@ class HDSaveManager {
     try {
       final prefs = await SharedPreferences.getInstance();
 
+      // v2 는 소지품(party.backpack)과 부위별 장비(player.equip)를 더한다.
+      // **되돌리기는 없다** — v1 코드가 v2 세이브를 읽으면 두 키를 무시하고
+      // 정수 3칸만 보므로 아이템이 사라진다. 그래서 v1 로는 저장하지 않는다.
+      // 읽기는 양방향이다: fromJson 이 'equip' 키의 유무로 판정해
+      // v1 페이로드를 슬롯으로 마이그레이션한다.
       final Map<String, dynamic> data = {
-        'version': 1,
+        'version': 2,
         'party': session.party.toJson(),
         'gameSystem': session.gameSystem.toJson(),
         'gameOption': session.gameOption.toJson(),

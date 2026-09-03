@@ -7,8 +7,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../application/battle.dart';
 import '../application/magic_system.dart';
 import '../application/save_manager.dart';
+import '../domain/item/item_type.dart';
 import '../domain/party/party_actions.dart';
 import '../domain/party/player.dart';
+import 'equipment_flow.dart';
 import 'game_reload_exception.dart';
 import 'game_session.dart';
 import 'ports/host_binding.dart';
@@ -39,6 +41,7 @@ class HDMenuFlows {
       "마법을 사용한다",
       "초능력을 사용한다",
       "여기서 쉰다",
+      "소지품을 본다",
       "게임 선택 상황",
     ];
 
@@ -73,6 +76,9 @@ class HDMenuFlows {
           await restHere();
           break;
         case 7:
+          await showInventory();
+          break;
+        case 8:
           await selectGameOption();
           break;
       }
@@ -272,13 +278,131 @@ class HDMenuFlows {
     );
     await _game.addLog("## 경험치   : ${player.experience}");
     await _game.addLog("");
+    // 한 줄에 하나씩. 실데이터 이름은 '불확실한 방패'(7자)까지 길어지고
+    // 콘솔 폰트는 한글이 2배폭이라 문자 수 기준 padRight 로는 정렬이
+    // 맞지 않는다. 부위가 6칸으로 늘면(G1-04) 어차피 한 줄에 못 담는다.
     await _game.addLog("사용 무기 - ${player.getWeaponName()}");
-    await _game.addLog(
-      "방패 - ${player.getShieldName().padRight(12)} 갑옷 - ${player.getArmorName()}",
-    );
+    await _game.addLog("방패 - ${player.getShieldName()}");
+    await _game.addLog("갑옷 - ${player.getArmorName()}");
 
     await _game.waitForAnyKey();
     _game.clearLogs();
+  }
+
+  /// 가방 20칸을 콘솔에 6칸씩 보여 주고, 끝나면 장비 화면으로 넘어갈지
+  /// 묻는다.
+  ///
+  /// 행 예산: 머리글 1 + 빈 줄 1 + 항목 6 + 빈 줄 1 + 꼬리말 1 = **10행**.
+  /// `HDConfig.maxLinesPerPage` 는 13이다.
+  static const int _inventoryRowsPerPage = 6;
+
+  Future<void> showInventory() async {
+    final party = _session.party;
+
+    final filled = <int>[];
+    for (var i = 0; i < party.itemCapacity; i++) {
+      if (party.itemAt(i) != null) filled.add(i);
+    }
+
+    if (filled.isEmpty) {
+      _game.clearLogs();
+      await _game.addLog("## 소지품                    0 / ${party.itemCapacity}");
+      await _game.addLog("");
+      await _game.addLog("가진 것이 없다.");
+      await _game.waitForAnyKey();
+      _game.clearLogs();
+    } else {
+      final pages = (filled.length + _inventoryRowsPerPage - 1) ~/
+          _inventoryRowsPerPage;
+      for (var page = 0; page < pages; page++) {
+        _game.clearLogs();
+        await _game.addLog(
+          "## 소지품                    "
+          "${filled.length} / ${party.itemCapacity}",
+        );
+        await _game.addLog("");
+        final start = page * _inventoryRowsPerPage;
+        final end =
+            (start + _inventoryRowsPerPage).clamp(0, filled.length);
+        for (var row = start; row < end; row++) {
+          final slot = filled[row];
+          await _game.addLog(
+            "${(row + 1).toString().padLeft(2)}. "
+            "${HDEquipmentFlow.describe(party.itemAt(slot)!)}",
+          );
+        }
+        await _game.addLog("");
+        if (pages > 1) {
+          await _game.addLog("(${page + 1}/$pages)");
+        }
+        await _game.waitForAnyKey();
+      }
+      _game.clearLogs();
+    }
+
+    final next = await _game.showWindowMenu([
+      "소지품",
+      "장비를 바꾼다",
+    ]);
+    if (next == 1) await showEquipment();
+  }
+
+  /// 인물 → 부위 → 후보 3단계. 각 단계가 `showWindowMenu` 한 번이고
+  /// 새 위젯이나 새 포트 메서드를 쓰지 않는다.
+  Future<void> showEquipment() async {
+    final party = _session.party;
+    final validPlayers = party.players.where((p) => p.isValid()).toList();
+    if (validPlayers.isEmpty) return;
+
+    final who = await _game.showWindowMenu([
+      "누구의 장비인가",
+      ...validPlayers.map((p) => p.name.text),
+    ]);
+    if (who == 0) return;
+    final player = validPlayers[who - 1];
+
+    // 부위를 고르고 바꾸는 것을 Esc 까지 반복한다 — 한 인물의 여섯 칸을
+    // 채우려고 메뉴를 여섯 번 여는 것은 원작에도 없다.
+    while (true) {
+      final slots = HDEquipSlot.values;
+      final part = await _game.showWindowMenu([
+        "어느 부위를 바꾸는가",
+        ...slots.map((s) => HDEquipmentFlow.describeSlot(player, s)),
+      ]);
+      if (part == 0) return;
+      final slot = slots[part - 1];
+
+      final candidates = HDEquipmentFlow.candidatesFor(party, slot);
+      final canClear = HDEquipmentFlow.canUnequip(party, player, slot);
+
+      if (candidates.isEmpty && !canClear) {
+        await _game.showMessageWindow(
+          "${HDEquipmentFlow.slotLabel(slot)}에 채울 것이 없다.",
+        );
+        continue;
+      }
+
+      final choices = <String>[
+        "무엇을 채우는가",
+        if (canClear) "(비운다)",
+        ...candidates.map((i) => HDEquipmentFlow.describe(party.itemAt(i)!)),
+      ];
+      final picked = await _game.showWindowMenu(choices);
+      if (picked == 0) continue;
+
+      if (canClear && picked == 1) {
+        HDEquipmentFlow.unequipToBackpack(party, player, slot);
+      } else {
+        final offset = canClear ? 2 : 1;
+        HDEquipmentFlow.equipFromBackpack(
+          party,
+          player,
+          slot,
+          candidates[picked - offset],
+        );
+      }
+      _game.refresh();
+    }
   }
 
   Future<void> selectGameOption() async {

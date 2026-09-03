@@ -1,6 +1,6 @@
 # G1-01 `Item`/`ItemSub`/`ITEM_TYPE` 을 `domain/item/` 으로 이식한다
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: G1
 - **규모**: M
 - **선행**: 없음
@@ -103,17 +103,18 @@ Dart enum 은 값 별칭을 만들 수 없어서 `WEAPON_MIN = WIELD` 를 그대
 
 ## 완료 판정 기준
 
-- [ ] `lib/domain/item/` 에 `item_type.dart` · `item_id.dart` · `item.dart` 가 있고 **import 가 0줄**이다 (계층 위반 grep 2종 통과)
-- [ ] `HDItemType` 이 `none`(-1) 포함 **13개 멤버**를 갖고, 각 멤버의 `wire` 가 위 표의 정수값과 일치한다
-- [ ] `isWeapon`/`isShield`/`isArmorGroup`/`isEtc` 가 원작의 `*_MIN <= x < *_MAX` 구간과 같은 답을 낸다
-- [ ] `HDItemId.wire` 가 `ResId` 하위 24비트와 같은 배치를 만든다 (`WIELD,0,1` → `0x000001`, `ARMOR(8),1,3` → `0x080103`)
-- [ ] `HDItemType.equipSlot` 이 12종 전량에 대해 `EQUIP` 6칸 중 하나를 반환한다
-- [ ] 테스트 추가: `hadar2026_app/test/domain/item/item_type_test.dart` —
+- [x] `lib/domain/item/` 에 `item_type.dart` · `item_id.dart` · `item.dart` 가 있고 **import 가 0줄**이다 (계층 위반 grep 2종 통과)
+      — **패키지 import 만 0줄.** 형제 파일 간 상대 import 3줄은 남는다(아래 「이슈 서술에서 벗어난 부분」)
+- [x] `HDItemType` 이 `none`(-1) 포함 **13개 멤버**를 갖고, 각 멤버의 `wire` 가 위 표의 정수값과 일치한다
+- [x] `isWeapon`/`isShield`/`isArmorGroup`/`isEtc` 가 원작의 `*_MIN <= x < *_MAX` 구간과 같은 답을 낸다
+- [x] `HDItemId.wire` 가 `ResId` 하위 24비트와 같은 배치를 만든다 (`WIELD,0,1` → `0x000001`, `ARMOR(8),1,3` → `0x080103`)
+- [x] `HDItemType.equipSlot` 이 12종 전량에 대해 `EQUIP` 6칸 중 하나를 반환한다
+- [x] 테스트 추가: `hadar2026_app/test/domain/item/item_type_test.dart` —
       ① 12종 + `none` 의 `wire` 값을 **리터럴로** 고정한다(멤버 순서 변경을 실패로 만든다)
       ② `isWeapon`/`isShield`/`isArmorGroup`/`isEtc` 가 서로 배타적이고 합집합이 12종 전량임을 고정
       ③ `HDItemId.wire` ↔ `HDItemId.fromWire` 왕복을 고정
       ④ `equipSlot` 사상표를 전량 고정
-- [ ] `flutter analyze --no-fatal-infos` 새 경고 0건
+- [x] `flutter analyze --no-fatal-infos` 새 경고 0건
 
 ## 하지 않을 것
 
@@ -122,3 +123,37 @@ Dart enum 은 값 별칭을 만들 수 없어서 `WEAPON_MIN = WIELD` 를 그대
 - `ResId` 의 문자열 태그·검증 태그 복원, `ItemConv`/`Weapon`/`Shield`/`Armor`/`Props` 변환 클래스(`ObjItem.cs:745-877`) — Dart 는 테이블에서 바로 `HDItem` 을 만든다.
 - 소환수 기술 power 수치 — 원작도 `ObjItem.cs:603-611` 이 TODO 로 남긴 미완성이다.
 - 상점·무게·제작·강화·선언적 콘텐츠 팩·저널 UI. 전부 범위 밖.
+
+## 구현 기록 (2026-09-03)
+
+### 산출물
+
+| 파일 | 내용 |
+|---|---|
+| `hadar2026_app/lib/domain/item/item_type.dart` | `HDItemType` 13종 + `HDEquipSlot` 6칸 |
+| `hadar2026_app/lib/domain/item/item_id.dart` | `HDItemId` — 3축 좌표 + `wire`/`fromWire`/`tryFromWire` |
+| `hadar2026_app/lib/domain/item/item.dart` | `HDItemParam`(`ItemSub`) + `HDItem`(`Item`) |
+| `hadar2026_app/test/domain/item/item_type_test.dart` | 17개 테스트 — ①~④ 전량 고정 |
+
+### 검증
+
+- `flutter test` — 96개 전량 통과 (기존 79 + 신규 17)
+- `flutter analyze --no-fatal-infos` — 77건, **기존과 동일**. `domain/item/` 발생 0건
+- 계층 위반 grep 2종 — 둘 다 빈 결과
+
+### 이슈 서술에서 벗어난 부분
+
+- **"import 0"** — 패키지 import 는 0줄이지만 `domain/item/` **형제 파일 간 상대 import 3줄**은 남는다
+  (`item_id.dart` → `item_type.dart`, `item.dart` → 둘 다). 타입을 3개 파일로 나누라는 요구와
+  동시에 만족시킬 수 없다. 계층 위반 grep 2종은 상대 import 를 잡지 않으므로 규칙 위반은 아니다.
+  `domain/party/player.dart` 도 `'../battle/enemy_data.dart'` 를 상대 import 한다.
+- **`HDEquipSlot` 을 `item_type.dart` 안에 넣었다** — 파일 4개가 아니라 3개다.
+  `equipSlot` getter 의 반환 타입이라 같은 파일에 두면 import 가 늘지 않는다.
+- **`HDItem` 생성자가 `const` 가 아니다** — `param.type == id.kind` 를 `assert` 로 강제했기 때문이다
+  (매개변수의 필드 읽기는 상수식이 아니다). 원작은 `res_id` 의 타입 바이트가 **거친 태그**(1~4)라
+  `param.item_type` 과 별개 정보였는데, 이 이슈가 타입 바이트를 `kind.wire` 로 정밀화하면서
+  둘이 완전 중복이 되었다. 중복을 남기되 **어긋나면 디버그에서 터지게** 했다.
+  `param` 은 `required` 다 — 아이템은 항상 자기 타입을 안다.
+- **`tryFromWire` 를 추가**했다. `fromWire` 는 잘못된 정수에 `ArgumentError` 를 던진다.
+  cm2 인자를 조용히 무시하는 것이 [P0-14](../P0-foundation/P0-14-silent-out-of-range.md) 가
+  기록한 실패 방식이라, [G1-08](G1-08-cm2-item-commands.md) 이 실패를 **선택**할 수 있게 두 갈래를 뒀다.

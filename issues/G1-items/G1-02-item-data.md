@@ -1,6 +1,6 @@
 # G1-02 아이템 실데이터를 확보한다 (`books.json` 은 무기5·방어구3 샘플뿐)
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: G1
 - **규모**: M
 - **선행**: [G1-01](G1-01-item-model-port.md)
@@ -102,12 +102,12 @@ const char* hadar::PcPlayer::getWeaponName(void) const { return resource::getWea
 
 ## 완료 판정 기준
 
-- [ ] `lib/domain/item/item_data.dart` 에 무기 10 · 방패 6 · 갑옷 6 이 있고, 이름이 `hd_res_string.cpp:38-88` 과 **문자 단위로 일치**한다 (갑옷 index 0 `"평상복"` 만 예외, 근거를 주석으로 남긴다)
-- [ ] 각 항의 `attaPow`/`ac` 가 `ObjItem.cs` 의 해당 항 수치와 일치하고, **출처 줄 번호가 주석**에 있다
-- [ ] 방패 `ac` 최대 5, 갑옷 `ac` 최대 5 — 파티 초기 `ac` 3~5(`party.dart:108,130`) 대역 안이다 (부록 H-2 정정판의 재척도 근거)
-- [ ] `HEAD` 11 · `LEG` 11 · `ORNAMENT` 11 이 `PROPS_LIST` 와 이름·`annex` 문자열까지 일치한다
-- [ ] `tools/convert_item.py` 를 다시 돌리면 같은 파일이 나온다 (멱등)
-- [ ] 테스트 추가: `hadar2026_app/test/domain/item/item_data_test.dart` —
+- [x] `lib/domain/item/item_data.dart` 에 무기 10 · 방패 6 · 갑옷 6 이 있고, 이름이 `hd_res_string.cpp:38-88` 과 **문자 단위로 일치**한다 (갑옷 index 0 `"평상복"` 만 예외, 근거를 주석으로 남긴다)
+- [x] 각 항의 `attaPow`/`ac` 가 `ObjItem.cs` 의 해당 항 수치와 일치하고, **출처 줄 번호가 주석**에 있다
+- [x] 방패 `ac` 최대 5, 갑옷 `ac` 최대 5 — 파티 초기 `ac` 3~5(`party.dart:108,130`) 대역 안이다 (부록 H-2 정정판의 재척도 근거)
+- [x] `HEAD` 11 · `LEG` 11 · `ORNAMENT` 11 이 `PROPS_LIST` 와 이름·`annex` 문자열까지 일치한다
+- [x] `tools/convert_item.py` 를 다시 돌리면 같은 파일이 나온다 (멱등)
+- [x] 테스트 추가: `hadar2026_app/test/domain/item/item_data_test.dart` —
       ① `HDItemId.wire` 중복 0건 (원작 `RegisterItem` 의 중복 검사(`ObjItem.cs:249-256`)를 테스트로 대체)
       ② 무기 10종 이름 배열을 **리터럴로** 고정 — 원작 표에서 이탈하면 실패
       ③ 모든 `HDItemType` 에 `index == 0` 항("맨손"/"없음"/"평상복")이 존재
@@ -122,3 +122,55 @@ const char* hadar::PcPlayer::getWeaponName(void) const { return resource::getWea
 - 등급(`grade`)·가격·상점 재고 — 상점은 범위 밖이다.
 - 아이콘·설명문(`etc_description`) — 800×480 콘솔 UI 에 그릴 자리가 없다([G1-07](G1-07-inventory-ui.md) 참조).
 - 무게·제작·강화·선언적 콘텐츠 팩·저널 UI.
+
+## 구현 기록 (2026-09-03)
+
+### 산출물
+
+| 파일 | 내용 |
+|---|---|
+| `tools/convert_item.py` | 추출기. 레포 상대 경로 사용, 멱등 |
+| `hadar2026_app/lib/domain/item/item_data.dart` | **생성물.** 이름 표 3종 + 카탈로그 61항 + 레거시 정수 → id 사상 3종 |
+| `hadar2026_app/test/domain/item/item_data_test.dart` | 13개 테스트 |
+
+카탈로그 61항 = 무기 16(빈손 7 + C++ 9) · 방패 6 · 갑옷 6 · 머리 11 · 다리 11 · 장식 11.
+
+### 검증
+
+- `flutter test` — 109개 전량 통과 (G1-01 후 96 + 신규 13)
+- `flutter analyze --no-fatal-infos` — 77건, **기존과 동일**
+- 멱등 — `convert_item.py` 를 두 번 돌려 md5 동일 확인
+
+### 이 이슈의 전제 하나가 틀렸다 → GROUND_TRUTH 부록 H-5 추가
+
+**"C++ 이름 + Unity 수치를 이름으로 매칭한다" 는 원작에 없던 결합을 새로 만드는 일이다.**
+C++ 은 `weapon` 정수를 **이름 인덱스로만** 쓰고 공격력은 `pow_of_weapon` 에 따로 넣는다
+(`hd_class_pc_player.h:60-66` · `.cpp:212,451`). 배포된 스크립트가 같은 `weapon=3` 에
+`pow_of_weapon` **100**(`L1_ep1d0.cm2:169`)과 **9**(`L1_ep1d2.cm2:148`)를 각각 넣는다.
+
+→ 결합 자체는 **Unity 포트의 판단을 채택하는 것**으로 진행했고, 그 사실을
+`item_data.dart` 헤더 주석·부록 H-5·아래에 명시했다. 파급 2가지:
+
+- **C++ 인덱스 순서는 성능 사다리가 아니다.** 0→9 로 늘어놓으면 `1,10,25,80,60,60,35,90,60,10`.
+- **[G1-05](G1-05-equipment-effect.md) 가 위 cm2 3곳과 충돌한다** — 장비가 스크립트의 `pow_of_weapon` 을 덮어쓴다.
+  어느 쪽을 이기게 할지 G1-05 가 정해야 한다.
+
+### 이슈 서술에서 벗어난 부분
+
+- **`화염검`(C++ 인덱스 9)은 Unity 무기 표에 대응 항이 없다.** 유일한 등장이 소환수 기술
+  `SUMMON_SINGLE:8`(`ObjItem.cs:453`)이고 그 표의 power 21개는 전부 원작이 TODO 로 남긴 자리표시 `10.0` 이다.
+  → `wield` index 8 에 넣고 `attaPow: 10` 을 그대로 옮겼다(**창작하지 않는다** 원칙).
+  생성물 주석·테스트가 "밸런스 값이 아님" 을 못박는다.
+  **"원작보다 약해졌다" 가 아니다 — 원작에 값이 애초에 없다.** C++ 은 무기별 power 표를 갖지 않고
+  (`pow_of_weapon` 은 스크립트가 따로 넣는다), 배포 스크립트가 `weapon` 에 9를 넣는 곳도 0건이라
+  화염검은 **현재 도달 불가**다. 값을 정하는 것은 이식이 아니라 창작이므로
+  [G1-10](G1-10-flame-sword-power.md) 으로 분리했다.
+  (초기 보고에서 화염검을 "최상위 무기" 라 적었으나 목록 순서가 성능 순이라는 근거는 없다 — 정정.)
+- **`맨손` 이 카탈로그에 5줄이다** — 원작이 무기 계열마다 index 0 항을 갖는다(`ObjItem.cs:388-392`).
+  완료 기준 ③("모든 `HDItemType` 에 index 0 항")과 "무기 10"(= C++ **이름** 10개)을 동시에 만족시키는 유일한 형태다.
+  `legacyWeaponNames` 가 10개, 카탈로그 무기 행이 16개다.
+- **`detail` 은 전량 0.** 원작은 `ResId` 타입 바이트가 거친 태그라 `HEAD=1`/`LEG=2` 를 detail 로 되찾아야 했지만,
+  `HDItemId.kind` 가 이미 정확하므로 중복이다. 향후 세분류용으로 비워 뒀다.
+- **`WEAPON_LIST` 는 51개가 아니라 59개**다(무기 38 + 소환수 기술 21). 추출기가 개수를 assert 로 고정한다.
+- `convert_enemy.py` 는 Windows 절대경로(`c:/_GIT_2026/...`)가 박혀 있어 이 환경에서 돌지 않는다.
+  `convert_item.py` 는 **스크립트 위치 기준 상대 경로**로 썼다.

@@ -1,6 +1,6 @@
 # P0-03 cm2 로드 실패가 엔진 상태를 누수시킨다
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: P0
 - **규모**: S
 - **선행**: 없음
@@ -91,13 +91,13 @@ if (cm2Path != null) {           // :137
 
 ## 완료 판정 기준
 
-- [ ] 없는 cm2 경로로 `HDScriptEngine().loadScript(...)` 를 부른 뒤
+- [x] 없는 cm2 경로로 `HDScriptEngine().loadScript(...)` 를 부른 뒤
       `HDScriptEngine().currentScript.isEmpty` 가 참이다 (직전 스크립트가 남지 않는다)
-- [ ] 같은 상황에서 `loadScript` 가 `false` 를 반환한다
-- [ ] cm2 로드가 실패한 맵에서는 `HDGameSession().currentMapCm2Path == null` 이다
+- [x] 같은 상황에서 `loadScript` 가 `false` 를 반환한다
+- [x] cm2 로드가 실패한 맵에서는 `HDGameSession().currentMapCm2Path == null` 이다
       → 디스패처가 cm2 티어를 고르지 않는다
-- [ ] `assets/startup.cm2` → `LORE_EP` 부팅 경로가 이전과 동일하게 동작한다
-- [ ] 테스트 추가: `hadar2026_app/test/application/script_engine_state_test.dart` —
+- [x] `assets/startup.cm2` → `LORE_EP` 부팅 경로가 이전과 동일하게 동작한다
+- [x] 테스트 추가: `hadar2026_app/test/application/script_engine_state_test.dart` —
       `map_navigation_test.dart` 의 `_FakeAssets` 페이크 바인딩 패턴을 그대로 써서
       ① 성공 로드 후 `currentScript` 가 채워짐 ② 실패 로드 후 `currentScript` 가 **비워짐** ③ 반환값 `false` 를 고정한다
       (`tearDown(HDHosts().reset)` 포함)
@@ -108,3 +108,26 @@ if (cm2Path != null) {           // :137
 - 맵 전환 시 cm2 전역을 **보존**하는 기능. 상태 통합은 [P1-03](../deferred/P1-03-worldstate-unification.md) 소관이다.
 - `currentMapCm2Path` 를 세이브에 넣기 — [P1-04](../deferred/P1-04-save-v2.md) 소관.
 - 디스패처 티어 우선순위 자체의 변경. [P1-11](../deferred/P1-11-dispatcher-tier0.md) 소관.
+
+## 구현 기록 (2026-09-03)
+
+이슈의 권고안 그대로. 다만 **`clearRuntimeState()` 만으로는 부족**했다.
+
+`ScriptEngine.clearRuntimeState()`(`cm2_script.dart:67-72`)는 `variables`·컨텍스트·`halted` 만
+비우고 **`currentScript` 는 그대로 둔다.** 완료 기준이 요구한 "직전 스크립트가 남지 않는다" 를
+만족시키려면 문장 목록도 비워야 해서, 어댑터 쪽에 `_resetLoadedScript()` 를 두고
+`_engine.currentScript = []` 까지 함께 처리했다.
+(`packages/cm2_script` 는 수정하지 않았다 — 공개 필드에 대입만 한다.)
+
+| 파일 | 변경 |
+|---|---|
+| `lib/application/scripting/script_engine_adapter.dart` | `loadScript` → `Future<bool>`, 실패 시 `_resetLoadedScript()` |
+| `lib/application/game_session.dart` | 로드 실패면 `currentMapCm2Path = null` — 디스패처가 cm2 티어를 고르지 않는다 |
+| `test/application/script_engine_state_test.dart` | **신규.** 3개 테스트 |
+
+호출부 4곳(`game_session.dart:75`·`:114`, `save_manager.dart:73`,
+`script_engine_adapter.dart:51`)은 전부 `await` 만 하므로 `bool` 반환은 호환 변경이다.
+그중 `game_session.dart:114` 만 반환값을 쓴다.
+
+- `flutter test` — 234개 전량 통과 · `flutter analyze` 77건(기존과 동일)
+- `dart analyze`/`dart test` in `packages/cm2_script` — 무변경, 전량 통과

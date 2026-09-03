@@ -1,6 +1,6 @@
 # G1-04 장비 슬롯 재편 — 정수 3칸 → 부위별 6칸
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: G1
 - **규모**: M
 - **선행**: [G1-01](G1-01-item-model-port.md)
@@ -77,13 +77,13 @@ cm2 가 `Player::GetAttribute('weapon')`·`ChangeAttribute('armor', 0)` 를 실�
 
 ## 완료 판정 기준
 
-- [ ] `HDEquipSlot` 6종이 `wire` 0~5 를 **명시 선언**하고 `ObjTypes.cs:81-85` 순서와 일치한다
-- [ ] `HDPlayer.equip` 이 6칸이고, `equipItem` 이 **부위가 맞지 않는 아이템을 거부**한다 (예: 갑옷을 `head` 에 못 넣음)
-- [ ] `hand` 슬롯의 맨손(`index == 0`)은 `unequip` 이 거부한다 (`GameEventEquipment.cs:122` 와 같은 동작)
-- [ ] `getAttribute('weapon'|'shield'|'armor')` 가 슬롯에서 유도한 index 를 반환한다 (cm2 기존 스크립트 무변경 동작)
-- [ ] `changeAttribute('armor', 0)` 이 `menace.cm2:48` 의 의도대로 갑옷을 벗기고, **범위 밖 값은 경고 로그**를 남긴다
-- [ ] `domain/` 계층 위반 grep 2종 통과
-- [ ] 테스트 추가: `hadar2026_app/test/domain/party/equipment_slots_test.dart` —
+- [x] `HDEquipSlot` 6종이 `wire` 0~5 를 **명시 선언**하고 `ObjTypes.cs:81-85` 순서와 일치한다
+- [x] `HDPlayer.equip` 이 6칸이고, `equipItem` 이 **부위가 맞지 않는 아이템을 거부**한다 (예: 갑옷을 `head` 에 못 넣음)
+- [x] `hand` 슬롯의 맨손(`index == 0`)은 `unequip` 이 거부한다 (`GameEventEquipment.cs:122` 와 같은 동작)
+- [x] `getAttribute('weapon'|'shield'|'armor')` 가 슬롯에서 유도한 index 를 반환한다 (cm2 기존 스크립트 무변경 동작)
+- [x] `changeAttribute('armor', 0)` 이 `menace.cm2:48` 의 의도대로 갑옷을 벗기고, **범위 밖 값은 경고 로그**를 남긴다
+- [x] `domain/` 계층 위반 grep 2종 통과
+- [x] 테스트 추가: `hadar2026_app/test/domain/party/equipment_slots_test.dart` —
       ① 6칸 `wire` 값을 리터럴로 고정
       ② 부위 불일치 장착이 `false` 이고 슬롯이 **변하지 않음**
       ③ 맨손 해제 거부
@@ -99,3 +99,32 @@ cm2 가 `Player::GetAttribute('weapon')`·`ChangeAttribute('armor', 0)` 를 실�
 - 원작 `Equiped` 클래스의 `added`/`IsValid()` 구조 — Dart 는 `HDItemId?` 의 `null` 이 곧 무효다.
 - 2도류(`HAND_SUB` 에 무기)·부위별 감쇠·속성 상성 — `HAND_SUB` 는 방패 전용으로 시작한다.
 - 상점·무게·제작·강화·선언적 콘텐츠 팩·저널 UI.
+
+## 구현 기록 (2026-09-03)
+
+### 산출물
+
+| 파일 | 변경 |
+|---|---|
+| `lib/domain/party/player.dart` | `equip` 6칸 + `equippedAt`/`equipItem`/`unequip`, 정수 3칸을 **유도값**으로 전환 |
+| `test/domain/party/equipment_slots_test.dart` | **신규.** 14개 테스트 |
+
+### 검증
+
+- `flutter test` — 143개 전량 통과
+- `flutter analyze --no-fatal-infos` — 77건, **기존과 동일**
+- 계층 위반 grep 2종 — 빈 결과
+
+### 이슈 서술에서 벗어난 부분
+
+- **`HDEquipSlot` 은 `equip_slot.dart` 가 아니라 `item_type.dart` 안에 있다.**
+  [G1-01](G1-01-item-model-port.md) 에서 `HDItemType.equipSlot` 의 반환 타입으로 이미 만들었고,
+  같은 파일에 두면 import 가 늘지 않는다. 완료 판정 기준(wire 0~5 명시·`ObjTypes.cs` 순서)은 그대로 충족한다.
+- **읽기 규칙이 이슈 서술과 다르다.** 이슈는 "해당 슬롯의 `HDItemId.index` 를 반환한다" 였지만
+  그러면 **왕복이 깨진다** — 레거시 2번(곤봉)은 `HDItemId(hit, index: 3)` 이라 쓰고 읽으면 3 이 나온다.
+  완료 기준 ④ 가 "왕복" 을 요구하므로 `legacyWeaponIds.indexOf(id)` 로 역인덱스를 쓴다.
+  레거시 10칸 **밖의** 아이템이 끼워져 있으면 cm2 가 "장비 없음(0)" 과 구분해야 하므로
+  `id.index` 를 주고 **왕복 불가를 경고 로그**로 남긴다.
+- **`getWeaponName()` 3종이 슬롯 → 카탈로그 경로로 바뀌었다**([G1-06](G1-06-item-names.md) 은 레거시 정수 경유였다).
+  레거시 10칸 밖의 아이템을 끼웠을 때 이름이 어긋나지 않게 하려면 이 경로여야 한다.
+  빈 칸의 표시 이름(`맨손`/`없음`/`평상복`)은 여전히 레거시 표 0번에서 온다.

@@ -1,6 +1,6 @@
 # P0-14 범위 밖 인자가 조용히 무시된다 (`Flag::Set(300)` 등)
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: P0
 - **규모**: S
 - **선행**: 없음
@@ -99,12 +99,12 @@ void _warnOutOfRange(String symbol, int idx, int max) {
 
 ## 완료 판정 기준
 
-- [ ] `Flag::Set(300)` · `Flag::Reset(300)` · `Variable::Set(300, 1)` · `Variable::Add(300)` 각각이
+- [x] `Flag::Set(300)` · `Flag::Reset(300)` · `Variable::Set(300, 1)` · `Variable::Add(300)` 각각이
       **경고 로그를 남긴다** (심볼명·인덱스·허용 범위 포함)
-- [ ] `Flag::IsSet(300)` · `Variable::Get(300)` 이 경고를 남기고, **반환값은 여전히 `0`** 이다
-- [ ] 범위 안 인자에서는 로그가 추가되지 않는다 (정상 경로 노이즈 없음)
-- [ ] `flutter analyze --no-fatal-infos` · `flutter test` 통과
-- [ ] 테스트 추가: `hadar2026_app/test/application/scripting/out_of_range_args_test.dart` —
+- [x] `Flag::IsSet(300)` · `Variable::Get(300)` 이 경고를 남기고, **반환값은 여전히 `0`** 이다
+- [x] 범위 안 인자에서는 로그가 추가되지 않는다 (정상 경로 노이즈 없음)
+- [x] `flutter analyze --no-fatal-infos` · `flutter test` 통과
+- [x] 테스트 추가: `hadar2026_app/test/application/scripting/out_of_range_args_test.dart` —
       `map_navigation_test.dart` 의 페이크 바인딩 패턴으로 엔진을 구동하고,
       ① 범위 밖 `Flag::Set` 이 `gameOption.flags` 를 바꾸지 않음 ② 범위 안 인자는 정상 동작함을 고정한다.
       로그 문자열 자체는 고정하지 않는다 (구현 세부에 테스트를 묶지 않기 위해)
@@ -117,3 +117,29 @@ void _warnOutOfRange(String symbol, int idx, int max) {
 - `Battle::RegisterEnemy(0)` — [P0-15](P0-15-enemy-id-zero.md) 소관.
 - 정수 인덱스를 이름 키로 바꾸기 — [D-04](../../blueprint/_meta/DECISIONS.md) · [P1-03](../deferred/P1-03-worldstate-unification.md) 소관.
 - 정적 검증(`validate`) 도입 — [P1-12](../deferred/P1-12-content-cli.md) 소관.
+
+## 구현 기록 (2026-09-03)
+
+커맨드 4종 + 함수 2종에 `else` 와 공통 헬퍼 `_warnOutOfRange` 를 넣었다.
+
+| 심볼 | 종류 | 동작 |
+|---|---|---|
+| `Flag::Set` · `Flag::Reset` | 커맨드 | 경고 후 무시 |
+| `Variable::Set` · `Variable::Add` | 커맨드 | 경고 후 무시 |
+| `Flag::IsSet` · `Variable::Get` | 함수 | 경고 후 **반환값은 여전히 `0`** |
+
+읽기 함수의 반환값은 바꾸지 않았다 — 바꾸면 기존 cm2 분기가 뒤집힌다(이슈 서술 그대로).
+
+출력 예: `ScriptEngine: [WARN] Flag::Set(300) is outside [0, 256) — ignored`
+
+- 테스트: `test/application/scripting/out_of_range_args_test.dart` (6개).
+  로그 **문자열은 고정하지 않고** 동작만 고정했다 — 범위 밖 쓰기가 상태를 바꾸지 않을 것,
+  범위 안은 그대로 동작할 것, 경계값(`maxFlags - 1` 통과 / `maxFlags` 거부).
+- `flutter test` — 234개 전량 통과 · `flutter analyze` 77건(기존과 동일)
+
+### 이슈 서술에서 벗어난 부분
+
+- **`print` 가 아니라 `debugPrint`** 를 썼다. 이슈는 파일 관례를 이유로 `print` 를 권했지만,
+  `print` 는 `avoid_print` info 를 6건 늘린다. 기존 info 77건은 CI 의 기준선이라
+  늘리지 않는 쪽을 골랐다. 데스크톱 저작 루프에서 보이는 것은 동일하다.
+  ([G1-08](../G1-items/G1-08-cm2-item-commands.md) 도 같은 판단을 했다.)

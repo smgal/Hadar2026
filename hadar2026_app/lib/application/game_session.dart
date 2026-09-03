@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../domain/game_option.dart';
+import '../domain/lighting/light_areas.dart';
 import '../domain/map/map_model.dart';
 import '../domain/party/party.dart';
 import '../hd_config.dart';
@@ -38,6 +39,11 @@ class HDGameSession extends ChangeNotifier {
 
   /// Current map data; null until the first map is loaded.
   MapModel? map;
+
+  /// Rectangles cm2 has forced to stay lit on the current map
+  /// (`Map::SetLightArea` / `Map::ResetLightArea`). Per-map state —
+  /// cleared on every transition, just below.
+  final HDLightAreas lightAreas = HDLightAreas();
 
   /// Last load error message, surfaced by `main.dart` when `map` is null.
   String? errorMessage;
@@ -93,6 +99,7 @@ class HDGameSession extends ChangeNotifier {
     // callers via `HDWindowManager().clear()` since the stack is an
     // overlay concern, not session state.)
     HDBattle().init();
+    lightAreas.clear();
 
     if (bundle.json != null) {
       setNewMap(bundle.json!);
@@ -104,7 +111,14 @@ class HDGameSession extends ChangeNotifier {
       // script, not whatever was previously loaded. Note: this clears
       // `ScriptEngine.variables`/contexts — globals are not preserved
       // across map transitions in the new model.
-      await HDScriptEngine().loadScript(_resolveCm2Asset(bundle.cm2Path!));
+      final loaded =
+          await HDScriptEngine().loadScript(_resolveCm2Asset(bundle.cm2Path!));
+      if (!loaded) {
+        // Nothing is loaded, so the dispatcher must not pick the cm2
+        // tier for this map — otherwise it would run whatever script
+        // happened to be resident (GROUND_TRUTH A-2).
+        currentMapCm2Path = null;
+      }
     }
 
     // Swap the native map script in lockstep with the map transition.

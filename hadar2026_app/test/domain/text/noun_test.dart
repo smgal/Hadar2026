@@ -78,5 +78,43 @@ void main() {
       expect(HDNoun.empty.isEmpty, true);
       expect(HDNoun.empty, equals(HDNoun('')));
     });
+    group('withJosa (으로/로)', () {
+      // 원작은 이 조사를 이름 표에 같이 담아 뒀다
+      // (hd_res_string.cpp:25,32 sz_josa_with). battle.dart 가 들고 있던
+      // _getJosaRo 를 여기로 흡수했다.
+      test('ㄹ 받침은 종성이 있어도 로 — 다른 조사와 갈리는 유일한 규칙', () {
+        expect(HDNoun('활').withJosa, '로');
+        expect(HDNoun('칼').withJosa, '로');
+        expect(HDNoun('연필').withJosa, '로');
+        // 같은 명사의 다른 조사는 종성 규칙 그대로다.
+        expect(HDNoun('활').sub2, '이');
+      });
+
+      test('ㄹ 외의 종성은 으로', () {
+        expect(HDNoun('장검').withJosa, '으로');
+        expect(HDNoun('삼지창').withJosa, '으로');
+        expect(HDNoun('곤봉').withJosa, '으로');
+        expect(HDNoun('도끼창').withJosa, '으로');
+      });
+
+      test('종성이 없으면 로', () {
+        expect(HDNoun('철퇴').withJosa, '로');
+        expect(HDNoun('단도').withJosa, '로');
+        expect(HDNoun('블로우 파이프').withJosa, '로');
+        expect(HDNoun('맨손').withJosa, '으로'); // ㄴ 받침
+      });
+
+      test('비한글은 다른 조사와 같은 영어 어미 휴리스틱을 쓴다', () {
+        // _getJosaRo 는 비한글을 전부 '로' 로 처리했다. HDNoun 은 나머지
+        // 조사와 같은 규칙을 쓰므로 자음으로 끝나면 '으로' 다.
+        expect(HDNoun('Orc').withJosa, '으로');
+        expect(HDNoun('Hydra').withJosa, '로');
+      });
+
+      test('빈 명사는 조사도 비어 있다', () {
+        expect(HDNoun('').withJosa, '');
+        expect(HDNoun.empty.withJosa, '');
+      });
+    });
   });
 }

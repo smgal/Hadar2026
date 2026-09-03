@@ -1,6 +1,6 @@
 # G2-02 미등록 cm2 심볼 6종·9곳을 정리한다 (전부 **등록**이 답이다)
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: G2
 - **규모**: M
 - **선행**: 없음
@@ -111,19 +111,19 @@ if (Not(flag_event_hit))
 
 ## 완료 판정 기준
 
-- [ ] 6종이 전부 등록되었고, **`Party::CheckIf` 만 `registerFunction`** 쪽에 있다 (나머지 5종은 커맨드)
-- [ ] `grep -c "e.registerCommand('"` = **45**, `grep -c "e.registerFunction('"` = **13**
-- [ ] `grep -rn` 으로 미등록 심볼 호출이 **0곳**임을 재확인했다 (위 9곳 전량이 해소)
-- [ ] `L1_ep1d2.cm2:200` 시나리오: 부양 마법이 걸린 상태에서 절벽 칸에 들어가면 **떨어지지 않는다**
-- [ ] `L1_ep1d4.cm2:45,51` 시나리오: 마법 횃불 상태에 따라 **두 분기가 각각 한 번씩만** 성립한다
-- [ ] `L1_ep1d0.cm2:441` 의 `GameOver()` 가 실제로 게임 종료 흐름을 탄다 (`exitCode` 3 = 강제)
-- [ ] `Player::ApplyAttribute(1)` 이 1번 인물의 hp/sp/esp 를 최대치로 채운다 (1-base 확인)
-- [ ] `Player::ReviseAttribute(6)` 이 6번 인물에 적용되고, `menace.cm2:48-54` 블록이 끝난 뒤 `hp <= maxHp` 다
-- [ ] `Map::SetLightArea`/`ResetLightArea` 가 영역을 밝히고 되돌린다 (`L1_ep1d4.cm2:73,480` 왕복)
-- [ ] 범위 밖 인자 4계열(플레이어 인덱스 · CheckIf 인덱스 · 좌표 · 음수)이 전부 **경고 로그**를 남긴다
-- [ ] `blueprint/_meta/GROUND_TRUTH.md` §9 · 부록 F-0 · M-3 이 갱신되었다
-- [ ] `application/` 계층 위반 grep 2종 통과
-- [ ] 테스트 추가: `hadar2026_app/test/application/cm2_unregistered_symbols_test.dart` —
+- [x] 6종이 전부 등록되었고, **`Party::CheckIf` 만 `registerFunction`** 쪽에 있다 (나머지 5종은 커맨드)
+- [x] `grep -c "e.registerCommand('"` = **45**, `grep -c "e.registerFunction('"` = **13**
+- [x] `grep -rn` 으로 미등록 심볼 호출이 **0곳**임을 재확인했다 (위 9곳 전량이 해소)
+- [x] `L1_ep1d2.cm2:200` 시나리오: 부양 마법이 걸린 상태에서 절벽 칸에 들어가면 **떨어지지 않는다**
+- [x] `L1_ep1d4.cm2:45,51` 시나리오: 마법 횃불 상태에 따라 **두 분기가 각각 한 번씩만** 성립한다
+- [x] `L1_ep1d0.cm2:441` 의 `GameOver()` 가 실제로 게임 종료 흐름을 탄다 (`exitCode` 3 = 강제)
+- [x] `Player::ApplyAttribute(1)` 이 1번 인물의 hp/sp/esp 를 최대치로 채운다 (1-base 확인)
+- [x] `Player::ReviseAttribute(6)` 이 6번 인물에 적용되고, `menace.cm2:48-54` 블록이 끝난 뒤 `hp <= maxHp` 다
+- [x] `Map::SetLightArea`/`ResetLightArea` 가 영역을 밝히고 되돌린다 (`L1_ep1d4.cm2:73,480` 왕복)
+- [x] 범위 밖 인자 4계열(플레이어 인덱스 · CheckIf 인덱스 · 좌표 · 음수)이 전부 **경고 로그**를 남긴다
+- [x] `blueprint/_meta/GROUND_TRUTH.md` §9 · 부록 F-0 · M-3 이 갱신되었다
+- [x] `application/` 계층 위반 grep 2종 통과
+- [x] 테스트 추가: `hadar2026_app/test/application/cm2_unregistered_symbols_test.dart` —
       `test/application/map_navigation_test.dart:13-28` 의 페이크 바인딩 패턴을 따른다.
       ① `Party::CheckIf(1)` 이 `levitation > 0` 일 때 **1**, 0 일 때 **0** 을 반환
       ② `L1_ep1d2.cm2:199-202` 와 같은 형태의 cm2 조각을 실행해 **부양 중에는 `WarpPrevPos` 가 호출되지 않음**을 고정 (이 이슈의 핵심 회귀 테스트)
@@ -141,3 +141,44 @@ if (Not(flag_event_hit))
 - **`processGameOver` 의 `dart:io`/`exit(0)`** — [P0-16](../P0-foundation/P0-16-dart-io-and-exit.md). `kIsWeb` 가드가 이미 있어 웹 빌드는 성공한다(부록 B-4 정정).
 - 플래그 레지스트리 — [S2-01](../S2-enablers/S2-01-flag-registry.md). 부록 M-2(생 숫자 40건)·M-3(인덱스 충돌 10·31·50)은 그쪽 소관이다.
 - 밸런스 재설계·상점·무게·제작·강화·선언적 콘텐츠 팩·저널 UI.
+
+## 구현 기록 (2026-09-03)
+
+6종 전부 **등록**했다 — 원작에 구현이 다 있어 "스크립트에서 제거" 를 고를 심볼이 없었다.
+
+| 심볼 | 종류 | Dart |
+|---|---|---|
+| `Party::CheckIf(n)` | **함수** | `PartyBuffs` 5종을 `const.cm2:42-46` 순서 그대로 |
+| `GameOver()` | 커맨드 | `HDMenuFlows().processGameOver(3)` = `EXITCODE_BY_FORCE` |
+| `Player::ApplyAttribute(i)` | 커맨드 | hp/sp/esp 를 최대치로 **채움** (1-base) |
+| `Player::ReviseAttribute(i)` | 커맨드 | hp/sp/esp 를 최대치로 **클램프** (1-base) |
+| `Map::SetLightArea(x1,y1,x2,y2)` | 커맨드 | `HDLightAreas.set` |
+| `Map::ResetLightArea(...)` | 커맨드 | `HDLightAreas.reset` |
+
+### 산출물
+
+| 파일 | 변경 |
+|---|---|
+| `lib/domain/lighting/light_areas.dart` | **신설.** 밝힌 사각형 저장소 |
+| `lib/application/game_session.dart` | `lightAreas` 보유 + **맵 전환 시 초기화** |
+| `lib/application/scripting/script_engine_adapter.dart` | 6종 등록 + `_playerArg`·`_rectArg` 검증기 |
+| `lib/presentation/panels/world_map_renderer.dart` | 밝힌 칸은 시야 반경과 무관하게 `lightBit = 15` |
+| `test/application/cm2_unregistered_symbols_test.dart` | **신규.** 11개 테스트 |
+
+### 검증
+
+- `grep -c "e.registerCommand('"` = **47** · `grep -c "e.registerFunction('"` = **14**
+- `flutter test` — 225개 전량 통과 · `flutter analyze` 77건(기존과 동일) · 계층 grep 2종 빈 결과
+- 핵심 회귀 테스트: **부양 마법이 걸린 상태에서 `Not(Party::CheckIf(1))` 분기가 실행되지 않음**
+- 마법 횃불 짝 분기가 상태에 따라 **각각 한 번씩만** 성립함
+- 범위 밖 인자 4계열(인물 인덱스 · CheckIf 인덱스 · 좌표 개수 · 음수 좌표)이 전부 경고 로그
+- `GROUND_TRUTH` §9 · 부록 F-0 · M-3 갱신 (M-3 은 **[해소됨]** 처리하고 증상 기록은 남김)
+
+### 이슈 서술에서 벗어난 부분
+
+- **`presentation/` 을 한 곳 건드렸다** — `world_map_renderer.dart` 가 `lightAreas.isLit` 를 묻는다.
+  밝힘 상태를 화면에 반영하려면 렌더러가 읽어야 하고, 이 이슈는 presentation 변경을 금지하지 않았다.
+- **`Map::SetLightArea` 는 사각형을 통째로 저장한다** — 원작은 per-tile(`map::setLight`)이지만
+  cm2 인자가 4개(영역)이고 `Reset` 이 같은 사각형을 통째로 되돌린다(`L1_ep1d4.cm2:73` ↔ `:480`).
+  타일 비트맵 대신 사각형 목록을 두면 맵 크기와 무관하고 초기화가 싸다.
+  겹친 사각형에 구멍을 내는 경우는 원작에 없어 지원하지 않는다(주석에 명시).

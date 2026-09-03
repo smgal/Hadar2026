@@ -1,0 +1,197 @@
+####### 아이템 상수 ########
+#
+# GENERATED — tools/convert_item.py 가 만든다. 손으로 고치지 말 것.
+# 형식은 flag4ep1.cm2 를 따른다. 최상위 include 로 읽을 것.
+#
+# 값은 HDItemId.wire = kind << 16 | detail << 8 | index 다
+# (ResId 하위 24비트와 같은 배치). 생 숫자를 쓰지 말고 이 이름을
+# 쓸 것 — 이름을 우회하면 충돌을 기계가 잡을 수 없다(부록 M-2).
+
+# 무기
+variable(ITEM_WIELD_0)
+ITEM_WIELD_0.assign(0)   # 맨손
+
+variable(ITEM_CHOP_0)
+ITEM_CHOP_0.assign(65536)   # 맨손
+
+variable(ITEM_STAB_0)
+ITEM_STAB_0.assign(131072)   # 맨손
+
+variable(ITEM_HIT_0)
+ITEM_HIT_0.assign(196608)   # 맨손
+
+variable(ITEM_SHOOT_0)
+ITEM_SHOOT_0.assign(262144)   # 맨손
+
+variable(ITEM_SUMMON_SINGLE_0)
+ITEM_SUMMON_SINGLE_0.assign(327680)   # (없음)
+
+variable(ITEM_SUMMON_MULTI_0)
+ITEM_SUMMON_MULTI_0.assign(393216)   # (없음)
+
+variable(ITEM_STAB_1)
+ITEM_STAB_1.assign(131073)   # 단도
+
+variable(ITEM_HIT_3)
+ITEM_HIT_3.assign(196611)   # 곤봉
+
+variable(ITEM_CHOP_7)
+ITEM_CHOP_7.assign(65543)   # 미늘창
+
+variable(ITEM_WIELD_6)
+ITEM_WIELD_6.assign(6)   # 장검
+
+variable(ITEM_CHOP_5)
+ITEM_CHOP_5.assign(65541)   # 철퇴
+
+variable(ITEM_STAB_2)
+ITEM_STAB_2.assign(131074)   # 기병창
+
+variable(ITEM_STAB_7)
+ITEM_STAB_7.assign(131079)   # 도끼창
+
+variable(ITEM_STAB_5)
+ITEM_STAB_5.assign(131077)   # 삼지창
+
+variable(ITEM_WIELD_8)
+ITEM_WIELD_8.assign(8)   # 화염검
+
+# 방패
+variable(ITEM_SHIELD_0)
+ITEM_SHIELD_0.assign(458752)   # 없음
+
+variable(ITEM_SHIELD_1)
+ITEM_SHIELD_1.assign(458753)   # 가죽 방패
+
+variable(ITEM_SHIELD_2)
+ITEM_SHIELD_2.assign(458754)   # 청동 방패
+
+variable(ITEM_SHIELD_3)
+ITEM_SHIELD_3.assign(458755)   # 강철 방패
+
+variable(ITEM_SHIELD_4)
+ITEM_SHIELD_4.assign(458756)   # 은제 방패
+
+variable(ITEM_SHIELD_5)
+ITEM_SHIELD_5.assign(458757)   # 금제 방패
+
+# 갑옷
+variable(ITEM_ARMOR_0)
+ITEM_ARMOR_0.assign(524288)   # 평상복
+
+variable(ITEM_ARMOR_1)
+ITEM_ARMOR_1.assign(524289)   # 가죽 갑옷
+
+variable(ITEM_ARMOR_2)
+ITEM_ARMOR_2.assign(524290)   # 청동 갑옷
+
+variable(ITEM_ARMOR_3)
+ITEM_ARMOR_3.assign(524291)   # 강철 갑옷
+
+variable(ITEM_ARMOR_4)
+ITEM_ARMOR_4.assign(524292)   # 은제 갑옷
+
+variable(ITEM_ARMOR_5)
+ITEM_ARMOR_5.assign(524293)   # 금제 갑옷
+
+# 머리
+variable(ITEM_HEAD_0)
+ITEM_HEAD_0.assign(589824)   # 없음
+
+variable(ITEM_HEAD_1)
+ITEM_HEAD_1.assign(589825)   # 두건
+
+variable(ITEM_HEAD_2)
+ITEM_HEAD_2.assign(589826)   # 사냥 모자
+
+variable(ITEM_HEAD_3)
+ITEM_HEAD_3.assign(589827)   # 반쪽 가면
+
+variable(ITEM_HEAD_4)
+ITEM_HEAD_4.assign(589828)   # 중절모
+
+variable(ITEM_HEAD_5)
+ITEM_HEAD_5.assign(589829)   # 가죽캡
+
+variable(ITEM_HEAD_6)
+ITEM_HEAD_6.assign(589830)   # 가죽 투구
+
+variable(ITEM_HEAD_7)
+ITEM_HEAD_7.assign(589831)   # 멋쟁이 모자
+
+variable(ITEM_HEAD_8)
+ITEM_HEAD_8.assign(589832)   # 청동 투구
+
+variable(ITEM_HEAD_9)
+ITEM_HEAD_9.assign(589833)   # 판금 투구
+
+variable(ITEM_HEAD_10)
+ITEM_HEAD_10.assign(589834)   # 황금 왕관
+
+# 다리
+variable(ITEM_LEG_0)
+ITEM_LEG_0.assign(655360)   # 없음
+
+variable(ITEM_LEG_1)
+ITEM_LEG_1.assign(655361)   # 헝겊 신발
+
+variable(ITEM_LEG_2)
+ITEM_LEG_2.assign(655362)   # 가죽 신발
+
+variable(ITEM_LEG_3)
+ITEM_LEG_3.assign(655363)   # 망사 스타킹
+
+variable(ITEM_LEG_4)
+ITEM_LEG_4.assign(655364)   # 날개 신발
+
+variable(ITEM_LEG_5)
+ITEM_LEG_5.assign(655365)   # 미늘 부츠
+
+variable(ITEM_LEG_6)
+ITEM_LEG_6.assign(655366)   # 다리6
+
+variable(ITEM_LEG_7)
+ITEM_LEG_7.assign(655367)   # 다리7
+
+variable(ITEM_LEG_8)
+ITEM_LEG_8.assign(655368)   # 다리8
+
+variable(ITEM_LEG_9)
+ITEM_LEG_9.assign(655369)   # 다리9
+
+variable(ITEM_LEG_10)
+ITEM_LEG_10.assign(655370)   # 다리A
+
+# 장식
+variable(ITEM_ORNAMENT_0)
+ITEM_ORNAMENT_0.assign(720896)   # 없음
+
+variable(ITEM_ORNAMENT_1)
+ITEM_ORNAMENT_1.assign(720897)   # 멋쟁이 혁띠
+
+variable(ITEM_ORNAMENT_2)
+ITEM_ORNAMENT_2.assign(720898)   # 민무늬 반지
+
+variable(ITEM_ORNAMENT_3)
+ITEM_ORNAMENT_3.assign(720899)   # 은 가락지
+
+variable(ITEM_ORNAMENT_4)
+ITEM_ORNAMENT_4.assign(720900)   # 루비 목걸이
+
+variable(ITEM_ORNAMENT_5)
+ITEM_ORNAMENT_5.assign(720901)   # 가짜 훈장
+
+variable(ITEM_ORNAMENT_6)
+ITEM_ORNAMENT_6.assign(720902)   # 장식6
+
+variable(ITEM_ORNAMENT_7)
+ITEM_ORNAMENT_7.assign(720903)   # 장식7
+
+variable(ITEM_ORNAMENT_8)
+ITEM_ORNAMENT_8.assign(720904)   # 장식8
+
+variable(ITEM_ORNAMENT_9)
+ITEM_ORNAMENT_9.assign(720905)   # 장식9
+
+variable(ITEM_ORNAMENT_10)
+ITEM_ORNAMENT_10.assign(720906)   # 장식A

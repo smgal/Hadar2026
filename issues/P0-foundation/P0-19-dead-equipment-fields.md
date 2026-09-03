@@ -1,6 +1,6 @@
 # P0-19 `powOfShield`/`powOfArmor` 가 죽은 필드임을 코드에 명시한다
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: P0
 - **규모**: S
 - **선행**: 없음
@@ -97,12 +97,12 @@ damage -= (t.ac * t.level * (Random().nextInt(10) + 1)) ~/ 10;    // :441  적 �
 
 ## 완료 판정 기준
 
-- [ ] `powOfShield`·`powOfArmor` 선언에 **"전투식에서 읽지 않는다"** 는 사실과 부록 H-1 참조가 적혀 있다
-- [ ] `powOfWeapon` 선언에 **"battle.dart:439 가 읽는다"** 는 사실이 적혀 있다 (초판 오류 재발 방지)
-- [ ] `Player::ChangeAttribute('pow_of_shield'|'pow_of_armor')` 호출이 **경고 로그를 남긴다**
-- [ ] 필드가 삭제되지 않았고 직렬화 왕복이 그대로 동작한다 (기존 세이브 호환)
-- [ ] `flutter analyze --no-fatal-infos` 통과, 새 경고/에러 0건
-- [ ] 테스트 추가: `hadar2026_app/test/domain/party/equipment_fields_test.dart` —
+- [x] `powOfShield`·`powOfArmor` 선언에 **"전투식에서 읽지 않는다"** 는 사실과 부록 H-1 참조가 적혀 있다
+- [x] `powOfWeapon` 선언에 **"battle.dart:439 가 읽는다"** 는 사실이 적혀 있다 (초판 오류 재발 방지)
+- [x] `Player::ChangeAttribute('pow_of_shield'|'pow_of_armor')` 호출이 **경고 로그를 남긴다**
+- [x] 필드가 삭제되지 않았고 직렬화 왕복이 그대로 동작한다 (기존 세이브 호환)
+- [x] `flutter analyze --no-fatal-infos` 통과, 새 경고/에러 0건
+- [x] 테스트 추가: `hadar2026_app/test/domain/party/equipment_fields_test.dart` —
       ① `powOfWeapon` 을 바꾸면 `getAttribute('pow_of_weapon')` 이 따라 변함
       ② `powOfShield`/`powOfArmor` 를 바꿔도 **`ac` 가 변하지 않음**(= 방어에 무관)
       ③ `toJson`/`fromJson` 왕복에서 3필드가 보존됨을 고정한다.
@@ -117,3 +117,37 @@ damage -= (t.ac * t.level * (Random().nextInt(10) + 1)) ~/ 10;    // :441  적 �
   재척도 근거는 "기존 파티 스탯 대역(초기 `ac` 3~5)과 맞추기" 다. [BP-42](../../blueprint/42_item_and_inventory.md) 소관.
 - `books.json` 을 앱에서 로드하기 (현재 참조 0건, 부록 §6) · 필드 삭제나 이름 변경.
 - `HDPlayer.weapon` ↔ `books.json#weapon[].id` 매핑 — [BP-42](../../blueprint/42_item_and_inventory.md) 마이그레이션 소관.
+
+## 구현 기록 (2026-09-03)
+
+### 대부분은 [G1-05](../G1-items/G1-05-equipment-effect.md) 가 이미 했다
+
+이 이슈는 "배선은 P1-06 소관이니 주석과 로그만" 이라는 전제로 쓰였는데,
+**배선이 P1-06(보류 노선)이 아니라 G1-05(원작 이식 노선)로 먼저 일어났다.**
+그래서 여기서 남은 일은 주석 정밀화와 테스트뿐이었다.
+
+| 항목 | 어디서 |
+|---|---|
+| `powOfShield`/`powOfArmor` 선언에 "읽는 곳 0곳" + 부록 H-1 참조 | G1-05 · 이 이슈가 문구 보강 |
+| `powOfWeapon` 선언에 "`battle.dart:429` 가 읽는다" + **초판 오류 재발 방지** 문구 | 이 이슈 |
+| `ac` 선언에 "방어의 유일한 축" | 이 이슈 |
+| `ChangeAttribute('pow_of_shield'\|'pow_of_armor')` 경고 로그 | G1-05 · 이 이슈가 **메시지를 분리** |
+| 필드 유지 · 직렬화 왕복 | G1-05 · [G1-09](../G1-items/G1-09-item-save.md) |
+| 테스트 `test/domain/party/equipment_fields_test.dart` | 이 이슈 (6개) |
+
+경고 메시지를 둘로 나눈 이유: `pow_of_weapon` 은 **장비에서 유도되어** 무시되는 것이고,
+`pow_of_shield`/`pow_of_armor` 는 **애초에 읽는 곳이 없어서** 무시되는 것이다. 원인이 다르다.
+
+### 이슈 서술에서 벗어난 부분
+
+- **테스트 ① 의 형태가 바뀌었다.** 이슈는 "`powOfWeapon` 을 바꾸면 `getAttribute` 가 따라 변함" 이었지만
+  G1-05 가 `powOfWeapon` 을 setter 없는 파생 getter로 만들어 **대입 경로가 사라졌다.**
+  대신 "무기를 바꾸면 따라 변함" 으로 고정한다 — 이슈가 예고한
+  *"이 테스트는 배선되면 갱신되어야 한다"* 가 실제로 일어난 것이다.
+- 선택지 A(주석) 채택. B(`@Deprecated`)는 직렬화 등 정당한 사용처까지 시끄러워지고,
+  C(삭제)는 세이브 호환이 깨진다 — 이슈의 판단 그대로다.
+
+### 검증
+
+- `flutter test` — 183개 전량 통과
+- `flutter analyze --no-fatal-infos` — 77건, **기존과 동일** (새 경고 0)

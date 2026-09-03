@@ -1,6 +1,6 @@
 # P0-15 적 id 0(`Orc`)이 영구 소환 불가 — 테이블 75 중 실사용 74
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: P0
 - **규모**: S
 - **선행**: 없음
@@ -104,10 +104,10 @@ e.registerCommand('Battle::RegisterEnemy', (stmt, eng) async {
 
 ## 완료 판정 기준
 
-- [ ] `registerEnemy` 에 범위 밖 인자를 넘기면 **경고 로그가 남는다** (침묵하지 않는다)
-- [ ] 채택안(A/C)이 코드 주석으로 명시되어 있다 — 왜 그 경계인지 읽고 알 수 있다
-- [ ] A 채택 시 `registerEnemy(0)` 후 `HDBattle().enemies.length == 1` 이고 이름이 `Orc` 다
-- [ ] 테스트 추가: `hadar2026_app/test/domain/battle/enemy_table_test.dart` —
+- [x] `registerEnemy` 에 범위 밖 인자를 넘기면 **경고 로그가 남는다** (침묵하지 않는다)
+- [x] 채택안(A/C)이 코드 주석으로 명시되어 있다 — 왜 그 경계인지 읽고 알 수 있다
+- [x] A 채택 시 `registerEnemy(0)` 후 `HDBattle().enemies.length == 1` 이고 이름이 `Orc` 다
+- [x] 테스트 추가: `hadar2026_app/test/domain/battle/enemy_table_test.dart` —
       ① `enemyTable.length == 75` ② `enemyTable[0].name == 'Orc'` ③ 모든 엔트리의 `id` 가
       배열 인덱스와 같음(id 와 인덱스의 동일성이 `battle.dart:244` 의 경험치 식 전제다)을 고정한다
 
@@ -117,3 +117,23 @@ e.registerCommand('Battle::RegisterEnemy', (stmt, eng) async {
 - 적 데이터를 콘텐츠 팩으로 외부화 — [BP-22](../../blueprint/22_world_bible_model.md)·[P1-01](../deferred/P1-01-content-core-package.md) 소관.
 - 경험치 식(`battle.dart:244`) · 인카운터 테이블 변경.
 - `Flag::Set` 계열의 범위 침묵 — [P0-14](P0-14-silent-out-of-range.md) 소관.
+
+## 구현 기록 (2026-09-03)
+
+**권고안 D**(A + 침묵 제거)를 채택했다.
+
+```diff
+- if (enemyTableId <= 0 || enemyTableId >= enemyTable.length) return;
++ if (enemyTableId < 0 || enemyTableId >= enemyTable.length) {
++   debugPrint('HDBattle: [WARN] registerEnemy($enemyTableId) is outside '
++              '[0, ${enemyTable.length}) — ignored');
++   return;
++ }
+```
+
+- 실사용 인자 재확인 — `1, 3, 5, 7, 26, 69, 71` 과 주석 처리된 `75`. **0 은 0건**이라 센티넬 용도가 없다.
+- 경계를 고른 이유를 코드 주석에 남겼다.
+- 테스트: `test/domain/battle/enemy_table_test.dart` — ① 75행 ② `enemyTable[0].name == 'Orc'`
+  ③ 모든 행의 `id` 가 인덱스와 같음 ④ `registerEnemy(0)` 이 실제로 등록됨 ⑤ 범위 밖은 거부
+- `GROUND_TRUTH` 부록 B-1 을 **[해소됨]** 으로 갱신하고,
+  **BP-21/22/23/42 의 "74종" 서술을 75종으로 고쳐야 함**을 그 항목에 적어 뒀다.

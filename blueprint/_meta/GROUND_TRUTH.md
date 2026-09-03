@@ -152,10 +152,15 @@ Select::Run, LoadScript, Map::LoadFromFile, Battle::Init, Battle::RegisterEnemy,
 Map::SetStartPos, Map::ChangeTile, WarpPrevPos, Flag::Set, Flag::Reset, Variable::Set, Variable::Add,
 Player::ChangeAttribute, Enemy::ChangeAttribute, Player::AssignFromEnemyData, Party::PosX, Party::PosY,
 Party::PlusGold, Party::Move, Map::SetType, Map::SetEncounter, DisplayMap, DisplayStatus, Wait, TextAlign,
-Tile::CopyTile, Tile::CopyToDefaultTile, Tile::CopyToDefaultSprite`
+Tile::CopyTile, Tile::CopyToDefaultTile, Tile::CopyToDefaultSprite,
+Item::Give, Item::Take,                                    ← 2026-09-03 G1-08
+GameOver, Player::ApplyAttribute, Player::ReviseAttribute,
+Map::SetLightArea, Map::ResetLightArea`                    ← 2026-09-03 G2-02
 
 Hadar 등록 함수: `Flag::IsSet, Variable::Get, On, OnArea, Battle::Result, Select::Result, Party::PosX, Party::PosY,
-Player::GetName, Player::GetGenderName, Player::GetAttribute, Player::IsAvailable`
+Player::GetName, Player::GetGenderName, Player::GetAttribute, Player::IsAvailable,
+Item::Has,                                                 ← 2026-09-03 G1-08
+Party::CheckIf`                                            ← 2026-09-03 G2-02
 
 **침묵 실패 모드(중요 — AI 생성 타깃으로 부적합한 근거)**:
 - 미등록 커맨드 → "Unknown command" 출력 후 스킵
@@ -255,7 +260,14 @@ Flutter 의 디렉토리 선언은 **하위 디렉토리를 포함하지 않는�
 
 # 부록 B — 2차 발견 사실 (2026-08-30 메인 검증 완료)
 
-## B-1 적 데이터는 76종이 아니라 **75종**이며, 그중 하나는 소환 불가
+## B-1 **[해소됨 2026-09-03]** 적 데이터는 76종이 아니라 **75종**이며, 그중 하나는 소환 불가였다
+
+> **2026-09-03 (P0-15)**: `battle.dart` 의 `registerEnemy` 가드가 `<= 0` → `< 0` 으로 바뀌어
+> **id 0(`Orc`) 을 포함한 75종 전량이 소환 가능**하다. 범위 밖 인자는 경고 로그를 남긴다.
+> → BP-21/22/23/42 의 "74종(id 1~74) 기준" 서술은 **75종(id 0~74)** 으로 고쳐야 한다.
+> 고정 테스트: `test/domain/battle/enemy_table_test.dart`.
+>
+> 아래는 원래 기록이다.
 `hadar2026_app/lib/domain/battle/enemy_data.dart:33` 의 `const List<HDEnemyData> enemyTable` 은
 **75개 엔트리**(id 0~74)를 갖는다. (`grep -c "EnemyData("` 가 76을 반환하는 것은 16번 줄의 생성자 선언이 함께 잡히기 때문.)
 `hadar2026_app/lib/application/battle.dart:43-46`:
@@ -268,7 +280,14 @@ void registerEnemy(int enemyTableId) {
 `<= 0` 가드 때문에 **id 0 (`Orc`) 은 cm2/콘텐츠에서 영원히 소환할 수 없다.** 실제 사용 가능한 적은 **id 1~74, 74종**.
 → §10 의 "76종" 서술은 폐기. BP-21/22/23/42 는 **74종(id 1~74)** 기준으로 쓸 것.
 
-## B-2 전투 결과 코드가 cm2 상수와 **정반대**로 매핑되어 있다
+## B-2 **[해소됨 2026-09-03]** 전투 결과 코드가 cm2 상수와 **정반대**로 매핑되어 있었다
+
+> **2026-09-03 (P0-12)**: `assets/const.cm2` 를 정본으로 삼고 Dart 를 맞췄다.
+> `domain/battle/battle_result.dart` 의 `HDBattleResult` 가 와이어 값을 명시로 들고
+> (`evade` 0 · `win` 1 · `lose` 2), `battle.dart` 에서 정수 리터럴 비교가 사라졌다.
+> `const.cm2` 는 **수정하지 않았다.** 고정 테스트: `test/domain/battle/battle_result_test.dart`.
+>
+> 아래는 원래 기록이다.
 `hadar2026_app/lib/application/battle.dart:27` — `int _battleResult = 1; // 1: Win, 0: Lose, 2: Run away`
 `hadar2026_app/assets/const.cm2:53-55` — `BATTLERESULT_EVADE=0`, `BATTLERESULT_WIN=1`, `BATTLERESULT_LOSE=2`
 
@@ -451,6 +470,14 @@ D-02(선언적 데이터 채택)의 실제 근거는 튜링 완전성이 아니�
 ## F-0 §9 의 등록 심볼 수는 **정확하다** (재확인)
 `grep -c "e.registerCommand('"` = **40**, `grep -c "e.registerFunction('"` = **12**.
 §9 의 목록이 정본이다. (BP-10 이 43/11 로 센 것은 오류.)
+
+> **2026-09-03 갱신 (G1-08 · G2-02 완료)**: 현재 값은 **47 / 14** 다.
+> - G1-08 — `Item::Give`·`Item::Take`(커맨드) · `Item::Has`(함수) → 42 / 13
+> - G2-02 — `GameOver`·`Player::ApplyAttribute`·`Player::ReviseAttribute`·
+>   `Map::SetLightArea`·`Map::ResetLightArea`(커맨드) · `Party::CheckIf`(함수) → **47 / 14**
+>
+> `Item::Has` 와 `Party::CheckIf` 는 **반드시 함수**여야 한다 — 커맨드로 등록하면
+> 아래 침묵 실패 모드(미등록 함수 → 0 반환)와 같은 결과가 되어 조건이 조용히 오분기한다.
 특기: `Party::PosX`/`Party::PosY` 는 **커맨드(no-op)와 함수 양쪽에 동시 등록**되어 있다
 (`script_engine_adapter.dart:418-419` 와 `:545-546`). 커맨드 쪽은 빈 구현이다.
 
@@ -491,7 +518,15 @@ if (factory != null) {          // ← 이 블록은 json 유무와 무관하게
 그 스크립트의 `isOn(x,y)` 는 **다른 맵의 좌표**를 상대로 평가된다.
 부록 A-3(플래그 스텁)과 **원인이 독립적**이므로 A-3 을 고쳐도 이 문제는 남는다.
 
-## F-3 `Battle::Result()` 는 전투를 하지 않아도 승리를 반환한다
+## F-3 **[해소됨 2026-09-03]** `Battle::Result()` 는 전투를 하지 않아도 승리를 반환했다
+
+> **2026-09-03 (P0-13)**: `HDBattleResult.none`(와이어 **-1**)이 추가되어 `init()`·`start()` 진입이
+> 그것으로 초기화된다. cm2 의 `BATTLERESULT_*`(0·1·2)와 겹치지 않으므로 콘텐츠는
+> **어느 분기도 타지 않는다** — 그것이 "결과 없음" 의 올바른 표현이다.
+> `gotoEndBattle` 은 `switch` 라 값 누락이 컴파일 에러가 된다.
+> `assets/const.cm2` 에 상수를 추가하지 **않았다**.
+>
+> 아래는 원래 기록이다.
 `hadar2026_app/lib/application/battle.dart:27` — `int _battleResult = 1; // 1: Win`.
 `HDBattle().init()` 도 `_battleResult = 1` 로 되돌린다(`:38`).
 → cm2 가 `Battle::Start` 없이 `Battle::Result()` 를 읽으면 **항상 승리**다.
@@ -579,6 +614,60 @@ damage -= (t.ac * t.level * (Random().nextInt(10) + 1)) ~/ 10;   // :441  적 �
 `tools/mapEditor/server/ai_api.ts:592` 가 `MapInfos.json` 항목을 만들 때 `json: file` 을 포함한다.
 → 부록 D-1 의 갭은 "앞으로 만들 맵" 이 아니라 **기존 15개 엔트리를 고칠 경로가 없다**는 것이다.
 신규 맵은 이미 올바르게 등록된다. 수리 대상은 기존 데이터뿐이다.
+
+## H-5 무기 이름 인덱스와 공격력은 원작에서 **묶여 있지 않다** (2026-09-03 G1-02 중 확인)
+
+`HDPlayer.weapon`/`shield`/`armor` 가 담는 정수는 **이름 인덱스일 뿐이고 성능치를 결정하지 않는다.**
+C++ 원작 `REF_hadar/src/hadar/hd_class_pc_player.h:60-66` 이 두 축을 별개 필드로 둔다:
+
+```cpp
+int weapon; int shield; int armor;              // 이름 인덱스
+int pow_of_weapon; int pow_of_shield; int pow_of_armor;   // 성능
+```
+
+`hd_class_pc_player.cpp:212` 이 `pow_of_weapon = 5` 로, `:451` 이 `pow_of_weapon = level[0] * 2 + 10` 으로
+**`weapon` 과 무관하게** 채운다. 이름은 `:304` 가 `resource::getWeaponName(weapon)` 으로 따로 뽑는다.
+
+**배포된 스크립트가 이를 실증한다** — 같은 `weapon=3`(미늘창)에 서로 다른 공격력을 넣는다:
+
+| 파일 | `weapon` | `pow_of_weapon` |
+|---|---|---|
+| `assets/L1_ep1d0.cm2:168-169` | 3 | **100** |
+| `assets/L1_ep1d2.cm2:147-148` | 3 | **9** |
+| `assets/lore_ep1.cm2:388-389` | 1 | 5 |
+
+방어구도 같다 — `L1_ep1d0.cm2:164-167` 이 `armor=3` + `pow_of_armor=4`, `shield=5` + `pow_of_shield=5`.
+
+### 파급
+
+- **부록 H-3 의 확장**이다. H-3 은 "`books.json` 의 id 공간이 `HDPlayer.weapon` 과 무관" 이라고만 적었는데,
+  실제로는 **`HDPlayer.weapon` 자신이 어떤 성능 표와도 묶여 있지 않다.**
+- [G1-02](../../issues/G1-items/G1-02-item-data.md) 의 "C++ 이름 + Unity 수치를 이름으로 매칭" 은
+  **원작에 없던 결합을 새로 만드는 일**이다. 하지 않겠다는 뜻이 아니라, **Unity 포트의 판단을 채택하는 것**이지
+  C++ 원작을 복원하는 것이 아니라는 뜻이다. `item_data.dart` 헤더가 이 사실을 적고 있다.
+- 그 결합의 결과가 단조롭지 않다 — C++ 인덱스 순서(0→9)로 늘어놓으면 공격력이
+  `1, 10, 25, 80, 60, 60, 35, 90, 60, 10` 이다. **C++ 의 인덱스 순서는 성능 사다리가 아니다.**
+  (인덱스 순서가 성능 순이라는 근거는 어디에도 없다. 위 수열이 그 반증이다.)
+- `화염검`(C++ 인덱스 9)은 Unity 무기 표에 **대응 항이 아예 없다.** 유일한 등장이
+  `ObjItem.cs:453` 의 소환수 기술(`SUMMON_SINGLE` index 8)이고, 그 표의 21개 power 는 전부
+  원작이 TODO 로 남긴 자리표시 `10.0` 이다(`ObjItem.cs:603-611`).
+  → `item_data.dart` 의 `attaPow: 10` 은 **자리표시값을 옮긴 것**이지 밸런스 판단이 아니다.
+  추적은 [G1-10](../../issues/G1-items/G1-10-flame-sword-power.md).
+  **"원작보다 약해졌다" 가 아니다** — 원작에 값이 애초에 없다.
+- [G1-05](../../issues/G1-items/G1-05-equipment-effect.md) 가 `powOfWeapon ← attaPow` 를 배선하면
+  **위 cm2 3곳과 충돌한다** — 스크립트가 직접 넣은 `pow_of_weapon` 을 장비가 덮어쓰게 된다.
+  G1-05 는 이 충돌을 어느 쪽으로 풀지 정해야 한다.
+
+### 화염검은 플레이 중 손에 들어오지 않는다 (2026-09-03 추가 실측)
+
+배포된 cm2 전량에서 `Player::ChangeAttribute(n, "weapon", …)` 에 들어가는 값은
+**0(8건) · 1(24건) · 3(4건)** 뿐이다. **9는 0건**이므로 화염검은 이름 표에만 존재하고
+도달 경로가 없다. 따라서 위 자리표시값의 실플레이 영향은 **0** 이다.
+(`REF_hadar/bin/gamedat0.sav`·`gamedat1.sav` 는 포맷 미해독 — 확인 범위 밖.)
+
+### 정정 사항
+
+- G1-02 이슈의 "`WEAPON_LIST` … 51" 은 **59**다(무기 38 + 소환수 기술 21). 나머지 수치는 맞다.
 
 # 부록 I — region 레이어 예약안 반증 (2026-08-30 메인 검증 완료)
 
@@ -754,11 +843,28 @@ GFD1_OPEN_ODD_WALL.assign(15)      # ← GFD1_OPEN_DOWN_STAIRS 에 대입해야 
 
 → AI 생성의 직접적 위험 근거다. 플래그 레지스트리(이슈 S2-01)가 필요한 이유가 이것이다.
 
-## M-3 미등록 심볼 6종·9곳이 조용히 실패 중이다
-등록되지 않은 커맨드/함수가 실사용 cm2 에 있다:
+## M-3 **[해소됨 2026-09-03]** 미등록 심볼 6종·9곳이 조용히 실패 중이었다
+
+> **2026-09-03 (G2-02)**: 6종 전부 등록되어 이 항목은 **해소**되었다.
+> 아래는 무엇이 어떻게 틀려 있었는지의 기록으로 남긴다 — 같은 형태의 결함을
+> 다시 만들지 않기 위해서다.
+
+등록되지 않은 커맨드/함수가 실사용 cm2 에 있었다:
 `Party::CheckIf` · `GameOver` · `Player::ApplyAttribute` · `Map::SetLightArea` · `Map::ResetLightArea` · `Player::ReviseAttribute`
 
-특히 **`Party::CheckIf` 는 함수라서 0을 반환**하고(§9), 그 결과 부양 마법 관련 분기가 **의도와 반대로 동작**한다.
+특히 **`Party::CheckIf` 는 함수라서 0을 반환**했고(§9), 그 결과 부양 마법 관련 분기가 **의도와 반대로 동작**했다:
+
+| 위치 | 증상 |
+|---|---|
+| `L1_ep1d2.cm2:200` `Not(Party::CheckIf(CHECKIF_LEVITATION))` | 항상 참 → **부양 마법 중에도 절벽에서 떨어졌다** |
+| `L1_ep1d4.cm2:45` `if (Party::CheckIf(CHECKIF_MAGICTORCH))` | 항상 거짓 → 불을 켜도 해당 대사가 안 나왔다 |
+| `L1_ep1d4.cm2:51` `if (Not(...))` | 항상 참 → **불을 켠 상태에서도** 물의 정령 이벤트가 발생했다 |
+| `L1_ep1d0.cm2:441` `GameOver()` | 커맨드라 건너뛰기만 함 → 강제 종료 장면 뒤로 **게임이 계속 진행됐다** |
+
+회귀 테스트: `hadar2026_app/test/application/cm2_unregistered_symbols_test.dart`.
+`Map::SetLightArea`/`ResetLightArea` 는 원작의 per-tile `map::setLight`
+(`hd_base_extern.h:44-45`)를 사각형 루프로 감싼 것이고,
+저장소는 `domain/lighting/light_areas.dart` 의 `HDLightAreas`(맵 전환 시 초기화)다.
 
 # 부록 N — 원작 아이템 이름표와 미등록 심볼의 게임플레이 영향 (2026-09-01 검증)
 

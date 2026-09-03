@@ -1,6 +1,6 @@
 # G1-03 파티 소지품 — `HDParty` 에 아이템 목록을 만든다
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: G1
 - **규모**: M
 - **선행**: [G1-01](G1-01-item-model-port.md)
@@ -75,18 +75,18 @@ public int  current_capacity_of_backpack = 20;
 
 ## 완료 판정 기준
 
-- [ ] `PartyInventory` 가 `capacity`(기본 20)와 `List<HDItemId?> backpack` 을 갖고, `food`/`gold` 는 그대로 남아 있다
-- [ ] `HDParty.give()` 가 **첫 빈 칸**에 넣는다 — 20칸이 찬 상태에서는 `false` 를 반환하고 **아무것도 버리지 않는다**
-- [ ] `HDParty.take()` 가 첫 일치 칸만 비우고, 없는 아이템이면 `false` 를 반환한다
-- [ ] `HDParty.has()` 가 있음/없음을 정확히 답한다 (같은 아이템 2개면 1개를 꺼낸 뒤에도 `true`)
-- [ ] 아이템 변경 시 `notifyListeners()` 가 호출된다 (`HDGameMain()` 리스너로 UI 가 갱신됨)
-- [ ] `domain/` 계층 위반 grep 2종 통과 (`flutter/material`·`bonfire`·`flame` 0건, `presentation`·`hd_game_main` 0건)
-- [ ] 테스트 추가: `hadar2026_app/test/domain/party/party_inventory_test.dart` —
+- [x] `PartyInventory` 가 `capacity`(기본 20)와 `List<HDItemId?> backpack` 을 갖고, `food`/`gold` 는 그대로 남아 있다
+- [x] `HDParty.give()` 가 **첫 빈 칸**에 넣는다 — 20칸이 찬 상태에서는 `false` 를 반환하고 **아무것도 버리지 않는다**
+- [x] `HDParty.take()` 가 첫 일치 칸만 비우고, 없는 아이템이면 `false` 를 반환한다
+- [x] `HDParty.has()` 가 있음/없음을 정확히 답한다 (같은 아이템 2개면 1개를 꺼낸 뒤에도 `true`)
+- [x] 아이템 변경 시 `notifyListeners()` 가 호출된다 (`HDGameMain()` 리스너로 UI 가 갱신됨)
+- [x] `domain/` 계층 위반 grep 2종 통과 (`flutter/material`·`bonfire`·`flame` 0건, `presentation`·`hd_game_main` 0건)
+- [x] 테스트 추가: `hadar2026_app/test/domain/party/party_inventory_test.dart` —
       ① 20칸을 채운 뒤 21번째 `give` 가 `false` 이고 기존 20칸이 **그대로**임을 고정
       ② 5번 칸을 `take` 한 뒤 `give` 하면 **5번 칸이 다시 쓰인다**(첫 빈 칸 규칙, `ObjParty.cs:426-433` 과 같은 동작)
       ③ 같은 아이템 2개 → `take` 1회 → `has` 가 여전히 `true`, `count` 가 1 감소
       ④ `food`/`gold` 가 소지품 변경에 영향받지 않음
-- [ ] 기존 테스트 `test/domain/party/party_actions_test.dart` 가 그대로 통과한다
+- [x] 기존 테스트 `test/domain/party/party_actions_test.dart` 가 그대로 통과한다
 
 ## 하지 않을 것
 
@@ -97,3 +97,29 @@ public int  current_capacity_of_backpack = 20;
 - 스택(같은 아이템 개수 묶음)·정렬·자동 정리 — 원작에 없다. 20칸이 곧 개수다.
 - 개인 소지·무게·용량 증가 아이템 — `capacity` 는 필드로 두지만 늘리는 수단은 만들지 않는다.
 - 상점·제작·강화·선언적 콘텐츠 팩·저널 UI.
+
+## 구현 기록 (2026-09-03)
+
+### 산출물
+
+| 파일 | 내용 |
+|---|---|
+| `hadar2026_app/lib/domain/party/party.dart` | `PartyInventory` 에 `capacity`·`backpack`·`give`/`take`/`has`/`count`, `HDParty` 에 위임 6종 |
+| `hadar2026_app/test/domain/party/party_inventory_test.dart` | 9개 테스트 |
+
+### 검증
+
+- `flutter test` — 118개 전량 통과 (G1-02 후 109 + 신규 9). `party_actions_test.dart` 그대로 통과
+- `flutter analyze --no-fatal-infos` — 77건, **기존과 동일**
+- 계층 위반 grep 2종 — 둘 다 빈 결과 (`party.dart` 는 `foundation.dart` + 도메인 상대 import 뿐)
+
+### 이슈 서술에서 벗어난 부분
+
+- **`capacity` 를 `final` 로 뒀다.** 이슈는 "필드로 둔다" 였고 `final` 도 필드다.
+  `backpack` 의 길이가 `capacity` 와 어긋나면 안 되는데 가변이면 둘이 갈라진다.
+  "늘리는 수단은 만들지 않는다"(이 이슈의 「하지 않을 것」)와도 맞는다.
+  [G1-09](G1-09-item-save.md) 는 `PartyInventory(capacity: n)` 로 복원하면 된다.
+- **`itemAt` 은 범위 밖에서 `RangeError` 를 던진다** — null 을 돌려주면 "빈 칸" 과
+  "그런 칸 없음" 이 구분되지 않는다. 조용한 무시는 [P0-14](../P0-foundation/P0-14-silent-out-of-range.md) 가 기록한 실패 방식이다.
+- **실패한 `give`/`take` 는 `notifyListeners()` 를 부르지 않는다** — 바뀐 것이 없다.
+  테스트가 이 동작을 고정한다.

@@ -5,6 +5,7 @@
 /// - [sub2] : 주격조사 (이/가)
 /// - [obj]  : 목적격조사 (을/를)
 /// - [conj] : 접속/공동격조사 (와/과)
+/// - [withJosa] : 도구격조사 (으로/로)
 ///
 /// 지금은 한국어 종성 규칙만 구현돼 있다. 비-한글로 끝나는 명사는
 /// 영어 어미가 자음/모음 중 어느 쪽인지로 종성을 추정한다.
@@ -15,16 +16,25 @@ class HDNoun {
   final String sub2;
   final String obj;
   final String conj;
+  final String withJosa;
 
   HDNoun(this.text)
       : sub1 = _pick(text, '은', '는'),
         sub2 = _pick(text, '이', '가'),
         obj = _pick(text, '을', '를'),
-        conj = _pick(text, '과', '와');
+        conj = _pick(text, '과', '와'),
+        withJosa = _pickWith(text);
 
-  const HDNoun._raw(this.text, this.sub1, this.sub2, this.obj, this.conj);
+  const HDNoun._raw(
+    this.text,
+    this.sub1,
+    this.sub2,
+    this.obj,
+    this.conj,
+    this.withJosa,
+  );
 
-  static const HDNoun empty = HDNoun._raw('', '', '', '', '');
+  static const HDNoun empty = HDNoun._raw('', '', '', '', '', '');
 
   bool get isEmpty => text.isEmpty;
   bool get isNotEmpty => text.isNotEmpty;
@@ -42,6 +52,18 @@ class HDNoun {
   static String _pick(String text, String withJong, String withoutJong) {
     if (text.isEmpty) return '';
     return _hasJongsung(text) ? withJong : withoutJong;
+  }
+
+  /// 도구격조사만 종성 규칙에서 벗어난다 — ㄹ 받침은 종성이 있어도
+  /// '로' 를 쓴다('칼로', '연필로'). 원작도 이 조사를 이름 표에 같이
+  /// 담아 뒀다(`hd_res_string.cpp:25,32` `sz_josa_with`).
+  static String _pickWith(String text) {
+    if (text.isEmpty) return '';
+    final last = text.runes.last;
+    if (last >= 0xAC00 && last <= 0xD7A3 && (last - 0xAC00) % 28 == 8) {
+      return '로';
+    }
+    return _hasJongsung(text) ? '으로' : '로';
   }
 
   static bool _hasJongsung(String s) {

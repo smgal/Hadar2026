@@ -1,6 +1,6 @@
 # P0-12 전투 결과 코드가 cm2 상수와 정반대다
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: P0
 - **규모**: S
 - **선행**: 없음
@@ -94,12 +94,12 @@ cm2 에서 실제로 분기하는 곳(본인 확인): `assets/lore_ep1.cm2:355`,
 
 ## 완료 판정 기준
 
-- [ ] 파티 전멸로 전투가 끝난 뒤 `HDBattle().result()` 가 **2** 다 (cm2 `BATTLERESULT_LOSE`)
-- [ ] 도주 성공으로 끝난 뒤 `result()` 가 **0** 이다 (cm2 `BATTLERESULT_EVADE`)
-- [ ] 승리 시 `result()` 가 **1** 이다 (변화 없음)
-- [ ] `assets/const.cm2` 가 수정되지 않았다 (git diff 로 확인)
-- [ ] `battle.dart` 에 `_battleResult` 와 정수 리터럴을 직접 비교하는 코드가 없다
-- [ ] 테스트 추가: `hadar2026_app/test/domain/battle/battle_result_test.dart` —
+- [x] 파티 전멸로 전투가 끝난 뒤 `HDBattle().result()` 가 **2** 다 (cm2 `BATTLERESULT_LOSE`)
+- [x] 도주 성공으로 끝난 뒤 `result()` 가 **0** 이다 (cm2 `BATTLERESULT_EVADE`)
+- [x] 승리 시 `result()` 가 **1** 이다 (변화 없음)
+- [x] `assets/const.cm2` 가 수정되지 않았다 (git diff 로 확인)
+- [x] `battle.dart` 에 `_battleResult` 와 정수 리터럴을 직접 비교하는 코드가 없다
+- [x] 테스트 추가: `hadar2026_app/test/domain/battle/battle_result_test.dart` —
       `HDBattleResult.{evade,win,lose}.wire` 가 `{0,1,2}` 임을 고정한다.
       `test/domain/map/tile_action_test.dart` 가 `scriptMode` 를 고정하는 것과 같은 역할이며,
       테스트 주석에 `assets/const.cm2:53-55` 를 정본으로 명시한다
@@ -112,3 +112,21 @@ cm2 에서 실제로 분기하는 곳(본인 확인): `assets/lore_ep1.cm2:355`,
 - 전투 결과를 세이브에 넣기.
 - 전투 흐름·밸런스 변경. 어느 조건에서 어떤 결과가 되는지의 규칙은 그대로 둔다.
 - `Battle::Result()` 의 미실행 기본값 문제 — [P0-13](P0-13-battle-result-defaults-win.md) 소관.
+
+## 구현 기록 (2026-09-03)
+
+**권고안 A + C 최소 형태**를 그대로 채택했다.
+
+| 파일 | 변경 |
+|---|---|
+| `lib/domain/battle/battle_result.dart` | **신설.** `HDBattleResult { none(-1), evade(0), win(1), lose(2) }` |
+| `lib/application/battle.dart` | `_battleResult` 를 enum 으로. 대입 6곳·비교 4곳을 의미로 치환 |
+| `test/domain/battle/battle_result_test.dart` | **신규.** 5개 테스트 |
+| `assets/const.cm2` | **수정하지 않음** (`git status` 확인) |
+
+`gotoEndBattle` 의 `if/else if` 사슬을 `switch (HDBattleResult)` 로 바꿔
+값이 늘면 컴파일 에러가 되게 했다. 승리 정산부는 `_settleWin()` 으로 분리했다.
+
+- `flutter test` — 225개 전량 통과 · `flutter analyze` 77건(기존과 동일)
+- `grep`: `battle.dart` 에 `_battleResult` 를 정수 리터럴과 비교하는 코드 0건
+- `GROUND_TRUTH` 부록 B-2 를 **[해소됨]** 으로 갱신

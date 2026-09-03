@@ -1,6 +1,6 @@
 # G1-06 `"무기1"` 을 실제 이름으로 바꾼다 (노출 4곳)
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: G1
 - **규모**: S
 - **선행**: [G1-02](G1-02-item-data.md)
@@ -78,16 +78,16 @@ return jongsung > 0 ? "으로" : "로";
 
 ## 완료 판정 기준
 
-- [ ] `getWeaponName()`/`getShieldName()`/`getArmorName()` 이 [G1-02](G1-02-item-data.md) 의 표에서 이름을 가져온다
-- [ ] 위 노출 4곳에서 **`"무기N"`/`"방패N"`/`"갑옷N"` 형태가 하나도 나오지 않는다** — `grep -rn '무기\$\|방패\$\|갑옷\$' lib/` 0건
-- [ ] 표에 없는 index 는 `"불확실한 무기"` 계열 폴백을 내고 **경고 로그**를 남긴다 (조용히 빈 문자열이 되지 않는다)
-- [ ] `HDNoun.withJosa` 가 추가되고 `battle.dart:71-80` `_getJosaRo` 가 **삭제**되었으며, `:286`·`:453` 이 `HDNoun` 을 쓴다
-- [ ] `battle.dart:453` 이 `getWeaponName()` 을 **한 번만** 호출한다
-- [ ] `menu_flows.dart:277` 이 실데이터 최장 이름에서도 정렬이 깨지지 않는다 (A 안이면 두 줄로 분리)
-- [ ] 테스트 추가:
+- [x] `getWeaponName()`/`getShieldName()`/`getArmorName()` 이 [G1-02](G1-02-item-data.md) 의 표에서 이름을 가져온다
+- [x] 위 노출 4곳에서 **`"무기N"`/`"방패N"`/`"갑옷N"` 형태가 하나도 나오지 않는다** — `grep -rn '무기\$\|방패\$\|갑옷\$' lib/` 0건
+- [x] 표에 없는 index 는 `"불확실한 무기"` 계열 폴백을 내고 **경고 로그**를 남긴다 (조용히 빈 문자열이 되지 않는다)
+- [x] `HDNoun.withJosa` 가 추가되고 `battle.dart:71-80` `_getJosaRo` 가 **삭제**되었으며, `:286`·`:453` 이 `HDNoun` 을 쓴다
+- [x] `battle.dart:453` 이 `getWeaponName()` 을 **한 번만** 호출한다
+- [x] `menu_flows.dart:277` 이 실데이터 최장 이름에서도 정렬이 깨지지 않는다 (A 안이면 두 줄로 분리)
+- [x] 테스트 추가:
       `hadar2026_app/test/domain/text/noun_test.dart` (기존 파일 확장) — `withJosa` 를 `활`/`장검`/`철퇴`/`삼지창`/`블로우 파이프`/빈 문자열/비한글 로 고정. **ㄹ 받침 예외**를 별 케이스로 고정한다
       `hadar2026_app/test/domain/item/item_name_test.dart` — 무기 10종 이름을 리터럴로 고정, 범위 밖 index 가 폴백을 내는 것을 고정
-- [ ] 기존 `test/domain/console/text_utils_test.dart` 통과
+- [x] 기존 `test/domain/console/text_utils_test.dart` 통과
 
 ## 하지 않을 것
 
@@ -97,3 +97,36 @@ return jongsung > 0 ? "으로" : "로";
 - 부위 6칸 표시(`HEAD`/`LEG`/`ORNAMENT`) — [G1-07](G1-07-inventory-ui.md) 소관.
 - 이름 색상 코드(`@7` 등)·아이콘·설명문.
 - 상점·무게·제작·강화·선언적 콘텐츠 팩·저널 UI.
+
+## 구현 기록 (2026-09-03)
+
+### 산출물
+
+| 파일 | 변경 |
+|---|---|
+| `lib/domain/text/noun.dart` | `withJosa`(으로/로) 추가. ㄹ 받침 예외 포함 |
+| `lib/domain/item/item_names.dart` | **신규.** `legacyWeaponName`/`ShieldName`/`ArmorName` + 폴백·경고 |
+| `lib/domain/party/player.dart` | `getWeaponName` 3종이 표 조회로 교체 |
+| `lib/application/battle.dart` | `_getJosaRo` **삭제**(20줄). `:286`·`:453` 이 `HDNoun` 사용 |
+| `lib/application/menu_flows.dart` | 장비 표시를 **세 줄로 분리**(A 안). `padRight(12)` 제거 |
+| `test/domain/text/noun_test.dart` | `withJosa` 5개 케이스 추가 |
+| `test/domain/item/item_name_test.dart` | **신규.** 6개 테스트 |
+
+### 검증
+
+- `flutter test` — 129개 전량 통과 (G1-03 후 118 + 신규 11). `text_utils_test.dart` 그대로 통과
+- `flutter analyze --no-fatal-infos` — 77건, **기존과 동일**
+- `grep -rn '무기\$\|방패\$\|갑옷\$' lib/` — **0건**
+- `grep -rn "_getJosaRo" lib/` — **0건**
+- 계층 위반 grep 2종 — 둘 다 빈 결과
+
+### 이슈 서술에서 벗어난 부분
+
+- **비한글 이름의 조사가 달라진다.** `_getJosaRo` 는 한글이 아니면 무조건 `로` 였지만
+  `HDNoun.withJosa` 는 나머지 조사와 같은 영어 어미 휴리스틱을 쓴다 —
+  `Orc` → `으로`, `Hydra` → `로`. `HDNoun` 안에서 규칙이 갈리지 않게 하는 쪽을 택했고,
+  현재 이 조사가 붙는 대상은 **무기 이름(전부 한글)** 뿐이라 실사용 차이는 없다. 테스트가 이 동작을 고정한다.
+- **빈 이름의 조사는 `로` 가 아니라 `''`** 다. `HDNoun` 의 다른 조사 4종이 전부 빈 명사에 `''` 를 준다.
+- **`menu_flows.dart` 를 두 줄이 아니라 세 줄로** 나눴다(무기/방패/갑옷). A 안의 취지 그대로다.
+- **경고는 `debugPrint`** 로 남긴다 — `domain/` 이 쓸 수 있는 유일한 Flutter import
+  (`foundation.dart`)에 들어 있고 `avoid_print` 린트에 걸리지 않는다.

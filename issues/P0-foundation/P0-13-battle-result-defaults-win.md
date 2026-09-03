@@ -1,6 +1,6 @@
 # P0-13 `Battle::Result()` 가 전투 없이도 승리를 반환한다
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: P0
 - **규모**: S
 - **선행**: P0-12
@@ -96,12 +96,12 @@ cm2 쪽 상수 추가는 하지 않는다 — `assets/const.cm2` 는 원작 정�
 
 ## 완료 판정 기준
 
-- [ ] `HDBattle().init()` 직후 `HDBattle().result()` 가 **`-1`** 이다 (승리가 아니다)
-- [ ] 맵을 전환한 직후(`game_session.dart:95` 의 `init()` 경유) `result()` 가 `-1` 이다
-- [ ] `Battle::Start` 를 거쳐 승리하면 `result()` 가 `1`, 패배는 `2`, 도주는 `0` 이다
+- [x] `HDBattle().init()` 직후 `HDBattle().result()` 가 **`-1`** 이다 (승리가 아니다)
+- [x] 맵을 전환한 직후(`game_session.dart:95` 의 `init()` 경유) `result()` 가 `-1` 이다
+- [x] `Battle::Start` 를 거쳐 승리하면 `result()` 가 `1`, 패배는 `2`, 도주는 `0` 이다
       ([P0-12](P0-12-battle-result-inverted.md) 의 계약 유지)
-- [ ] `battle.dart` 의 결과 분기가 `switch (HDBattleResult)` 로 되어 있어 `none` 누락이 컴파일 에러다
-- [ ] 테스트 추가: `hadar2026_app/test/domain/battle/battle_result_test.dart` (P0-12 와 같은 파일) —
+- [x] `battle.dart` 의 결과 분기가 `switch (HDBattleResult)` 로 되어 있어 `none` 누락이 컴파일 에러다
+- [x] 테스트 추가: `hadar2026_app/test/domain/battle/battle_result_test.dart` (P0-12 와 같은 파일) —
       `HDBattleResult.none.wire == -1` 및 나머지 3개 값을 고정하고,
       `HDBattle().init()` 직후 `result() == -1` 임을 고정한다
 
@@ -113,3 +113,18 @@ cm2 쪽 상수 추가는 하지 않는다 — `assets/const.cm2` 는 원작 정�
 - 전투 흐름·밸런스 변경.
 - `battle_won` 월드 이벤트 발행 — [P1-09](../deferred/P1-09-world-event-bus.md) 소관.
 - 값 의미 매핑 자체 — [P0-12](P0-12-battle-result-inverted.md) 소관 (선행).
+
+## 구현 기록 (2026-09-03)
+
+[P0-12](P0-12-battle-result-inverted.md) 와 같은 커밋에서 처리했다 — 같은 필드의 계약이다.
+
+- `HDBattleResult.none` 와이어 **-1**. cm2 의 `BATTLERESULT_*`(0·1·2)와 겹치지 않는다.
+- `init()`(맵 전환마다 호출됨)과 `start()` 진입이 모두 `none` 으로 초기화한다.
+- 종료 정산(`start()` 말미)이 모든 경로에서 `lose`/`win`/`evade` 중 하나를 세우는 것을 확인했다.
+  세우지 못한 채 `gotoEndBattle` 에 도달하면 **경고 로그**를 남긴다 — 예전처럼 조용히 승리로 처리하지 않는다.
+- `gotoEndBattle` 이 `switch` 라 `none` 케이스 누락이 컴파일 에러다.
+- `assets/const.cm2` 에 `BATTLERESULT_NONE` 을 **추가하지 않았다** — 콘텐츠가 어느 분기도 타지 않는 것이
+  "결과 없음" 의 올바른 표현이다.
+
+- 테스트: `test/domain/battle/battle_result_test.dart` — `none.wire == -1`, `init()` 직후 `result() == -1`
+- `GROUND_TRUTH` 부록 F-3 을 **[해소됨]** 으로 갱신

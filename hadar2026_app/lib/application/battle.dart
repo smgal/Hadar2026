@@ -1,11 +1,13 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 
+import '../domain/battle/battle_result.dart';
 import '../domain/battle/enemy.dart';
 import '../domain/battle/enemy_data.dart';
 import '../domain/magic/magic.dart';
 import '../domain/party/party.dart';
 import '../domain/party/player.dart';
+import '../domain/text/noun.dart';
 import 'game_reload_exception.dart';
 import 'game_session.dart';
 import 'ports/host_binding.dart';
@@ -24,24 +26,42 @@ class HDBattle with ChangeNotifier {
 
   bool isBattleActive = false;
   List<HDEnemy> enemies = [];
-  int _battleResult = 1; // 1: Win, 0: Lose, 2: Run away
+  HDBattleResult _battleResult = HDBattleResult.none;
   int selectedEnemyIndex = -1;
 
   List<List<int>> playerCommands = [];
 
-  int result() => _battleResult;
+  /// cm2 `Battle::Result()`. Returns [HDBattleResult.none]'s wire (-1)
+  /// until a battle has actually finished — see the enum.
+  int result() => _battleResult.wire;
 
   void init() {
     enemies.clear();
     playerCommands.clear();
     isBattleActive = false;
-    _battleResult = 1;
+    _battleResult = HDBattleResult.none;
     selectedEnemyIndex = -1;
     notifyListeners();
   }
 
+  /// Adds one enemy from [enemyTable]. Valid ids are **0..74** — the
+  /// whole table.
+  ///
+  /// The guard used to read `<= 0`, which made id 0 (`Orc`) impossible to
+  /// summon from cm2 even though the row exists. Nothing used 0 as a
+  /// sentinel: across every shipped script `Battle::RegisterEnemy` is
+  /// called with 1, 3, 5, 7, 26, 69, 71 (and a commented-out 75), never
+  /// 0. An out-of-range id is now reported rather than dropped —
+  /// `town1.cm2:50` has a commented `RegisterEnemy(75)` that the silent
+  /// guard would have swallowed.
   void registerEnemy(int enemyTableId) {
-    if (enemyTableId <= 0 || enemyTableId >= enemyTable.length) return;
+    if (enemyTableId < 0 || enemyTableId >= enemyTable.length) {
+      debugPrint(
+        'HDBattle: [WARN] registerEnemy($enemyTableId) is outside '
+        '[0, ${enemyTable.length}) — ignored',
+      );
+      return;
+    }
     enemies.add(HDEnemy(enemyTable[enemyTableId]));
   }
 
@@ -68,17 +88,6 @@ class HDBattle with ChangeNotifier {
     );
   }
 
-  String _getJosaRo(String name) {
-    if (name.isEmpty) return "로";
-    int lastCode = name.runes.last;
-    if (lastCode < 0xAC00 || lastCode > 0xD7A3) return "로";
-    int jongsung = (lastCode - 0xAC00) % 28;
-    // Special rule: if jongsung is ㄹ (index 8), treat as no jongsung (으로 instead of 로? No! ㄹ 받침 + 로 = 랄로, 칼로, 연필로)
-    // Only 'ㄹ' (8) uses '로', others use '으로'
-    if (jongsung == 8) return "로";
-    return jongsung > 0 ? "으로" : "로";
-  }
-
   Future<int> _selectEnemyUI() async {
     List<String> options = ["공격할 적을 선택하십시오 ===>"];
     List<int> aliveIndices = [];
@@ -103,7 +112,9 @@ class HDBattle with ChangeNotifier {
   Future<void> start(int mode) async {
     try {
       isBattleActive = true;
-      _battleResult = 1;
+      // The battle has started but has no outcome yet; the settlement
+      // below decides it.
+      _battleResult = HDBattleResult.none;
       notifyListeners();
 
       playerCommands = List.generate(4, (_) => [0, 0, 0]);
@@ -127,7 +138,7 @@ class HDBattle with ChangeNotifier {
             await _executeAttack(p, target);
           } else if (cmd == 7) {
             if (_tryToRunAway(p)) {
-              _battleResult = 2; // Run away
+              _battleResult = HDBattleResult.evade;
               await gotoEndBattle();
               return;
             }
@@ -191,7 +202,7 @@ class HDBattle with ChangeNotifier {
           if (!_enemiesAlive()) break;
         }
 
-        if (!_enemiesAlive() || _battleResult == 2) break;
+        if (!_enemiesAlive() || _battleResult == HDBattleResult.evade) break;
 
         _host.addLog(""); // spacer
 
@@ -211,7 +222,7 @@ class HDBattle with ChangeNotifier {
           }
 
           if (!_playersAlive()) {
-            _battleResult = 0; // Lose
+            _battleResult = HDBattleResult.lose;
             break;
           }
         }
@@ -220,9 +231,10 @@ class HDBattle with ChangeNotifier {
       }
 
       if (!_playersAlive()) {
-        _battleResult = 0;
-      } else if (!_enemiesAlive() && _battleResult != 2) {
-        _battleResult = 1;
+        _battleResult = HDBattleResult.lose;
+      } else if (!_enemiesAlive() &&
+          _battleResult != HDBattleResult.evade) {
+        _battleResult = HDBattleResult.win;
       }
 
       await gotoEndBattle();
@@ -237,41 +249,52 @@ class HDBattle with ChangeNotifier {
     isBattleActive = false;
     notifyListeners();
 
-    if (_battleResult == 1) {
-      // Win
-      _host.clearLogs();
-      int totExp = enemies.fold(0, (xp, e) {
-        int plus = e.data.id + 1;
-        plus = (plus * plus * plus) ~/ 8;
-        return xp + max(1, plus);
-      });
-      await _host.addLog(
-        "전투에서 승리하여 경험치 $totExp을 얻었다.",
-      );
-      for (var p in _party.players) {
-        if (p.isConscious()) {
-          p.experience += totExp;
-          if (p.checkLevelUp()) {
-            await _host.addLog(
-              "${p.name}${p.name.sub1} 전투 레벨이 ${p.level.physical}로 올랐다!",
-            );
-          }
-        }
-      }
-      _party.gold += enemies.fold(
-        0,
-        (g, e) => g + e.level * 5,
-      ); // Add dummy gold
-    } else if (_battleResult == 0) {
-      // Lose
-      await _host.addLog("파티가 전멸했습니다.");
-      await HDMenuFlows().processGameOver(2);
-    } else if (_battleResult == 2) {
-      await _host.addLog("무사히 도망쳤다...");
+    switch (_battleResult) {
+      case HDBattleResult.win:
+        await _settleWin();
+      case HDBattleResult.lose:
+        await _host.addLog("파티가 전멸했습니다.");
+        await HDMenuFlows().processGameOver(2);
+      case HDBattleResult.evade:
+        await _host.addLog("무사히 도망쳤다...");
+      case HDBattleResult.none:
+        // The loop exited without settling — a real bug if it happens,
+        // so say so instead of silently reporting a win the way the old
+        // default did.
+        debugPrint(
+          'HDBattle: [WARN] gotoEndBattle() with no result — the battle '
+          'loop exited without settling',
+        );
     }
 
     await _host.waitForAnyKey();
     _host.clearLogs();
+  }
+
+  Future<void> _settleWin() async {
+    _host.clearLogs();
+    int totExp = enemies.fold(0, (xp, e) {
+      int plus = e.data.id + 1;
+      plus = (plus * plus * plus) ~/ 8;
+      return xp + max(1, plus);
+    });
+    await _host.addLog(
+      "전투에서 승리하여 경험치 $totExp을 얻었다.",
+    );
+    for (var p in _party.players) {
+      if (p.isConscious()) {
+        p.experience += totExp;
+        if (p.checkLevelUp()) {
+          await _host.addLog(
+            "${p.name}${p.name.sub1} 전투 레벨이 ${p.level.physical}로 올랐다!",
+          );
+        }
+      }
+    }
+    _party.gold += enemies.fold(
+      0,
+      (g, e) => g + e.level * 5,
+    ); // Add dummy gold
   }
 
   Future<bool> _modeAssault() async {
@@ -282,8 +305,8 @@ class HDBattle with ChangeNotifier {
 
       if (!autoBattle) {
         String str1 = "${p.name}의 전투 모드 ===>";
-        String wName = p.getWeaponName();
-        String str2 = "한 명의 적을 $wName${_getJosaRo(wName)} 공격";
+        final wName = HDNoun(p.getWeaponName());
+        String str2 = "한 명의 적을 $wName${wName.withJosa} 공격";
 
         List<String> menuStr = [
           str1,
@@ -438,6 +461,12 @@ class HDBattle with ChangeNotifier {
 
     int damage = (p.strength * p.powOfWeapon * p.level.physical) ~/ 20;
     damage -= (damage * Random().nextInt(50)) ~/ 100;
+    // `t` here is the *enemy* — note `t.level` is a plain int, whereas a
+    // player's is a SkillStats. Enemies wear no equipment, so this
+    // defence term is not the one equipment feeds; that is the player's
+    // side below (`_enemyAttack`). GROUND_TRUTH H-1's first edition read
+    // these two lines as one, which is where "장비를 쓰려면 전투식 변경이
+    // 선행" came from.
     damage -= (t.ac * t.level * (Random().nextInt(10) + 1)) ~/ 10;
 
     if (damage <= 0) {
@@ -449,8 +478,9 @@ class HDBattle with ChangeNotifier {
 
     t.hp -= damage;
     notifyListeners();
+    final wName = HDNoun(p.getWeaponName());
     await _host.addLog(
-      "${p.name}${p.name.sub1} ${p.getWeaponName()}${_getJosaRo(p.getWeaponName())} ${t.name}${t.name.obj} 공격하여 $damage 데미지!",
+      "${p.name}${p.name.sub1} $wName${wName.withJosa} ${t.name}${t.name.obj} 공격하여 $damage 데미지!",
     );
 
     if (t.hp <= 0) {
@@ -511,6 +541,10 @@ class HDBattle with ChangeNotifier {
     }
 
     int damage = (e.strength * e.level * (Random().nextInt(10) + 1)) ~/ 10;
+    // The player's defence. `t.ac` is HDPlayer.ac = baseAc + every worn
+    // slot's param.ac (G1-05), so equipment reaches the formula here
+    // without this line changing. powOfShield/powOfArmor are read
+    // nowhere — defence runs on `ac` alone (GROUND_TRUTH H-1 corrected).
     damage -= (t.ac * t.level.physical * (Random().nextInt(10) + 1)) ~/ 10;
 
     if (damage <= 0) {

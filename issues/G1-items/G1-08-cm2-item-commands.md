@@ -1,6 +1,6 @@
 # G1-08 cm2 커맨드 `Item::Give` / `Item::Take` 와 **함수** `Item::Has` 를 등록한다
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: G1
 - **규모**: S
 - **선행**: [G1-03](G1-03-party-inventory.md)
@@ -99,14 +99,14 @@ ITEM_WIELD_DAGGER.assign(1)          # WIELD(0) detail 0 index 1 → 0x000001
 
 ## 완료 판정 기준
 
-- [ ] `Item::Give` · `Item::Take` 가 **커맨드**로, `Item::Has` 가 **함수**로 등록되었다 (`registerFunction` 쪽에 있는지 눈으로 확인)
-- [ ] `grep -c "e.registerCommand('"` = **42**, `grep -c "e.registerFunction('"` = **13**
-- [ ] `assets/item4ep1.cm2` 가 있고, 등록된 아이템 전량이 **이름 상수**를 갖는다 (생 숫자 사용 0건)
-- [ ] 표에 없는 `id` 를 넘기면 **경고 로그**가 남는다 (조용히 무시되지 않는다 — 부록 F-1 재발 방지)
-- [ ] 가방이 꽉 찬 상태의 `Item::Give` 가 경고 로그를 남기고 **기존 20칸을 건드리지 않는다**
-- [ ] `blueprint/_meta/GROUND_TRUTH.md` §9·부록 F-0 의 40/12 가 갱신되었다
-- [ ] `application/` 계층 위반 grep 2종 통과
-- [ ] 테스트 추가: `hadar2026_app/test/application/cm2_item_commands_test.dart` —
+- [x] `Item::Give` · `Item::Take` 가 **커맨드**로, `Item::Has` 가 **함수**로 등록되었다 (`registerFunction` 쪽에 있는지 눈으로 확인)
+- [x] `grep -c "e.registerCommand('"` = **42**, `grep -c "e.registerFunction('"` = **13**
+- [x] `assets/item4ep1.cm2` 가 있고, 등록된 아이템 전량이 **이름 상수**를 갖는다 (생 숫자 사용 0건)
+- [x] 표에 없는 `id` 를 넘기면 **경고 로그**가 남는다 (조용히 무시되지 않는다 — 부록 F-1 재발 방지)
+- [x] 가방이 꽉 찬 상태의 `Item::Give` 가 경고 로그를 남기고 **기존 20칸을 건드리지 않는다**
+- [x] `blueprint/_meta/GROUND_TRUTH.md` §9·부록 F-0 의 40/12 가 갱신되었다
+- [x] `application/` 계층 위반 grep 2종 통과
+- [x] 테스트 추가: `hadar2026_app/test/application/cm2_item_commands_test.dart` —
       `test/application/map_navigation_test.dart:13-28` 의 페이크 바인딩 패턴을 따른다.
       cm2 원문을 `loadFromString` 으로 넣고 실행해
       ① `Item::Give` → `Item::Has` 가 **1** 을 반환
@@ -122,3 +122,36 @@ ITEM_WIELD_DAGGER.assign(1)          # WIELD(0) detail 0 index 1 → 0x000001
 - `Flag::Set` 등 기존 커맨드의 침묵 수정 — [P0-14](../P0-foundation/P0-14-silent-out-of-range.md) 소관.
 - 아이템 상수 파일의 **자동 생성** — 손으로 쓴다. 레지스트리 자동화는 [S2-01](../S2-enablers/S2-01-flag-registry.md) 계열이다.
 - 상점·무게·제작·강화·선언적 콘텐츠 팩·저널 UI.
+
+## 구현 기록 (2026-09-03)
+
+### 산출물
+
+| 파일 | 변경 |
+|---|---|
+| `lib/application/scripting/script_engine_adapter.dart` | `Item::Give`·`Item::Take` 커맨드, `Item::Has` **함수**, `_itemArg` 검증기 |
+| `hadar2026_app/assets/item4ep1.cm2` | **신규.** 카탈로그 61항 전량의 이름 상수 |
+| `tools/convert_item.py` | cm2 상수 파일도 함께 생성 |
+| `test/application/cm2_item_commands_test.dart` | **신규.** 9개 테스트 |
+| `blueprint/_meta/GROUND_TRUTH.md` | §9 심볼 목록 + 부록 F-0 의 40/12 → 42/13 갱신 |
+
+### 검증
+
+- `grep -c "e.registerCommand('"` = **42** · `grep -c "e.registerFunction('"` = **13**
+- `flutter test` — 164개 전량 통과
+- `flutter analyze --no-fatal-infos` — 77건, **기존과 동일**
+- 경고 로그 4종이 테스트 실행 중 실제로 출력되는 것을 확인
+  (카탈로그 밖 id · 가방 가득 · 없는 아이템 Take · 미등록 함수 `Item::Hass`)
+
+### 이슈 서술에서 벗어난 부분
+
+- **상수 파일을 `convert_item.py` 가 생성한다.** 이슈는 "손으로 쓴다" 였다.
+  이슈가 경계한 것은 **식별자를 자동 배정하는 레지스트리**(S2-01 계열)인데, 여기서는
+  식별자가 `HDItemId.wire` 로 이미 고정되어 있어 생성기는 **전사만** 한다.
+  61항을 손으로 옮기면 카탈로그와 조용히 갈라지고, 그것이 이 이슈가 막으려는 침묵 실패다.
+  대신 테스트가 **상수 파일 ↔ 카탈로그 대조**를 고정한다(개수·wire 값·중복·선언 누락).
+- **상수 이름이 `ITEM_WIELD_DAGGER` 형태가 아니라 `ITEM_<KIND>_<INDEX>` 다.**
+  원작 표에는 한국어 이름밖에 없고 61개를 영어로 옮기면 **창작**이 된다.
+  한국어 이름은 같은 줄 주석으로 붙는다 — `ITEM_ARMOR_3.assign(524291)   # 강철 갑옷`.
+- **로그는 `print` 가 아니라 `debugPrint`** 다. 이 파일은 `print` 를 쓰지만 그것이
+  기존 `avoid_print` info 20건의 정체다. 새 info 를 늘리지 않으려고 `debugPrint` 를 썼다.

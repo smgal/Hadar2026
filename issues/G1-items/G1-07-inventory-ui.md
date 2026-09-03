@@ -1,6 +1,6 @@
 # G1-07 소지품·장비 화면을 만든다 (800×480 안에서)
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: G1
 - **규모**: L
 - **선행**: [G1-03](G1-03-party-inventory.md) · [G1-04](G1-04-equipment-slots.md)
@@ -122,16 +122,16 @@ final choices = [
 
 ## 완료 판정 기준
 
-- [ ] 주 메뉴에서 `"소지품을 본다"` 로 들어가 **가방 20칸의 내용이 이름·분류·수치와 함께** 보인다
-- [ ] 인물 → 부위 → 후보 3단계로 **6부위 전량**을 장착·해제할 수 있다
-- [ ] 후보 목록에 **그 부위에 맞는 아이템만** 나온다 (갑옷이 머리 후보에 안 나온다)
-- [ ] 장착 시 기존 장비가 **가방으로 돌아오고**, 새 장비는 가방에서 빠진다 (아이템 총 개수가 보존된다)
-- [ ] 손 슬롯의 맨손은 `(비운다)` 항목이 나오지 않는다
-- [ ] 장비를 바꾸면 개인 상황 화면(`menu_flows.dart:275-277`)의 이름이 즉시 바뀐다
-- [ ] 콘솔 13행(`hd_config.dart:52`)·선택창 6칸(`selection_window_data.dart:11`)을 **넘지 않는다** — 가방이 20칸 다 찬 상태에서 확인
-- [ ] `lib/presentation/` 과 `lib/application/ports/` 에 변경이 없다 (`git diff --stat`)
-- [ ] `application/` 계층 위반 grep 2종 통과
-- [ ] 테스트 추가: `hadar2026_app/test/application/equipment_flow_test.dart` —
+- [x] 주 메뉴에서 `"소지품을 본다"` 로 들어가 **가방 20칸의 내용이 이름·분류·수치와 함께** 보인다
+- [x] 인물 → 부위 → 후보 3단계로 **6부위 전량**을 장착·해제할 수 있다
+- [x] 후보 목록에 **그 부위에 맞는 아이템만** 나온다 (갑옷이 머리 후보에 안 나온다)
+- [x] 장착 시 기존 장비가 **가방으로 돌아오고**, 새 장비는 가방에서 빠진다 (아이템 총 개수가 보존된다)
+- [x] 손 슬롯의 맨손은 `(비운다)` 항목이 나오지 않는다
+- [x] 장비를 바꾸면 개인 상황 화면(`menu_flows.dart:275-277`)의 이름이 즉시 바뀐다
+- [x] 콘솔 13행(`hd_config.dart:52`)·선택창 6칸(`selection_window_data.dart:11`)을 **넘지 않는다** — 가방이 20칸 다 찬 상태에서 확인
+- [x] `lib/presentation/` 과 `lib/application/ports/` 에 변경이 없다 (`git diff --stat`)
+- [x] `application/` 계층 위반 grep 2종 통과
+- [x] 테스트 추가: `hadar2026_app/test/application/equipment_flow_test.dart` —
       `test/application/map_navigation_test.dart:13-28` 의 페이크 바인딩 패턴을 그대로 따른다
       (`HDHosts().bind(ui: fakeUi, movement: fakeMove, assets: fakeAssets)` / `tearDown` 에서 `HDHosts().reset()`).
       페이크 `UiHost` 의 `showWindowMenu` 가 **미리 정한 선택 시퀀스**를 순서대로 돌려주게 만들어
@@ -148,3 +148,42 @@ final choices = [
 - 아이콘·스프라이트·설명문 패널 — 원작의 `icon_sprites`(`:328`)·`_DisplayGuideText` 는 800×480 에 자리가 없다.
 - 드래그·마우스 조작(입력은 키보드/가상 D-pad 뿐 — `docs/key_input_policy.md`) · 아이템 정렬·검색·필터 토글 · 개인 소지 화면.
 - 상점·무게·제작·강화·선언적 콘텐츠 팩·저널 UI.
+
+## 구현 기록 (2026-09-03)
+
+### 산출물
+
+| 파일 | 변경 |
+|---|---|
+| `lib/application/equipment_flow.dart` | **신설.** `HDEquipmentFlow` — `candidatesFor` · `equipFromBackpack` · `unequipToBackpack` · `canUnequip` + 표시 문구 |
+| `lib/application/menu_flows.dart` | 주 메뉴 8번째 항목 · `showInventory()` · `showEquipment()` |
+| `test/application/equipment_flow_test.dart` | **신규.** 14개 테스트 |
+| `lib/presentation/` · `lib/application/ports/` | **변경 0** (`git status` 확인) |
+
+### 검증
+
+- `flutter test` — 197개 전량 통과
+- `flutter analyze --no-fatal-infos` — 77건, **기존과 동일**
+- 계층 위반 grep 2종 — 빈 결과
+- **행 예산**: 가방 20칸을 다 채운 상태로 `showInventory()` 를 돌려
+  페이지당 최대 줄 수가 13 이하임을 테스트가 고정(4페이지 × 6칸)
+- **선택창**: `HDSelectionWindow` 는 `h = 60 + min(항목수, 6) × 34` 라
+  최대 264px. 주 메뉴가 8항목이 되어도 y=100 기준 364px 로 480 안에 든다
+
+### 이슈 서술에서 벗어난 부분
+
+- **소지품 화면에서 `[Enter] 장비 화면` 을 키로 구분하지 않는다.**
+  `waitForAnyKey()` 는 Enter 와 Esc 를 구분해 주지 않으므로(포트를 늘리지 않는다는 규칙),
+  목록을 다 보여 준 뒤 `showWindowMenu(["소지품", "장비를 바꾼다"])` 로 묻는다. Esc = 닫기.
+- **부위 선택을 Esc 까지 반복한다.** 이슈의 3단계 그림은 1회성이지만, 여섯 칸을 채우려고
+  메뉴를 여섯 번 여는 것은 번거롭다. 한 번 장착하면 부위 목록으로 돌아온다.
+- **`HDEquipSlot` 의 한국어 이름을 domain 이 아니라 `equipment_flow.dart` 에 뒀다.**
+  `HDItemType` 에 label 이 없는 것과 같은 이유 — 표시 문구는 흐름을 짜는 층의 것이다.
+- **주 메뉴 번호가 밀렸다** — `"게임 선택 상황"` 이 7 → 8. 밖에서 이 번호를 박아 쓰는 곳은
+  없음을 확인했고(`grep`), 조용한 재번호를 막는 테스트를 추가했다.
+
+### 아이템 보존 규칙
+
+교체는 **새 아이템을 가방에서 먼저 뺀 뒤** 기존 것을 넣는다 — 가방이 20칸 꽉 찬 상태에서도
+교체가 되고 아이템이 사라지지 않는다. 해제는 가방에 자리가 없으면 **거부**한다(바닥에 버리지 않는다).
+테스트가 세 경우 모두에서 "가방 + 6슬롯 총 개수" 불변을 고정한다.

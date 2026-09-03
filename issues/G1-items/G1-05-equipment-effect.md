@@ -1,6 +1,6 @@
 # G1-05 장비 효과 배선 — `powOfWeapon ← attaPow` · `ac` 합산
 
-- **상태**: TODO
+- **상태**: DONE
 - **구간**: G1
 - **규모**: M
 - **선행**: [G1-04](G1-04-equipment-slots.md)
@@ -94,14 +94,14 @@ ac      : baseAc + 착용 중 모든 슬롯의 param.ac 합       ← battle.dar
 
 ## 완료 판정 기준
 
-- [ ] `HDPlayer.baseAc` 가 분리되고, `party.dart:108`·`:130` 의 초기값이 `baseAc` 로 들어간다
-- [ ] `ac == baseAc + (착용 슬롯 6칸의 param.ac 합)` 이 항상 성립한다
-- [ ] `powOfWeapon == equip[hand]?.attaPow ?? 맨손 attaPow` 가 항상 성립한다
-- [ ] 장착·해제 직후 위 두 항등식이 다시 성립한다 (`recomputeEquipmentStats()` 호출)
-- [ ] **`battle.dart` 가 한 줄도 바뀌지 않았다** (`git diff --stat lib/application/battle.dart` = 변경 0)
-- [ ] `changeAttribute('pow_of_weapon'|'pow_of_shield'|'pow_of_armor')` 가 경고 로그를 남긴다
-- [ ] `domain/` 계층 위반 grep 2종 통과
-- [ ] 테스트 추가: `hadar2026_app/test/domain/party/equipment_effect_test.dart` —
+- [x] `HDPlayer.baseAc` 가 분리되고, `party.dart:108`·`:130` 의 초기값이 `baseAc` 로 들어간다
+- [x] `ac == baseAc + (착용 슬롯 6칸의 param.ac 합)` 이 항상 성립한다
+- [x] `powOfWeapon == equip[hand]?.attaPow ?? 맨손 attaPow` 가 항상 성립한다
+- [x] 장착·해제 직후 위 두 항등식이 다시 성립한다 (`recomputeEquipmentStats()` 호출)
+- [x] **`battle.dart` 가 한 줄도 바뀌지 않았다** (`git diff --stat lib/application/battle.dart` = 변경 0)
+- [x] `changeAttribute('pow_of_weapon'|'pow_of_shield'|'pow_of_armor')` 가 경고 로그를 남긴다
+- [x] `domain/` 계층 위반 grep 2종 통과
+- [x] 테스트 추가: `hadar2026_app/test/domain/party/equipment_effect_test.dart` —
       ① 무기 교체 → `powOfWeapon` 이 그 아이템의 `attaPow` 와 같아짐
       ② 방패+갑옷 착용 → `ac == baseAc + 방패ac + 갑옷ac`, 해제하면 `baseAc` 로 복귀
       ③ **`baseAc` 가 재계산으로 소실되지 않음** (위 함정의 회귀 테스트)
@@ -117,3 +117,51 @@ ac      : baseAc + 착용 중 모든 슬롯의 param.ac 합       ← battle.dar
 - `Random()` 시드화 — [P0-11](../P0-foundation/P0-11-unseeded-random.md).
 - 마법 45종 효과 — 별 트랙이다([MILESTONES §1](../MILESTONES.md)).
 - 상점·무게·제작·강화·선언적 콘텐츠 팩·저널 UI.
+
+## 구현 기록 (2026-09-03)
+
+### 산출물
+
+| 파일 | 변경 |
+|---|---|
+| `lib/domain/party/player.dart` | `baseAc` 분리, `ac`·`equipmentAc`·`powOfWeapon` 을 **파생 getter** 로 |
+| `lib/domain/party/party.dart` | 하드코딩 `powOfWeapon` 12/8 제거, `p.ac = n` → `p.baseAc = n` |
+| `test/domain/party/equipment_effect_test.dart` | **신규.** 12개 테스트 |
+
+### 검증
+
+- `flutter test` — 155개 전량 통과
+- `flutter analyze --no-fatal-infos` — 77건, **기존과 동일**
+- `git diff --stat lib/application/battle.dart` — **G1-05 가 건드린 줄 0.**
+  이 파일의 변경분은 전부 [G1-06](G1-06-item-names.md) 의 조사 정리다(전투식 5줄은 원문 그대로)
+- 계층 위반 grep 2종 — 빈 결과
+
+### 이슈 서술에서 벗어난 부분
+
+- **`recomputeEquipmentStats()` 를 만들지 않았다.** `ac`·`powOfWeapon` 을 저장 필드가 아니라
+  **파생 getter** 로 만들었으므로 재계산할 시점이 없다. 이슈가 요구한 두 항등식이
+  **구조적으로 항상 참**이 되어 회귀 가능성 자체가 사라진다. 완료 기준의 취지를 더 강하게 만족한다.
+- **`powOfWeapon` 에 setter 가 없다.** 대입 경로를 남기면 항등식이 깨진다.
+  `party.dart`·`resetFromEnemy`·`fromJson` 의 대입 3곳을 제거했고,
+  `changeAttribute` 는 경고 후 무시한다. `toJson` 은 유도값을 그대로 내보내 **세이브 포맷은 불변**이다.
+
+### 발견한 결함 하나를 이 이슈에서 고쳤다 — 세이브·로드 반복 시 `ac` 팽창
+
+`toJson` 이 `'ac': ac`(= 유효 방어도)를 담고 `fromJson` 이 그것을 `baseAc` 로 되돌리면
+**저장할 때마다 장비분이 다시 얹힌다** — 5 → 6 → 7 → 8 … 로 단조 증가한다.
+→ `toJson` 이 `'ac': baseAc` 를 담게 했다. v1 세이브의 `'ac'` 는 장비가 아무 일도 하지 않던 시절의
+값이라 **이미 소양값**이므로 키 의미가 바뀌어도 마이그레이션은 필요 없다.
+회귀 테스트(`repeated save/load does not inflate ac`)가 5회 왕복을 고정한다.
+
+### 밸런스에 실제로 생긴 변화 (의도된 것)
+
+| 대상 | 이전 | 이후 |
+|---|---|---|
+| 슴갈 `powOfWeapon` | 12 (하드코딩) | **10** (단도 `attaPow`) |
+| 유리 `powOfWeapon` | 8 (하드코딩) | **10** (단도 `attaPow`) |
+| 슴갈 `ac` | 5 | **6** (소양 5 + 가죽 갑옷 1) |
+| 유리 `ac` | 3 | **4** (소양 3 + 가죽 갑옷 1) |
+| `L1_ep1d0.cm2:169` `pow_of_weapon 100` | 100 | **80** (미늘창 `attaPow`) · 경고 로그 |
+| `L1_ep1d2.cm2:148` `pow_of_weapon 9` | 9 | **80** · 경고 로그 |
+
+부록 H-5 가 예고한 충돌이 이렇게 풀렸다 — **장비가 이긴다.**

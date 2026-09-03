@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../item/item_id.dart';
 import 'player.dart';
 
 class PartyPosition {
@@ -11,8 +12,87 @@ class PartyPosition {
 }
 
 class PartyInventory {
+  PartyInventory({this.capacity = defaultCapacity})
+    : backpack = List<HDItemId?>.filled(capacity, null);
+
   int food = 100;
   int gold = 500;
+
+  /// `ObjParty.cs:109` — `current_capacity_of_backpack = 20`.
+  static const int defaultCapacity = 20;
+
+  /// How many slots the backpack has. Final: the original serialises the
+  /// value but has no way to raise it, and [backpack]'s length has to stay
+  /// in step with it.
+  final int capacity;
+
+  /// Fixed-length slot array; `null` is an empty slot.
+  ///
+  /// A fixed array rather than a growing list because the original is one
+  /// (`ObjParty.cs` `back_pack[]`) and three things depend on the slot
+  /// index being stable: the equipment screen lists by index
+  /// (`GameEventEquipment.cs:369-370`), taking one item must not shift the
+  /// rest under the cursor, and saving it is then just a fixed-width array.
+  ///
+  /// The backpack is **party-wide**. The original has no per-character
+  /// carrying, and six of these would not fit the 800x480 layout.
+  final List<HDItemId?> backpack;
+
+  /// Puts [id] in the first empty slot — `PutInBackpack`
+  /// (`ObjParty.cs:424-439`). False when the backpack is full, in which
+  /// case nothing is dropped to make room.
+  bool give(HDItemId id) {
+    for (var i = 0; i < backpack.length; i++) {
+      if (backpack[i] == null) {
+        backpack[i] = id;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Clears the first slot holding [id] — `RemoveFromBackpack`
+  /// (`ObjParty.cs:446-461`). False if the party does not have one.
+  bool take(HDItemId id) {
+    for (var i = 0; i < backpack.length; i++) {
+      if (backpack[i] == id) {
+        backpack[i] = null;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Whether at least one [id] is in the backpack. The original has no
+  /// such call; cm2's `Item::Has` needs it.
+  bool has(HDItemId id) => backpack.contains(id);
+
+  /// Occupied slots — `GetNumItemsInBackpack` (`ObjParty.cs:463-471`).
+  int get count => backpack.where((slot) => slot != null).length;
+
+  /// 슬롯 배열을 정수 배열로. 빈 칸은 -1.
+  List<int> backpackToJson() => [for (final id in backpack) id?.wire ?? -1];
+
+  /// v1 페이로드에는 이 키가 없다 — 그 경우 20칸이 전부 빈 채로 남는다.
+  void backpackFromJson(dynamic raw) {
+    for (var i = 0; i < backpack.length; i++) {
+      backpack[i] = null;
+    }
+    if (raw is! List) return;
+    for (var i = 0; i < backpack.length && i < raw.length; i++) {
+      final wire = raw[i];
+      if (wire is! num || wire < 0) continue;
+      final id = HDItemId.tryFromWire(wire.toInt());
+      if (id == null) {
+        debugPrint(
+          '[save] backpack slot $i holds $wire, which is not an item id — '
+          'left empty',
+        );
+        continue;
+      }
+      backpack[i] = id;
+    }
+  }
 }
 
 class PartyBuffs {
@@ -58,6 +138,34 @@ class HDParty extends ChangeNotifier {
   int get gold => _inventory.gold;
   set gold(int value) => _inventory.gold = value;
 
+  /// Backpack slots in total. See [PartyInventory.capacity].
+  int get itemCapacity => _inventory.capacity;
+
+  /// Backpack slots in use.
+  int get itemCount => _inventory.count;
+
+  /// The item in [slot], or null if that slot is empty. Throws
+  /// [RangeError] for a slot outside 0..[itemCapacity]-1.
+  HDItemId? itemAt(int slot) => _inventory.backpack[slot];
+
+  /// Puts [id] in the first empty slot. False when the backpack is full —
+  /// nothing is dropped and no listener is notified.
+  bool give(HDItemId id) {
+    if (!_inventory.give(id)) return false;
+    notifyListeners();
+    return true;
+  }
+
+  /// Removes one [id]. False if the party does not have one.
+  bool take(HDItemId id) {
+    if (!_inventory.take(id)) return false;
+    notifyListeners();
+    return true;
+  }
+
+  /// Whether the party carries at least one [id].
+  bool has(HDItemId id) => _inventory.has(id);
+
   int get magicTorch => _buffs.magicTorch;
   set magicTorch(int value) => _buffs.magicTorch = value;
   int get levitation => _buffs.levitation;
@@ -101,11 +209,10 @@ class HDParty extends ChangeNotifier {
       p.accuracy.magic = 15;
       p.accuracy.esp = 15;
 
-      p.weapon = 1; // Short Sword
-      p.powOfWeapon = 12;
-      p.armor = 1; // Leather Armor
+      p.weapon = 1; // 단도 — powOfWeapon 은 여기서 유도된다
+      p.armor = 1; // 가죽 갑옷
       p.powOfArmor = 5;
-      p.ac = 5;
+      p.baseAc = 5;
     } else if (index == 1) {
       p.name = "유리";
       p.gender = 1;
@@ -124,10 +231,9 @@ class HDParty extends ChangeNotifier {
       p.accuracy.physical = 10;
 
       p.weapon = 1;
-      p.powOfWeapon = 8;
       p.armor = 1;
       p.powOfArmor = 3;
-      p.ac = 3;
+      p.baseAc = 3;
     }
     return p;
   });
@@ -199,6 +305,8 @@ class HDParty extends ChangeNotifier {
       'xPrev': xPrev,
       'yPrev': yPrev,
       'players': players.map((p) => p.toJson()).toList(),
+      // ---- v2 ----
+      'backpack': _inventory.backpackToJson(),
     };
   }
 
@@ -220,6 +328,9 @@ class HDParty extends ChangeNotifier {
     canUseSpecialMagic = json['canUseSpecialMagic'] ?? false;
     xPrev = json['xPrev'] ?? 0;
     yPrev = json['yPrev'] ?? 0;
+
+    // v1 페이로드에는 'backpack' 이 없다 — 20칸이 전부 빈다.
+    _inventory.backpackFromJson(json['backpack']);
 
     if (json['players'] != null) {
       var pList = json['players'] as List;
