@@ -39,6 +39,11 @@ dependencies:
   shared_preferences: ^2.5.4
   cm2_script:
     path: ../packages/cm2_script
+  # 전투 model 과 그 문장. 둘 다 순수 Dart 라 Flutter 를 끌어오지 않는다.
+  hd_battle:
+    path: ../packages/hd_battle
+  hd_battle_text:
+    path: ../packages/hd_battle_text
 
 dev_dependencies:
   flutter_test:
@@ -67,6 +72,10 @@ flutter:
     - assets/images/
     - assets/maps/
     - assets/fonts/
+    # 전투 실험실이 읽는 fixture. 저작은 `hd_battle_console/fixtures/` 이고
+    # 여기는 `dart run tool/make_fixtures.dart` 가 떨구는 사본이다.
+    - assets/battle/original/
+    - assets/battle/rules/
 
   fonts:
     - family: DungGeunMo

@@ -1,0 +1,141 @@
+{
+  "name": "원작 조우 — Devil Hunter 일곱",
+  "note": "assets/L1_ep1d0.cm2:367-403 이 legacyId 26 을 일곱 번 등록한다.\n같은 키를 중복으로 넣는 것이 정상이다.\n**원작 시작 파티(2인)로는 전멸한다** — 그것이 원작의 난이도다.",
+  "record": "attack",
+  "setup": {
+    "party": [
+      {
+        "slot": 0,
+        "name": "슴갈",
+        "characterClass": 0,
+        "strength": 18,
+        "mentality": 20,
+        "concentration": 20,
+        "endurance": 15,
+        "resistance": 0,
+        "agility": 12,
+        "luck": 0,
+        "ac": 6,
+        "hp": 150,
+        "maxHp": 150,
+        "sp": 100,
+        "maxSp": 100,
+        "esp": 100,
+        "maxEsp": 100,
+        "accuracyPhysical": 15,
+        "accuracyMagic": 15,
+        "accuracyEsp": 15,
+        "levelPhysical": 1,
+        "levelMagic": 20,
+        "levelEsp": 20,
+        "powOfWeapon": 10,
+        "weaponName": "단도",
+        "weaponKey": "dagger",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 1,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      },
+      {
+        "slot": 1,
+        "name": "유리",
+        "characterClass": 2,
+        "strength": 10,
+        "mentality": 0,
+        "concentration": 0,
+        "endurance": 10,
+        "resistance": 0,
+        "agility": 15,
+        "luck": 0,
+        "ac": 4,
+        "hp": 100,
+        "maxHp": 100,
+        "sp": 100,
+        "maxSp": 100,
+        "esp": 80,
+        "maxEsp": 80,
+        "accuracyPhysical": 10,
+        "accuracyMagic": 0,
+        "accuracyEsp": 0,
+        "levelPhysical": 1,
+        "levelMagic": 0,
+        "levelEsp": 1,
+        "powOfWeapon": 10,
+        "weaponName": "단도",
+        "weaponKey": "dagger",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 1,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      }
+    ],
+    "enemyKeys": [
+      "devil_hunter",
+      "devil_hunter",
+      "devil_hunter",
+      "devil_hunter",
+      "devil_hunter",
+      "devil_hunter",
+      "devil_hunter"
+    ],
+    "seed": 26,
+    "mode": 0,
+    "consumables": {},
+    "enemyRanks": [],
+    "partyCapacity": 6
+  },
+  "commands": [
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 0,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 1,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 1,
+      "enemyIndex": 0
+    }
+  ]
+}
