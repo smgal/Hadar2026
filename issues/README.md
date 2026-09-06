@@ -18,6 +18,10 @@
 | `S1-sample-quest/` | 샘플 퀘스트 — 손으로, 코드 변경 0 |
 | `S2-enablers/` | S1 이 증명한 걸림돌만 제거 |
 | `S3-generation/` | AI 생성 |
+| `B1-battle-extract/` | **B 트랙** — 전투를 별도 패키지로 분리 (규칙 무변경) |
+| `B2-battle-expand/` | 전투 확장 — 확장 항목 9개. **목록 자체가 잠정** |
+| `B3-battle-integrate/` | 확장된 전투를 RPG·cm2 에 되붙임 |
+| `B4-battle-view/` | Flutter 전투 view 신규 작성 (model 무변경) |
 | `P0-foundation/` | 실재 버그 백로그 (선행 구간 아님) |
 | `deferred/` | **보류** — 선언적 콘텐츠 팩·무거운 생성 파이프라인 노선 (26건) |
 | `templates/ISSUE.md` | 새 이슈 서식 |
@@ -28,7 +32,8 @@
 
 1. [DECISION-LOG.md](DECISION-LOG.md) — **먼저 읽을 것.** 왜 이 노선인지, 그리고 **1차 판정이 왜 폐기됐는지**.
    1차 판정(P0→P1→GATE→P2)을 따르면 잘못된 일을 하게 된다.
-2. [MILESTONES.md](MILESTONES.md) §0~§1 — 현재 노선(S1→S2→S3)과 전제
+2. [MILESTONES.md](MILESTONES.md) §0~§1 — S 트랙 노선(S1→S2→S3)과 전제
+   그리고 **§7 — B 트랙**(전투 분리·확장·재통합). **두 트랙은 별개이고 선후가 정해지지 않았다**
 3. [BOARD.md](BOARD.md) — 착수 가능한 이슈(`TODO` 이고 선행이 `DONE`)
 4. 고른 이슈 파일 — **완료 판정 기준을 먼저** 읽는다
 

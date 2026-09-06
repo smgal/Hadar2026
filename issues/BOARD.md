@@ -67,6 +67,120 @@
 | [S3-04](S3-generation/S3-04-minimal-validation.md) | 최소 검증 — 심볼·플래그 충돌·좌표 존재 | BLOCKED | M | S2-03 |
 | [S3-05](S3-generation/S3-05-pilot-batch.md) | 파일럿 3개 배치 생성 + 사람 플레이 검수 | BLOCKED | M | S3-02·03·04 |
 
+## B 트랙 — 전투 분리·확장·재통합 (**B1 완료** 2026-09-04 · 6/6)
+
+> 판정: [DECISION-LOG 4차](DECISION-LOG.md) (2026-09-04) · 구간 정의: [MILESTONES §7](MILESTONES.md)
+> **S 트랙과 별개 트랙이다.** S1 과 B1 의 선후는 아직 정하지 않았다.
+> 산출물은 독립 실행되는 디렉토리 2개 — `packages/hd_battle/`(model) + `hd_battle_console/`(콘솔 view).
+
+### B1 — 전투 분리 (**완료** 2026-09-04 · 규칙 무변경 이식 + 호출 방향 뒤집기 + 시드 주입)
+
+> 산출물: [`packages/hd_battle/`](../packages/hd_battle/) (model, 순수 Dart) +
+> [`hd_battle_console/`](../hd_battle_console/) (콘솔 view, `dart run bin/battle.dart`)
+
+| ID | 제목 | 상태 | 규모 | 선행 |
+|---|---|---|---|---|
+| [B1-01](B1-battle-extract/B1-01-package-skeleton.md) | `packages/hd_battle` 골격과 모드 인계 규격 초안 | **DONE** | M | 없음 |
+| [B1-02](B1-battle-extract/B1-02-enemy-table.md) | 적 테이블 75행을 snake_case 문자열 키로 이식 | **DONE** | S | B1-01 |
+| [B1-03](B1-battle-extract/B1-03-formula-port.md) | **전투식 19개**를 시드 주입 순수 함수로 이식 | **DONE** | L | B1-01 · B1-02 |
+| [B1-04](B1-battle-extract/B1-04-invert-call-direction.md) | 호출 방향 뒤집기 — model 이 view 를 부르지 않게 | **DONE** | L | B1-03 |
+| [B1-05](B1-battle-extract/B1-05-console-view.md) | 콘솔 view 와 fixture 러너 (fixture 7개) | **DONE** | M | B1-04 |
+| [B1-06](B1-battle-extract/B1-06-ci-guard.md) | CI 가 불변조건 4개를 강제 | **DONE** | S | B1-01 |
+
+### B2 — 전투 확장 (**완료** 2026-09-05 · 12/12)
+
+> 판정: [7차 — 붙인다](DECISION-LOG.md) · 규격: `packages/hd_battle/CONTRACT.md` **v1**
+> 근거는 [`GROUND_TRUTH` 부록 O·Q·R·S·T·U](../blueprint/_meta/GROUND_TRUTH.md).
+> **목록이 두 번 늘었다** — B2-10 · B2-11 은 착수 중에 발견해 뗀 것이다(규격 영향).
+
+| ID | 제목 | 상태 | 규모 | 선행 |
+|---|---|---|---|---|
+| [B2-04](B2-battle-expand/B2-04-unconscious-stage.md) | 의식불명 단계 — 세 경로를 한 규칙으로 | **DONE** | S | B1 ✅ |
+| [B2-03](B2-battle-expand/B2-03-status-effects.md) | 상태 모델 — 누적값 + 능력치 감소 | **DONE** | L | B2-04 |
+| [B2-02](B2-battle-expand/B2-02-heal-applies.md) | 치료 4갈래 조합 + SP 차감 | **DONE** | M | B2-03 |
+| [B2-01](B2-battle-expand/B2-01-magic-effects.md) | 공격 마법 1~18 — **카테고리 경계 정정** | **DONE** | L | B2-02 |
+| [B2-10](B2-battle-expand/B2-10-esp-abilities.md) | 초능력 41~45 — **독심이 적을 영입한다** | **DONE** | L | B2-01 |
+| [B2-07](B2-battle-expand/B2-07-enemy-behavior.md) | 적 AI 사다리 — **동료 치료·부활** · 행운 방어 | **DONE** | M | B2-01·B2-03 |
+| [B2-11](B2-battle-expand/B2-11-superhuman-casting.md) | 초자연 시전 — **적 소환 · 파티원 탈취** | **DONE** | L | B2-07 |
+| [B2-05](B2-battle-expand/B2-05-turn-order.md) | 행동 순서가 민첩을 읽는다 | **DONE** | M | B2-07 |
+| [B2-06](B2-battle-expand/B2-06-battle-items.md) | 전투 중 물건 — 마법 지수를 쓰지 않는다 | **DONE** | M | B2-07 |
+| [B2-08](B2-battle-expand/B2-08-slot-mitigation.md) | 부위별 감쇠 + **방패는 다른 축** | **DONE** | M | B2-07 |
+| [B2-09](B2-battle-expand/B2-09-elemental-affinity.md) | 속성 상성 — 얇게 | **DONE** | L | B2-01 |
+| [B2-99](B2-battle-expand/B2-99-freeze-contract.md) | **모드 인계 규격 v1 확정** | **DONE** | M | B2 전체 |
+
+### B5 — 위치 전투 (**완료** 2026-09-05 · 11/11 · [8차 판정](DECISION-LOG.md))
+
+> 전투에 **위치**를 넣는다 — 각자의 `rank`(1~3) + 양측 공통 `gap`(0~2). 좌표가 아니다.
+> 근간은 드래곤 퀘스트로 둔다. [B5 _README](B5-battle-position/_README.md) 를 먼저 읽을 것.
+>
+> **불변식**: 사거리 밖은 **벌점이지 무효가 아니다.** 헛턴이 나오는 경로가 없어야 한다.
+>
+> **⚠ 파티는 5인 + 소환수가 기본이다.** 착수 시점에 fixture 17개 중 14개가 2인이라
+> 밸런스 측정이 대표성이 없었다 — B5-00 이 그것을 고쳤다
+> ([부록 W](../blueprint/_meta/GROUND_TRUTH.md)).
+>
+> 실측은 [부록 X](../blueprint/_meta/GROUND_TRUTH.md), 규격은
+> `packages/hd_battle/CONTRACT.md` **v2**.
+
+| ID | 제목 | 상태 | 규모 | 선행 |
+|---|---|---|---|---|
+| [B5-00](B5-battle-position/B5-00-five-member-fixtures.md) | fixture 를 5인 기준으로 재작성 + **한 줄 재생성** | **DONE** | M | 없음 |
+| [B5-01](B5-battle-position/B5-01-rank-and-gap.md) | `rank` 와 `gap` — 위치의 뼈대 (**규격**) | **DONE** | L | B5-00 ✅ |
+| [B5-04](B5-battle-position/B5-04-rank-weighted-targeting.md) | 적의 대상 선택을 열 가중으로 — **탱커가 성립한다** | **DONE** | S | B5-01 ✅ |
+| [B5-02](B5-battle-position/B5-02-weapon-reach.md) | 무기 표 — 사거리와 공격 방식 (**규격**) | **DONE** | L | B5-01 ✅ |
+| [B5-03](B5-battle-position/B5-03-advance.md) | 이동 — 대열 전진 · 전진 공격 · 전진 방어 | **DONE** | L | B5-02 ✅ |
+| [B5-05](B5-battle-position/B5-05-damage-chain.md) | 피해 사슬 재편 — 회피 배율 · 종족 면역 | **DONE** | L | B5-00 ✅ |
+| [B5-06](B5-battle-position/B5-06-physical-elements.md) | 물리 속성 — 베기/찌르기/타격 (**규격**) | **DONE** | L | B5-02 ✅ · B5-05 ✅ |
+| [B5-07](B5-battle-position/B5-07-knockback.md) | 밀어내기 — 넉백 · 방패 밀쳐냄 · 회피 후퇴 | **DONE** | M | B5-03 ✅ · B5-06 ✅ |
+| [B5-08](B5-battle-position/B5-08-presets.md) | preset — 아군·적의 상시 지시 (**규격**) | **DONE** | M | B5-03 ✅ · B5-06 ✅ |
+| [B5-09](B5-battle-position/B5-09-join-mid-battle.md) | 전투 중 합류 — 슬롯 정원 (**규격**) | **DONE** | M | B5-01 ✅ |
+| [B5-99](B5-battle-position/B5-99-freeze-contract-v2.md) | **모드 인계 규격 v2 확정** | **DONE** | M | B5 전체 |
+
+**착수 순서는 B5-00 → B5-01 → B5-04 → B5-02 → B5-05 → B5-06 → B5-03 → B5-07 →
+B5-09 → B5-08 → B5-99** 였다. 최소 프로토타입(01+04)이 먼저 돌아간 덕에
+"앞열이 실제로 더 맞는다" 를 확인하고 나머지를 얹었다.
+
+### B3 — RPG 연결 (**4/5** 2026-09-06 — 규격 v2 위에서)
+
+> **전투가 실제로 새 model 로 돈다.** cm2 동사 다섯 개가 어댑터를 거치고,
+> `HDBattleRunner` 가 `UiHost` 로 굴리고, 정산이 끝나고 한 번 반영된다.
+> `assets/*.cm2` 는 한 줄도 안 고쳤다.
+>
+> ¹ B3-03 은 **부분 완료**다 — 속성은 B5 가 전투 안으로 흡수해(체질·공격 방식)
+> RPG 쪽에 넣을 것이 없어졌고, 소비 아이템 키 대응만 남았다.
+
+| ID | 제목 | 상태 | 규모 | 선행 |
+|---|---|---|---|---|
+| [B3-01](B3-battle-integrate/B3-01-cm2-adapter.md) | cm2 동사 5개 호환 adapter — **콘텐츠 53곳 무변경** | **DONE** | M | B5-99 ✅ |
+| [B3-02](B3-battle-integrate/B3-02-setup-and-settle.md) | 개시 입력 조립 · 정산 결과 반영 · **`UiHost` 운전자** | **DONE** | L | B5-99 ✅ · B3-01 ✅ |
+| [B3-03](B3-battle-integrate/B3-03-rpg-attributes.md) | RPG → 규격 v2 매핑 (무기 키 · 부위별 방어구 · 열) | **DONE**¹ | L | B5-99 ✅ |
+| [B3-04](B3-battle-integrate/B3-04-world-effects.md) | 전투 밖 효과 요청 해석 + `worldEffects` 형식 확정 | **TODO — 다음** | M | B5-99 ✅ · B3-02 ✅ |
+| [B3-05](B3-battle-integrate/B3-05-exp-and-levelup.md) | 경험치·레벨업 정산을 RPG 로 — **레벨이 안 오르고 있었다** | **DONE** | S | B3-02 ✅ |
+
+### B4 — Flutter view (model 무변경) — **1/3** 2026-09-06
+
+| ID | 제목 | 상태 | 규모 | 선행 |
+|---|---|---|---|---|
+| [B4-01](B4-battle-view/B4-01-flutter-view.md) | Flutter 전투 view — **실험실 모드로 먼저** (`flutter run -t lib/battle_lab_main.dart`) | **DONE** | L | B3-02 ✅ |
+| [B4-02](B4-battle-view/B4-02-input-wiring.md) | 게임 안으로 넣기 + 키보드·가상 입력 배선 | **TODO** | M | B4-01 ✅ |
+| [B4-03](B4-battle-view/B4-03-remove-old-battle.md) | 구 전투 코드 제거 (`battle.dart` 572줄 등) | BLOCKED | M | B4-02 |
+
+### B6 — 전투 메뉴·행동 현대화 (**완료** 2026-09-06 · 7/7 · [9차 판정](DECISION-LOG.md))
+
+> 원작 메뉴를 고집하지 않는다. 최상위 13줄 → 6줄, 마법 다섯 갈래 → 기술 목록 하나.
+> 규격 v2 → v3. 구간 정의: [B6-battle-modernize/_README.md](B6-battle-modernize/_README.md)
+
+| ID | 제목 | 상태 | 규모 | 선행 |
+|---|---|---|---|---|
+| [B6-01](B6-battle-modernize/B6-01-unified-skill-menu.md) | 최상위 메뉴 6줄 · 기술 목록 통합 (`castSkill`) | **DONE** | L | B5-99 ✅ · B4-01 ✅ |
+| [B6-02](B6-battle-modernize/B6-02-spell-reclassification.md) | 특수 마법 재분류 — 독은 무기 도포로, 능력 저하는 염력으로 | **DONE** | M | B6-01 |
+| [B6-03](B6-battle-modernize/B6-03-weapon-coating.md) | 무기에 바르기 — 독·마비·화염, 3 라운드 | **DONE** | M | B6-02 · B6-05 |
+| [B6-04](B6-battle-modernize/B6-04-escape-rework.md) | 도망을 파티 행동으로 · 리더 = 의식 있는 최소 슬롯 · 간격 보너스 | **DONE** | M | B6-01 |
+| [B6-05](B6-battle-modernize/B6-05-party-consumables.md) | `HDItemType.consumable(12)` · 소비품 카탈로그 · 시작 인벤토리 | **DONE** | M | G1-03 ✅ |
+| [B6-06](B6-battle-modernize/B6-06-views.md) | 콘솔 · Flutter view 적용 · fixture 재기록 | **DONE** | M | B6-01~05 |
+| [B6-99](B6-battle-modernize/B6-99-contract-v3.md) | 규격 v3 동결 | **DONE** | S | B6-06 |
+| [B6-07](B6-battle-modernize/B6-07-menu-flow-audit.md) | 메뉴 흐름 감사 — 리더→열 순으로 묻기 · 취소는 한 단계 위로 · 한 답짜리 물음 생략 · 치료 대상 묻기 | **DONE** | M | B6-06 |
+
 ## P0 백로그 — 실재하는 버그 (선행 구간이 아니다 · 필요 시 끌어옴)
 
 > 전부 `blueprint/_meta/GROUND_TRUTH.md` 부록 A~K 로 검증된 것이다.
@@ -111,6 +225,10 @@
 | S1 | 5 | 1 | 4 | 0 |
 | S2 | 4 | 0 | 4 | 0 |
 | S3 | 5 | 0 | 5 | 0 |
+| **B1 전투 분리** | 6 | 0 | 0 | 0 |
+| **B2 전투 확장** | 12 | 0 | 0 | 0 |
+| **B3 RPG 연결** | 5 | **1** | 4 | 0 |
+| **B4 Flutter view** | 3 | 0 | 3 | 0 |
 | P0 백로그 | 20 | 18 | 0 | 0 |
 | deferred | 26 | 0 | 0 | 26 |
-| **합계** | **73** | **15** | **15** | **26** |
+| **합계** | **99** | **16** | **23** | **26** |

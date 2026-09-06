@@ -28,6 +28,25 @@
 **AI 생성이 착수되는 순간([S3-04](../S3-generation/S3-04-minimal-validation.md))에는 필요**하다.
 버리려면 S3 자체를 버려야 한다. `DROPPED` 대신 `BLOCKED (S3-01 대기)` 로 옮기는 것이 옳은 처리다.
 
+## 2026-09-05 — 최소판이 이미 CI 에서 돈다
+
+`hadar2026_app/test/application/scripting/cm2_assets_audit_test.dart` 가
+출하되는 `assets/*.cm2` **전량**을 훑는다. `flutter test` 에 들어 있으므로 CI 가 매번 돌린다.
+
+| 규칙 | 무엇을 잡는가 | 실제로 잡은 것 |
+|---|---|---|
+| 모르는 명령·함수 | 오타 → 스킵되거나 0 반환 | (지금은 0건 — G2-02 가 6종을 등록한 뒤) |
+| 속성 이름 | `Player::(Get\|Change)Attribute` 의 없는 키 | `town2.cm2` 의 `"_name"` 10곳 |
+| 선언만 하고 값 없음 | `variable(X)` 뒤 다른 이름에 대입 | `flag4ep1.cm2:42` (부록 M-1) |
+| 전투 결과 미확인 | `Battle::Start` > `Battle::Result` | `Map002.cm2` — 이긴 싸움이 계속 다시 시작됐다 |
+
+**이 이슈가 없어지는 것은 아니다.** 최소판에 없는 것:
+- `파일:줄: 규칙ID: 메시지` 출력 형식 (S3-02 의 자기수정 루프가 이 형식을 먹는다)
+- `On(x,y)` 좌표가 맵에 실재하는지
+- `include` 경로 존재 (부록 L-3)
+- 플래그 인덱스 충돌 (S2-01 의 40건)
+- 단독 실행 가능한 CLI (지금은 테스트 하나라 사람이 따로 돌릴 수 없다)
+
 ## 문제
 
 `packages/cm2_script/lib/src/cm2_script.dart` 의 두 기본 실패 양식:

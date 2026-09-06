@@ -55,7 +55,13 @@ grep -rn "Flag::\(IsSet\|Set\|Reset\)( *[0-9]" hadar2026_app/assets/*.cm2
 | **31** | `flag4ep1.cm2:80-81` `GFD3_OPEN_WEST_DOOR` | `lore_ep1.cm2:160,185,511` · `town2.cm2:160,185,507` |
 | **50** | `flag4ep1.cm2:109-110` `GFD5_PUSH_BIG_STONE` | `lore_ep1.cm2:68,80` · `town2.cm2:68,80` |
 
-### 이름을 붙여도 안전하지 않다 — 실제 오타 1건
+### 이름을 붙여도 안전하지 않다 — 실제 오타 1건 (**2026-09-05 고침**)
+
+> 아래 오타는 고쳤다 — `GFD1_OPEN_DOWN_STAIRS.assign(15)`.
+> 재발은 `hadar2026_app/test/application/scripting/cm2_assets_audit_test.dart` 의
+> "선언만 하고 값을 안 준 이름이 없다" 가 잡는다.
+> **생 숫자 40건과 인덱스 충돌 3건은 그대로 남아 있다** — 이 이슈의 본체다.
+
 
 `hadar2026_app/assets/flag4ep1.cm2:42-43`:
 
