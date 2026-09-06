@@ -111,7 +111,7 @@ if (Equal(ScriptMode(), FLAG_TALK))
 		temp.assign(Select::Result())
 		if (Equal(temp, 1))
 			Player::AssignFromEnemyData(6,1)
-			Player::ChangeAttribute(6, "_name", "Mad Joe")
+			Player::ChangeAttribute(6, "name", "Mad Joe")
 			Player::ChangeAttribute(6, "class", 8)
 			Player::ChangeAttribute(6, "weapon", 0)
 			Player::ChangeAttribute(6, "shield", 0)
@@ -298,54 +298,54 @@ if (Equal(ScriptMode(), FLAG_EVENT))
 			Battle::Init()
 
 			Battle::RegisterEnemy(26)
-			Enemy::ChangeAttribute(1, "_name", "Soldier1")
+			Enemy::ChangeAttribute(1, "name", "Soldier1")
 			Enemy::ChangeAttribute(1, "special", 0)
 			Enemy::ChangeAttribute(1, "castlevel", 0)
 			Enemy::ChangeAttribute(1, "E_number", 1)
 
 			Battle::RegisterEnemy(26)
-			Enemy::ChangeAttribute(2, "_name", "Soldier2")
+			Enemy::ChangeAttribute(2, "name", "Soldier2")
 			Enemy::ChangeAttribute(2, "special", 0)
 			Enemy::ChangeAttribute(2, "castlevel", 0)
 			Enemy::ChangeAttribute(2, "E_number", 1)
 
 			if (temp)
 				Battle::RegisterEnemy(26)
-				Enemy::ChangeAttribute(3, "_name", "Soldier3")
+				Enemy::ChangeAttribute(3, "name", "Soldier3")
 				Enemy::ChangeAttribute(3, "special", 0)
 				Enemy::ChangeAttribute(3, "castlevel", 0)
 				Enemy::ChangeAttribute(3, "E_number", 1)
 
 				Battle::RegisterEnemy(26)
-				Enemy::ChangeAttribute(4, "_name", "Soldier4")
+				Enemy::ChangeAttribute(4, "name", "Soldier4")
 				Enemy::ChangeAttribute(4, "special", 0)
 				Enemy::ChangeAttribute(4, "castlevel", 0)
 				Enemy::ChangeAttribute(4, "E_number", 1)
 
 				Battle::RegisterEnemy(26)
-				Enemy::ChangeAttribute(5, "_name", "Soldier5")
+				Enemy::ChangeAttribute(5, "name", "Soldier5")
 				Enemy::ChangeAttribute(5, "special", 0)
 				Enemy::ChangeAttribute(5, "castlevel", 0)
 				Enemy::ChangeAttribute(5, "E_number", 1)
 
 				Battle::RegisterEnemy(26)
-				Enemy::ChangeAttribute(6, "_name", "Soldier6")
+				Enemy::ChangeAttribute(6, "name", "Soldier6")
 				Enemy::ChangeAttribute(6, "special", 0)
 				Enemy::ChangeAttribute(6, "castlevel", 0)
 				Enemy::ChangeAttribute(6, "E_number", 1)
 
 				Battle::RegisterEnemy(26)
-				Enemy::ChangeAttribute(7, "_name", "Soldier7")
+				Enemy::ChangeAttribute(7, "name", "Soldier7")
 				Enemy::ChangeAttribute(7, "special", 0)
 				Enemy::ChangeAttribute(7, "castlevel", 0)
 				Enemy::ChangeAttribute(7, "E_number", 1)
 
 			Battle::ShowEnemy()
 
-			if (Equal(Player::GetAttribute(6, "_name"), "Mad Joe"))
+			if (Equal(Player::GetAttribute(6, "name"), "Mad Joe"))
 				PressAnyKey()
 				Talk("우리들 뒤에 있던  Mad Joe가 전투가 일어나자마자 도망을 가버렸다.")
-				Player::ChangeAttribute(6, "_name", "")
+				Player::ChangeAttribute(6, "name", "")
 				DisplayStatus()
 
 			PressAnyKey()
@@ -526,22 +526,22 @@ if (FLAG_MAP.Equal(ScriptMode()))
 halt()
 
 
-이벤트 정리
+# 이벤트 정리
 
-- var
-10: 로드 안과 대화
+# - var
+# 10: 로드 안과 대화
 
-- flag
-31: 로어성의 왕궁이 열림
-32: 로어성의 성문이 열림
-50: Jr. Antares를 만나서 대화
-51: 로어성 사거리의 병사가 의문의 인물로 변한 후 '또 다른 지식의 성전'의 존재를 알려 줌
-52: Mad joe를 일행으로 풀어 줌
-53: Mad joe를 풀어 주다가 경비병과 싸운 적이 있음
-54: 로어성의 기본 무기로 무장
-55: skeleton 조우 이벤트
+# - flag
+# 31: 로어성의 왕궁이 열림
+# 32: 로어성의 성문이 열림
+# 50: Jr. Antares를 만나서 대화
+# 51: 로어성 사거리의 병사가 의문의 인물로 변한 후 '또 다른 지식의 성전'의 존재를 알려 줌
+# 52: Mad joe를 일행으로 풀어 줌
+# 53: Mad joe를 풀어 주다가 경비병과 싸운 적이 있음
+# 54: 로어성의 기본 무기로 무장
+# 55: skeleton 조우 이벤트
 
 
-미구현
+# 미구현
 
-4개의 가게
+# 4개의 가게

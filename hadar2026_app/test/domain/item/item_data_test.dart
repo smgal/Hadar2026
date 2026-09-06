@@ -89,21 +89,24 @@ void main() {
     });
 
     test('every kind has an index 0 "empty" row', () {
-      for (final kind
-          in HDItemType.values.where((t) => t != HDItemType.none)) {
-        final empty = itemTable.where(
-          (i) => i.type == kind && i.id.index == 0,
-        );
+      // 소비품(B6-05)은 생성 표 밖의 손으로 쓴 카탈로그에 있고 "없음" 행이
+      // 없다 — 쓰면 사라지는 물건에 빈 칸 행은 뜻이 없다.
+      for (final kind in HDItemType.values.where(
+        (t) => t != HDItemType.none && t != HDItemType.consumable,
+      )) {
+        final empty = itemTable.where((i) => i.type == kind && i.id.index == 0);
         expect(empty.length, 1, reason: 'kind $kind');
         expect(empty.single.param.attaPow, lessThanOrEqualTo(1));
         expect(empty.single.param.ac, 0);
       }
     });
 
-    test('detail is 0 throughout — kind already carries the classification',
-        () {
-      expect(itemTable.every((i) => i.id.detail == 0), isTrue);
-    });
+    test(
+      'detail is 0 throughout — kind already carries the classification',
+      () {
+        expect(itemTable.every((i) => i.id.detail == 0), isTrue);
+      },
+    );
 
     test('shield and armor ac stay in 0..5', () {
       // The party starts at ac 3..5 (party.dart:108,130). books.json's 10/20
@@ -120,12 +123,16 @@ void main() {
     });
 
     test('carries 11 rows each for head / leg / ornament', () {
-      for (final kind in [HDItemType.head, HDItemType.leg,
-                          HDItemType.ornament]) {
+      for (final kind in [
+        HDItemType.head,
+        HDItemType.leg,
+        HDItemType.ornament,
+      ]) {
         final rows = itemTable.where((i) => i.type == kind).toList();
         expect(rows.length, 11, reason: '$kind');
-        expect(rows.map((i) => i.id.index).toSet(),
-            {for (var i = 0; i <= 10; i++) i});
+        expect(rows.map((i) => i.id.index).toSet(), {
+          for (var i = 0; i <= 10; i++) i,
+        });
       }
     });
 

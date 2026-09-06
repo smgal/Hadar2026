@@ -74,6 +74,80 @@ jobs:
 
           exit $fail
 
+  hd_battle:
+    name: hd_battle + hd_battle_text + console (analyze + test + purity)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Dart 🎯
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install Dependencies 📦
+        run: |
+          cd packages/hd_battle && dart pub get
+          cd ../hd_battle_text && dart pub get
+          cd ../../hd_battle_console && dart pub get
+
+      - name: Analyze 🔍
+        run: |
+          cd packages/hd_battle && dart analyze
+          cd ../hd_battle_text && dart analyze
+          cd ../../hd_battle_console && dart analyze
+
+      # model 의 불변조건 4개는 test/flow/purity_test.dart 가 지킨다 —
+      # Flutter 의존 0 · 시드 없는 Random 0 · 한국어 문장 0 · 경험치 표 0.
+      # 주석 안의 원작 코드 인용(`Random().nextInt(50)` 등)을 오탐하지 않도록
+      # 그쪽은 주석을 걷어내고 본다. 아래 grep 은 import 만 보는 빠른 실패용.
+      - name: Test 🧪
+        run: |
+          cd packages/hd_battle && dart test
+          cd ../hd_battle_text && dart test
+          cd ../../hd_battle_console && dart test
+
+      - name: Check hd_battle purity 🧱
+        run: |
+          hits="$(grep -rn "package:flutter" packages/hd_battle/lib packages/hd_battle/test || true)"
+          if [ -n "$hits" ]; then
+            echo "::error::hd_battle must not depend on Flutter"
+            echo "$hits"
+            exit 1
+          fi
+          echo "ok: no Flutter dependency in hd_battle"
+
+          # 문장은 hd_battle_text 에만 있어야 한다. model 이 한국어를 들면
+          # 그 순간 view 를 갈아끼울 수 없게 된다.
+          hits="$(grep -rn "package:flutter" packages/hd_battle_text/lib || true)"
+          if [ -n "$hits" ]; then
+            echo "::error::hd_battle_text must not depend on Flutter"
+            echo "$hits"
+            exit 1
+          fi
+          echo "ok: no Flutter dependency in hd_battle_text"
+
+      # fixture 는 시연 입력이자 회귀 테스트 입력이다. 재생이 결정적이지
+      # 않으면 규칙이나 뽑기 순서가 바뀐 것이다.
+      - name: Replay fixtures 🎬
+        working-directory: hd_battle_console
+        run: |
+          fail=0
+          for f in fixtures/*/*.json; do
+            a="$(dart run bin/battle.dart "$f" --replay --no-status)" || { echo "::error::$f failed to replay"; fail=1; continue; }
+            b="$(dart run bin/battle.dart "$f" --replay --no-status)"
+            if [ "$a" != "$b" ]; then
+              echo "::error::$f is not deterministic"
+              fail=1
+            else
+              echo "ok: $f"
+            fi
+          done
+          exit $fail
+
   cm2_script:
     name: packages/cm2_script (analyze + test)
     runs-on: ubuntu-latest

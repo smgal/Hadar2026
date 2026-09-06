@@ -52,6 +52,45 @@ class ScriptEngine {
   final Map<String, ScriptCommandHandler> _commands = {};
   final Map<String, ScriptFunctionHandler> _functions = {};
 
+  /// Command names the engine answers itself, before [_commands] is
+  /// consulted. Kept beside the switch in [executeCommand].
+  ///
+  /// A name missing here is not silently wrong: an audit that walks a
+  /// script would report it as unknown, which is the loud direction.
+  static const Set<String> builtinCommands = {
+    'variable',
+    'include',
+    'halt',
+    'Event::Override',
+    'Context::SetCurrent',
+    'Context::Delete',
+    'Context::Set',
+  };
+
+  /// Function names the engine answers itself, beside the switch in
+  /// [invokeFunction]. The `x.assign` / `x.add` / `x.Equal` member forms
+  /// are handled by suffix and are not listed.
+  static const Set<String> builtinFunctions = {
+    'Not',
+    'Or',
+    'And',
+    'Equal',
+    'Less',
+    'Add',
+    'Random',
+    'ScriptMode',
+    'JoinString',
+    'Context::Get',
+    'Context::GetCurrent',
+  };
+
+  /// Names a host has registered. Read-only; an audit uses it to tell a
+  /// real verb from a typo, which the engine itself will not do — an
+  /// unknown command prints one line and is skipped, and an unknown
+  /// function **returns 0**, which silently picks the wrong branch.
+  Set<String> get registeredCommands => _commands.keys.toSet();
+  Set<String> get registeredFunctions => _functions.keys.toSet();
+
   void registerCommand(String name, ScriptCommandHandler handler) {
     _commands[name] = handler;
   }

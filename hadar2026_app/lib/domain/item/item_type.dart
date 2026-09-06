@@ -60,7 +60,14 @@ enum HDItemType {
   leg(10),
 
   // Etc: ETC_MIN(11) .. ETC_MAX(12)
-  ornament(11);
+  ornament(11),
+
+  /// Something used up rather than worn — potions, vials, crystals
+  /// (B6-05). **Not in the original**: its `ITEM_TYPE` ends at
+  /// `ETC_MAX = 12`, an exclusive bound, so 12 is free. Goes on no body
+  /// part ([equipSlot] is null) and belongs to none of the original's
+  /// groups — [isEtc] stays `ornament` only.
+  consumable(12);
 
   const HDItemType(this.wire);
 
@@ -104,7 +111,7 @@ enum HDItemType {
     head => HDEquipSlot.head,
     leg => HDEquipSlot.leg,
     ornament => HDEquipSlot.etc,
-    none => null,
+    consumable || none => null,
   };
 
   /// The member whose [wire] is [value], or null if none matches.

@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../domain/item/consumable_data.dart';
 
 import 'package:flutter/foundation.dart';
 
@@ -7,7 +8,7 @@ import '../domain/lighting/light_areas.dart';
 import '../domain/map/map_model.dart';
 import '../domain/party/party.dart';
 import '../hd_config.dart';
-import 'battle.dart';
+import 'battle_bridge/cm2_battle_adapter.dart';
 import 'map_loader.dart';
 import 'map_navigation.dart';
 import 'scripting/native_script_runner.dart';
@@ -31,7 +32,14 @@ String _resolveCm2Asset(String cm2Ref) =>
 class HDGameSession extends ChangeNotifier {
   static final HDGameSession _instance = HDGameSession._internal();
   factory HDGameSession() => _instance;
-  HDGameSession._internal();
+  HDGameSession._internal() {
+    // B6-05: 새 게임은 마실 것과 바를 것을 몇 개 들고 시작한다. 세이브는
+    // `party.fromJson` 이 가방을 전부 비우고 다시 채우므로 이것을 덮는다.
+    // 파티 객체 자체는 비어 있게 두었다 — 테스트가 그 전제를 고정한다.
+    for (final id in startingBackpack()) {
+      party.give(id);
+    }
+  }
 
   /// Bumped on every successful `loadGame` so listeners can drop caches
   /// keyed on the previous run.
@@ -98,7 +106,7 @@ class HDGameSession extends ChangeNotifier {
     // across transitions. (Window stack is cleared one layer up in
     // callers via `HDWindowManager().clear()` since the stack is an
     // overlay concern, not session state.)
-    HDBattle().init();
+    HDCm2BattleAdapter().init();
     lightAreas.clear();
 
     if (bundle.json != null) {
@@ -111,8 +119,9 @@ class HDGameSession extends ChangeNotifier {
       // script, not whatever was previously loaded. Note: this clears
       // `ScriptEngine.variables`/contexts — globals are not preserved
       // across map transitions in the new model.
-      final loaded =
-          await HDScriptEngine().loadScript(_resolveCm2Asset(bundle.cm2Path!));
+      final loaded = await HDScriptEngine().loadScript(
+        _resolveCm2Asset(bundle.cm2Path!),
+      );
       if (!loaded) {
         // Nothing is loaded, so the dispatcher must not pick the cm2
         // tier for this map — otherwise it would run whatever script
@@ -148,7 +157,7 @@ class HDGameSession extends ChangeNotifier {
   /// Called by the LoadScript handler before storing pending navigation,
   /// so the widget layer sees map == null and can show a loading state.
   void clearCurrentMap() {
-    HDBattle().init();
+    HDCm2BattleAdapter().init();
     final native = HDNativeScriptRunner();
     native.currentMapScript?.onUnload();
     native.currentMapScript = null;

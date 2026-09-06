@@ -1,0 +1,474 @@
+{
+  "name": "무기에 바르기 — 마비병 · 마법 13 (B6-03)",
+  "note": "**두 길이 한 곳으로 간다.** 슬롯 0(슴갈)은 마비병을 쓰고, 슬롯 2\n(방패병, 마법 지수 20)는 마법 13 「독 바르기」를 쓴다. 한 번 바른 뒤에는\n둘 다 그냥 싸운다 — 방침이 그렇게 되어 있다(발린 무기는 휘둘러야 값이 난다).\n3 라운드 동안 때릴 때마다: 독은 저항을 넘으면 묻고, 마비는 저항을 넘은\n뒤 50% 로 굳혀서 그 적의 **다음 턴을 지운다**. 이 시드에서 마비 2번,\n중독 3번이 나온다. 상태 표의 이름 옆에 `⚡마비 N` · `🟣독 N` 이 붙고\n라운드마다 줄어든다. 적을 Giant 둘 + Troll 로 둔 것은 5인 파티가 두 라운드에\n끝내 버리면 발린 무기를 휘두를 라운드가 없기 때문이다.",
+  "record": "attack,0=item,2=coat",
+  "setup": {
+    "party": [
+      {
+        "slot": 0,
+        "name": "슴갈",
+        "characterClass": 0,
+        "strength": 18,
+        "mentality": 20,
+        "concentration": 20,
+        "endurance": 15,
+        "resistance": 0,
+        "agility": 12,
+        "luck": 0,
+        "ac": 6,
+        "hp": 150,
+        "maxHp": 150,
+        "sp": 100,
+        "maxSp": 100,
+        "esp": 100,
+        "maxEsp": 100,
+        "accuracyPhysical": 15,
+        "accuracyMagic": 15,
+        "accuracyEsp": 15,
+        "levelPhysical": 1,
+        "levelMagic": 20,
+        "levelEsp": 20,
+        "powOfWeapon": 10,
+        "weaponName": "단도",
+        "weaponKey": "dagger",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 1,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      },
+      {
+        "slot": 1,
+        "name": "유리",
+        "characterClass": 2,
+        "strength": 10,
+        "mentality": 0,
+        "concentration": 0,
+        "endurance": 10,
+        "resistance": 0,
+        "agility": 15,
+        "luck": 0,
+        "ac": 4,
+        "hp": 100,
+        "maxHp": 100,
+        "sp": 100,
+        "maxSp": 100,
+        "esp": 80,
+        "maxEsp": 80,
+        "accuracyPhysical": 10,
+        "accuracyMagic": 0,
+        "accuracyEsp": 0,
+        "levelPhysical": 1,
+        "levelMagic": 0,
+        "levelEsp": 1,
+        "powOfWeapon": 10,
+        "weaponName": "단도",
+        "weaponKey": "dagger",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 2,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      },
+      {
+        "slot": 2,
+        "name": "방패병",
+        "characterClass": 0,
+        "strength": 16,
+        "mentality": 0,
+        "concentration": 0,
+        "endurance": 16,
+        "resistance": 0,
+        "agility": 9,
+        "luck": 8,
+        "ac": 8,
+        "hp": 160,
+        "maxHp": 160,
+        "sp": 20,
+        "maxSp": 20,
+        "esp": 20,
+        "maxEsp": 20,
+        "accuracyPhysical": 15,
+        "accuracyMagic": 0,
+        "accuracyEsp": 0,
+        "levelPhysical": 2,
+        "levelMagic": 0,
+        "levelEsp": 0,
+        "powOfWeapon": 20,
+        "weaponName": "장검",
+        "weaponKey": "long_sword",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 1,
+        "armour": {
+          "body": 3,
+          "head": 1,
+          "leg": 1,
+          "ornament": 0,
+          "shieldBlock": 40
+        }
+      },
+      {
+        "slot": 3,
+        "name": "술사",
+        "characterClass": 0,
+        "strength": 8,
+        "mentality": 20,
+        "concentration": 18,
+        "endurance": 9,
+        "resistance": 0,
+        "agility": 11,
+        "luck": 6,
+        "ac": 3,
+        "hp": 90,
+        "maxHp": 90,
+        "sp": 260,
+        "maxSp": 260,
+        "esp": 80,
+        "maxEsp": 80,
+        "accuracyPhysical": 8,
+        "accuracyMagic": 19,
+        "accuracyEsp": 14,
+        "levelPhysical": 1,
+        "levelMagic": 14,
+        "levelEsp": 8,
+        "powOfWeapon": 6,
+        "weaponName": "지팡이",
+        "weaponKey": "staff",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 3,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      },
+      {
+        "slot": 4,
+        "name": "치유사",
+        "characterClass": 0,
+        "strength": 9,
+        "mentality": 18,
+        "concentration": 20,
+        "endurance": 11,
+        "resistance": 0,
+        "agility": 10,
+        "luck": 10,
+        "ac": 4,
+        "hp": 110,
+        "maxHp": 110,
+        "sp": 300,
+        "maxSp": 300,
+        "esp": 60,
+        "maxEsp": 60,
+        "accuracyPhysical": 9,
+        "accuracyMagic": 16,
+        "accuracyEsp": 12,
+        "levelPhysical": 1,
+        "levelMagic": 16,
+        "levelEsp": 6,
+        "powOfWeapon": 6,
+        "weaponName": "지팡이",
+        "weaponKey": "staff",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 3,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      }
+    ],
+    "enemyKeys": [
+      "giant",
+      "giant",
+      "troll"
+    ],
+    "seed": 5,
+    "mode": 0,
+    "consumables": {
+      "paralysis_vial": 1
+    },
+    "initialGap": 0,
+    "enemyRanks": [],
+    "partyCapacity": 6
+  },
+  "commands": [
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "useItem"
+    },
+    {
+      "type": "item",
+      "slot": 0,
+      "itemKey": "paralysis_vial"
+    },
+    {
+      "type": "itemUse",
+      "slot": 0,
+      "use": "coat"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "castSkill"
+    },
+    {
+      "type": "spell",
+      "slot": 2,
+      "magicId": 13
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 1,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 3,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 3,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 4,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 0,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 2,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 1,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 3,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 3,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 4,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 0,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 2,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 1,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 3,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 3,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 4,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 0,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 2,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 1,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 3,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 3,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 4,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "castSkill"
+    },
+    {
+      "type": "spell",
+      "slot": 2,
+      "magicId": 13
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 3,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "attack"
+    }
+  ]
+}

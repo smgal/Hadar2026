@@ -8,6 +8,8 @@ Flutter/Dart remake of the classic Korean RPG "또 다른 지식의 성전 (Hada
 
 - `hadar2026_app/` — the Flutter app (Bonfire/Flame engine, `window_manager` for desktop). Entry point `lib/main.dart`.
 - `packages/cm2_script/` — standalone Dart package: parser + interpreter for the CM2 scripting language. Pulled in via local path dep.
+- `packages/hd_battle/` — 전투 model. 순수 Dart, Flutter·한국어·화면 전부 없음.
+- `packages/hd_battle_text/` — 그 이벤트의 **한국어 문장**. 콘솔과 앱이 같은 것을 쓴다.
 - `cm2_script_sample/` — CUI demo exercising every cm2_script feature.
 - `tools/` — Python scripts for converting/extracting legacy Hadar binary data (maps, enemies, sprites), plus `tools/mapEditor/` — a TypeScript/Vite web map editor (pnpm) that reads/writes `hadar2026_app/assets/maps/*.json` in place while preserving the full RPG Maker MV format (see `tools/mapEditor/README.md`).
 - `REF_hadar/` (C++ original), `REF_UNITY_LoreEp1/` (Unity port), `REF_FLUTTER_lore2026/` (sibling Flutter port — git submodule). Read-only reference implementations; do not edit.
@@ -25,8 +27,12 @@ Flutter/Dart remake of the classic Korean RPG "또 다른 지식의 성전 (Hada
 **작업 착수 순서**
 1. `issues/DECISION-LOG.md` — **반드시 먼저.** 현재 노선과 **1차 판정이 폐기된 이유**.
    1차 판정(P0→P1→GATE→P2)을 따르면 잘못된 일을 하게 된다.
-2. `issues/MILESTONES.md` §0~§1 — 현재 노선은
+2. `issues/MILESTONES.md` §0~§1 — S 트랙 노선은
    **G1(아이템·장비 이식) → G2(전투 정합) → S1(샘플 퀘스트) → S2(실측 걸림돌) → S3(AI 생성)**
+   그리고 `§7` — **B 트랙**(2026-09-04 신설, 4차 판정): 전투를 별도 pure Dart 패키지로 떼어
+   **B1 분리 → B2 확장 → B5 위치 → B3 RPG 연결 → B4 Flutter view**. G1·G2 는 완료 상태다.
+   **B5 는 2026-09-05 신설(8차 판정)이고 B3 보다 먼저다** — 규격이 v1 → v2 로 열렸다.
+   **두 트랙은 별개이고 S1 과 B1 의 선후는 아직 정하지 않았다.**
 3. `issues/BOARD.md` — 착수 가능한 이슈
 4. 설계 근거가 필요하면 `blueprint/` — 단 **BP-01·BP-50·BP-51 은 1차 노선 기준**이라 참고만 할 것
 
@@ -49,7 +55,68 @@ Flutter/Dart remake of the classic Korean RPG "또 다른 지식의 성전 (Hada
   **G1 이 S1 보다 먼저인 이유**: 플래그로 아이템을 표현해 퀘스트를 만들면 나중에 전부 다시 써야 한다(3차 판정).
 - **선언적** 콘텐츠 팩·저널·솔버·MCP 는 **보류**다(`issues/deferred/`, 26건). 폐기가 아니라
   cm2 노선이 실제로 막힐 때 꺼내 쓴다. **G1 의 아이템은 이 보류 노선이 아니라 원작 이식이다.**
-- 마법은 선택 UI·이름만 있고 **효과가 레벨 기반 공식 2개로 뭉쳐 있다**(`battle.dart:155,174`). 45종 개별 효과 없음 — **별 트랙**.
+- 마법은 선택 UI·이름만 있고 **효과가 레벨 기반 공식 2개로 뭉쳐 있다**(`battle.dart:166,185`). 45종 개별 효과 없음.
+  이 "별 트랙" 이 **B 트랙**으로 구체화되었다(4차 판정) — `issues/B2-battle-expand/B2-01`.
+- **전투를 손대려면 B 트랙 문서를 먼저 읽는다.** `hadar2026_app/lib/application/battle.dart`(572줄)는
+  B4-03 에서 삭제될 코드다. 새 전투는 `packages/hd_battle/`(pure Dart, `dart run` 으로 콘솔 시연)에 만든다.
+  **B1 · B2 · B5 · B6 완료, B3 4/5 (2026-09-06).** 규격은
+  `packages/hd_battle/CONTRACT.md` **v3** 가 정본이다.
+  **전투는 이미 새 model 로 돈다** — cm2 동사 다섯 개가
+  `application/battle_bridge/cm2_battle_adapter.dart` 를 거치고,
+  `HDBattleRunner` 가 `UiHost` 로 굴린다. 남은 것은 B3-04(전투 밖 효과) ·
+  B4-02(게임 안으로) · B4-03(옛 코드 제거).
+- **전투를 손보려면 `flutter run -t lib/battle_lab_main.dart`** — 전투만 띄우는
+  실험실이다(B4-01). 콘솔과 **같은 fixture** 를 읽고, 「한 수 물리기」가 있어
+  같은 상황에서 다른 수를 시험할 수 있다. 화면 위젯
+  (`presentation/panels/battle/`)은 게임에 쓸 것과 같은 것이고,
+  게임 안에 넣는 것이 B4-02 다.
+- **전투 문구·색은 `packages/hd_battle_text` 한 곳에서 온다** — 문장 ·
+  이름 색(`enemyNameColor`/`conditionColor`) · 메뉴 문구(`actionLabel` ·
+  `reachVerdict` …). 콘솔과 Flutter 가 같은 것을 보여야 하므로 한쪽에만
+  쓰면 안 된다.
+- **전투를 옮기면 RPG 쪽 뒤처리가 딸려 온다.** 두 번 물렸다 —
+  전멸해도 게임 오버가 안 됐고(어댑터가 `processGameOver(2)` 를 안 불렀다),
+  `checkLevelUp()` 호출처가 죽은 `application/battle.dart` 하나뿐이라
+  **레벨이 전혀 오르지 않았다**(B3-05 에서 `battle_bridge/level_up.dart` 로 해소).
+  전투 밖 효과 13종(B3-04)이 같은 종류로 남아 있다.
+- **cm2 는 검증된 적 없는 코드다.** `test/application/scripting/cm2_assets_audit_test.dart`
+  가 출하 `assets/*.cm2` 전량을 훑는다 — 모르는 명령·함수, 없는 속성 이름,
+  값을 못 받은 `variable`, 결과를 안 읽는 `Battle::Start`. cm2 를 고치면 이것도 돈다.
+- **`application/battle.dart`(572줄)는 이제 죽은 코드다** — 테스트 하나만 남았고
+  B4-03 이 지운다. **전투를 고치려면 `packages/hd_battle`** 을 고친다.
+- **B6 가 전투 메뉴를 원작에서 떼어 냈다**(9차 판정, 2026-09-06 완료). 최상위 **6줄**
+  (⚔ 공격 · ✨ 기술 · 🎒 물건 · 🛡 버팀 · 🏃 도망 · ⚙ 지시), 마법·초능력은 **한 목록**이고
+  `SkillScope` 글자가 갈래를 말한다. `BattleAction` 에 `castSingle` 류는 **없다** —
+  `castSkill` 하나다. 목록이 **8줄을 넘으면** view 가 범위 묶음으로 한 번 접는다
+  (`hd_battle_text` `skillListFolds`, model 은 모른다). 리더 = 의식 있는 최소 슬롯.
+  **묻는 순서는 리더 → 1열 → 2열 → 3열**이고 화면도 그 순서다(B6-07; 행동 순서인 민첩
+  선제와는 별개). 하위 물음의 취소는 **턴을 잃지 않고 한 단계 위로**, 후보가 하나면
+  묻지 않는다, 단일 치료도 아이템처럼 대상을 묻는다. 도망은 리더의 파티 행동이고 간격이
+  확률을 만든다(+15/칸, `tool/escape_odds.dart`). 무기 도포(독·마비·화염, 3 라운드)는
+  마법 13 과 소비품(`HDItemType.consumable(12)`, `domain/item/consumable_data.dart`)
+  두 길이다. **emoji 도 한국어처럼 model 에 들어가지 않는다** — `hd_battle_text` 가 붙인다.
+- **B5 가 전투에 위치를 넣었다**(8차 판정, 완료). 좌표가 아니라 **각자의 `rank`(1~3) + 양측
+  공통 `gap`(0~2)** 이고 거리는 `gap + (내 rank-1) + (상대 rank-1)` 이다. 근간은 드래곤 퀘스트 —
+  라운드 시작에 전원 명령 → 일괄 해결, 자유 이동 없음, 순서 미리보기 없음.
+  **불변식 하나: 사거리 밖은 벌점이지 무효가 아니다.** 헛턴이 나오는 경로를 만들면 안 된다 —
+  규칙·무기 표·메뉴 세 곳에서 지켜지고 `purity_test.dart` 가 확인한다.
+  포기한 것: 측면 우회 · 한 열 안의 개별 위치 · 특정 적만 골라 밀어내기.
+  **무기는 두 세계가 나눠 갖는다** — RPG 가 `powOfWeapon`(얼마나 센지), 전투가
+  `weaponKey`(어떻게 닿는지). **연계는 순서가 아니라 상태에 건다**(밀린 표식) — 민첩 선제와
+  충돌하지 않게 하려면 그래야 한다.
+- **⚠ 파티는 5인 + 소환수가 기본이다.** 그런데 fixture 17개 중 **14개가 2인 파티**라
+  B1·B2 의 밸런스 실측이 대표성이 없다(부록 W). 5인이면 라운드가 절반(9→4)이고
+  **적의 특수 능력이 처음으로 발동한다**(0회→10회, `consciousPlayers > 3` 게이트).
+  **전투 수치를 재려면 B5-00(fixture 5인 재작성)이 먼저다.**
+- **⚠ C++(`REF_hadar/`)은 정본이 아니다**(6차 판정). 진짜 원본은 **Pascal 이고 레포에 없다**
+  (`*.pas` 0건). C++ 은 검증된 적 없는 이식본이라 `REF_UNITY_LoreEp1/` 과 같은 지위다.
+  **C++ 이 버그처럼 보이면 버그다** — 옮기지 말고 고친다. B2 에서 실제로 6건 고쳤다.
+  개념의 존재 여부는 받아들이고 값만 의심하는 선을 지킨다. C++ 은 cp949 로 읽는다.
+  `REF_UNITY_LoreEp1/src_as_cs/OldStyleBattle.cs` 는 특히 위험하다 — 마법 번호가 1~20 이고
+  **적 테이블 인덱스가 +1 밀려** cm2 의 `RegisterEnemy(26)` 과 어긋난다(부록 P-3).
+- 전투 실측은 `GROUND_TRUTH` **부록 O·P·Q·R·S·T·U·W** 에 있다. 부록 **H-2 는 구 전투식 기준**이고
+  새 대역은 **부록 U**(2인 파티 기준), 파티 인원·저항·피해 사슬 실측은 **부록 W** 다.
+  콘솔 색은 **부록 V** — 원작에 색 규격이 이미 있었다(`writeConsole(색번호, ...)`).
 
 ## Common commands
 
@@ -73,6 +140,25 @@ dart test test/parser_test.dart    # single file
 cd cm2_script_sample
 dart pub get
 dart run bin/run.dart
+
+# 전투 model (순수 Dart, B 트랙) — Flutter SDK 없이 돈다
+cd packages/hd_battle
+dart pub get
+dart test
+
+# 전투를 콘솔에서 직접 굴려 보기 (실행 안내: hd_battle_console/RUN.md)
+cd hd_battle_console
+dart pub get
+dart run bin/battle.dart                            # 사용법 + fixture 목록
+dart run bin/battle.dart fixtures/town1_pair.json   # 대화형
+dart run bin/battle.dart fixtures/heal.json --replay # 기록된 명령 열 재생
+
+# 전투 실험실 — 전투만 띄운다 (B4-01). 지도·cm2·RPG 를 안 거친다
+cd hadar2026_app
+flutter run -t lib/battle_lab_main.dart             # 데스크톱
+flutter run -d chrome -t lib/battle_lab_main.dart   # 브라우저
+# fixture 는 hd_battle_console 과 **같은 파일**이다. 고치면 다시 만든다:
+cd hd_battle_console && dart run tool/make_fixtures.dart
 
 # Map editor (web UI for assets/maps/*.json)
 cd tools/mapEditor

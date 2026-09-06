@@ -1,0 +1,414 @@
+{
+  "name": "전투 중 물건 (B2-06) — 마법이 없어도 할 일이 있다",
+  "note": "원작 전투 메뉴에는 물건 항목이 **없었다**. 이 항목은 우리가 넣었다.\n약품은 마법과 같은 갈래(회복·해독·의식·소생)를 쓰고 조합 순서도 같다.\n결정은 속성 피해를 준다. **둘 다 마법 지수를 쓰지 않는다** —\n마법 레벨 0 인 유리도 쓸 수 있다는 것이 물건을 드는 이유다.",
+  "record": "attack,1=item",
+  "setup": {
+    "party": [
+      {
+        "slot": 0,
+        "name": "슴갈",
+        "characterClass": 0,
+        "strength": 18,
+        "mentality": 20,
+        "concentration": 20,
+        "endurance": 15,
+        "resistance": 0,
+        "agility": 12,
+        "luck": 0,
+        "ac": 6,
+        "hp": 60,
+        "maxHp": 150,
+        "sp": 100,
+        "maxSp": 100,
+        "esp": 100,
+        "maxEsp": 100,
+        "accuracyPhysical": 15,
+        "accuracyMagic": 15,
+        "accuracyEsp": 15,
+        "levelPhysical": 1,
+        "levelMagic": 20,
+        "levelEsp": 20,
+        "powOfWeapon": 10,
+        "weaponName": "단도",
+        "weaponKey": "dagger",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 1,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      },
+      {
+        "slot": 1,
+        "name": "유리",
+        "characterClass": 2,
+        "strength": 10,
+        "mentality": 0,
+        "concentration": 0,
+        "endurance": 10,
+        "resistance": 0,
+        "agility": 15,
+        "luck": 0,
+        "ac": 4,
+        "hp": 40,
+        "maxHp": 100,
+        "sp": 100,
+        "maxSp": 100,
+        "esp": 80,
+        "maxEsp": 80,
+        "accuracyPhysical": 10,
+        "accuracyMagic": 0,
+        "accuracyEsp": 0,
+        "levelPhysical": 1,
+        "levelMagic": 0,
+        "levelEsp": 1,
+        "powOfWeapon": 10,
+        "weaponName": "단도",
+        "weaponKey": "dagger",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 3,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 1,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      },
+      {
+        "slot": 2,
+        "name": "방패병",
+        "characterClass": 0,
+        "strength": 16,
+        "mentality": 0,
+        "concentration": 0,
+        "endurance": 16,
+        "resistance": 0,
+        "agility": 9,
+        "luck": 8,
+        "ac": 8,
+        "hp": 160,
+        "maxHp": 160,
+        "sp": 20,
+        "maxSp": 20,
+        "esp": 20,
+        "maxEsp": 20,
+        "accuracyPhysical": 15,
+        "accuracyMagic": 0,
+        "accuracyEsp": 0,
+        "levelPhysical": 2,
+        "levelMagic": 0,
+        "levelEsp": 0,
+        "powOfWeapon": 20,
+        "weaponName": "장검",
+        "weaponKey": "long_sword",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 1,
+        "armour": {
+          "body": 3,
+          "head": 1,
+          "leg": 1,
+          "ornament": 0,
+          "shieldBlock": 40
+        }
+      },
+      {
+        "slot": 3,
+        "name": "술사",
+        "characterClass": 0,
+        "strength": 8,
+        "mentality": 20,
+        "concentration": 18,
+        "endurance": 9,
+        "resistance": 0,
+        "agility": 11,
+        "luck": 6,
+        "ac": 3,
+        "hp": 90,
+        "maxHp": 90,
+        "sp": 260,
+        "maxSp": 260,
+        "esp": 80,
+        "maxEsp": 80,
+        "accuracyPhysical": 8,
+        "accuracyMagic": 19,
+        "accuracyEsp": 14,
+        "levelPhysical": 1,
+        "levelMagic": 14,
+        "levelEsp": 8,
+        "powOfWeapon": 6,
+        "weaponName": "지팡이",
+        "weaponKey": "staff",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 3,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      },
+      {
+        "slot": 4,
+        "name": "치유사",
+        "characterClass": 0,
+        "strength": 9,
+        "mentality": 18,
+        "concentration": 20,
+        "endurance": 11,
+        "resistance": 0,
+        "agility": 10,
+        "luck": 10,
+        "ac": 4,
+        "hp": 110,
+        "maxHp": 110,
+        "sp": 300,
+        "maxSp": 300,
+        "esp": 60,
+        "maxEsp": 60,
+        "accuracyPhysical": 9,
+        "accuracyMagic": 16,
+        "accuracyEsp": 12,
+        "levelPhysical": 1,
+        "levelMagic": 16,
+        "levelEsp": 6,
+        "powOfWeapon": 6,
+        "weaponName": "지팡이",
+        "weaponKey": "staff",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 3,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      }
+    ],
+    "enemyKeys": [
+      "mummy",
+      "orc"
+    ],
+    "seed": 8,
+    "mode": 0,
+    "consumables": {
+      "elixir": 3,
+      "fire_crystal": 2,
+      "potion": 2
+    },
+    "enemyRanks": [],
+    "partyCapacity": 6
+  },
+  "commands": [
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 0,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "useItem"
+    },
+    {
+      "type": "item",
+      "slot": 1,
+      "itemKey": "elixir"
+    },
+    {
+      "type": "ally",
+      "slot": 1,
+      "allySlot": 1
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 2,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 3,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 3,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 4,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 0,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "useItem"
+    },
+    {
+      "type": "item",
+      "slot": 1,
+      "itemKey": "elixir"
+    },
+    {
+      "type": "ally",
+      "slot": 1,
+      "allySlot": 0
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 2,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 3,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 3,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 4,
+      "enemyIndex": 1
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "useItem"
+    },
+    {
+      "type": "item",
+      "slot": 1,
+      "itemKey": "elixir"
+    },
+    {
+      "type": "ally",
+      "slot": 1,
+      "allySlot": 0
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 3,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "useItem"
+    },
+    {
+      "type": "item",
+      "slot": 1,
+      "itemKey": "fire_crystal"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 3,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "attack"
+    }
+  ]
+}

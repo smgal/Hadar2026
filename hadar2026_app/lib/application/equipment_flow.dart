@@ -1,5 +1,6 @@
 import '../domain/item/item.dart';
 import '../domain/item/item_data.dart';
+import '../domain/item/item_lookup.dart';
 import '../domain/item/item_id.dart';
 import '../domain/item/item_type.dart';
 import '../domain/party/party.dart';
@@ -115,6 +116,7 @@ class HDEquipmentFlow {
       HDItemType.head => '머리',
       HDItemType.leg => '다리',
       HDItemType.ornament => '장식',
+      HDItemType.consumable => '소비',
       _ => '',
     };
   }
@@ -128,7 +130,8 @@ class HDEquipmentFlow {
 
   /// 목록 한 줄. 카탈로그에 없는 id 는 이름을 잃지 않도록 id 를 보여 준다.
   static String describe(HDItemId id) {
-    final item = itemById(id);
+    // 가방에는 장비와 소비품이 섞여 있다 (B6-05).
+    final item = lookupItem(id);
     if (item == null) return '알 수 없는 물건 ($id)';
     return '${item.name}   ${kindLabel(item.type)}   ${statLabel(item)}';
   }
@@ -142,11 +145,10 @@ class HDEquipmentFlow {
     return '${slotLabel(slot).padRight(2)} - $name';
   }
 
-  static String _emptyName(HDPlayer player, HDEquipSlot slot) =>
-      switch (slot) {
-        HDEquipSlot.hand => player.getWeaponName(),
-        HDEquipSlot.handSub => player.getShieldName(),
-        HDEquipSlot.armor => player.getArmorName(),
-        _ => '없음',
-      };
+  static String _emptyName(HDPlayer player, HDEquipSlot slot) => switch (slot) {
+    HDEquipSlot.hand => player.getWeaponName(),
+    HDEquipSlot.handSub => player.getShieldName(),
+    HDEquipSlot.armor => player.getArmorName(),
+    _ => '없음',
+  };
 }

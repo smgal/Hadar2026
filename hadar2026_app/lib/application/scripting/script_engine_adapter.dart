@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:cm2_script/cm2_script.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../application/battle.dart';
+import '../battle_bridge/cm2_battle_adapter.dart';
 import '../../application/tile_event_dispatcher.dart';
 import '../game_reload_exception.dart';
 import '../game_session.dart';
@@ -12,7 +12,7 @@ import '../window_manager.dart';
 import '../../application/select.dart';
 import '../../hd_config.dart';
 import '../../application/menu_flows.dart';
-import '../../domain/item/item_data.dart';
+import '../../domain/item/item_lookup.dart';
 import '../../domain/item/item_id.dart';
 import '../../domain/map/map_model.dart';
 import '../../domain/party/player.dart';
@@ -87,6 +87,11 @@ class HDScriptEngine {
   }
 
   List<ScriptStatement> get currentScript => _engine.currentScript;
+
+  /// 이 어댑터가 등록해 둔 이름들. **감사가 쓴다** — cm2 는 모르는 이름을
+  /// 예외로 만들지 않고 그냥 넘어가므로, 오타를 잡으려면 밖에서 훑어야 한다.
+  Set<String> get registeredCommands => _engine.registeredCommands;
+  Set<String> get registeredFunctions => _engine.registeredFunctions;
 
   void setScriptMode(int mode) => _engine.scriptMode = mode;
   void setTargetPos(int x, int y) {
@@ -303,7 +308,9 @@ class HDScriptEngine {
 
     e.registerCommand('Select::Init', (_, __) async => HDSelect().init());
     e.registerCommand('Select::Add', (stmt, eng) async {
-      var text = eng.getVal(stmt.args.isNotEmpty ? stmt.args[0] : '').toString();
+      var text = eng
+          .getVal(stmt.args.isNotEmpty ? stmt.args[0] : '')
+          .toString();
       if (text.startsWith('"') && text.endsWith('"')) {
         text = text.substring(1, text.length - 1);
       }
@@ -348,7 +355,9 @@ class HDScriptEngine {
     });
 
     e.registerCommand('Map::LoadFromFile', (stmt, eng) async {
-      var path = eng.getVal(stmt.args.isNotEmpty ? stmt.args[0] : '').toString();
+      var path = eng
+          .getVal(stmt.args.isNotEmpty ? stmt.args[0] : '')
+          .toString();
       if (path.startsWith('"') && path.endsWith('"')) {
         path = path.substring(1, path.length - 1);
       }
@@ -357,15 +366,23 @@ class HDScriptEngine {
       await HDGameSession().loadMapFromFile(path);
     });
 
-    e.registerCommand('Battle::Init', (_, __) async => HDBattle().init());
+    // B3-01: 동사 다섯 개가 새 전투 model 을 구동한다. cm2 콘텐츠 53곳은
+    // 한 줄도 바뀌지 않는다 — 그것이 어댑터를 택한 이유다(4차 판정).
+    e.registerCommand(
+      'Battle::Init',
+      (_, __) async => HDCm2BattleAdapter().init(),
+    );
     e.registerCommand('Battle::RegisterEnemy', (stmt, eng) async {
       final enemyId = (eng.getVal(stmt.args[0]) as num).toInt();
-      HDBattle().registerEnemy(enemyId);
+      HDCm2BattleAdapter().registerEnemy(enemyId);
     });
-    e.registerCommand('Battle::ShowEnemy', (_, __) async => HDBattle().showEnemy());
+    e.registerCommand(
+      'Battle::ShowEnemy',
+      (_, __) async => HDCm2BattleAdapter().showEnemy(),
+    );
     e.registerCommand('Battle::Start', (stmt, eng) async {
       final mode = (eng.getVal(stmt.args[0]) as num).toInt();
-      await HDBattle().start(mode);
+      await HDCm2BattleAdapter().start(mode);
     });
 
     e.registerCommand('Map::SetStartPos', (stmt, eng) async {
@@ -381,14 +398,19 @@ class HDScriptEngine {
       HDGameSession().map?.setTile(cx, cy, tileId);
     });
 
-    e.registerCommand('WarpPrevPos', (_, __) async => HDGameSession().party.warpToPrev());
+    e.registerCommand(
+      'WarpPrevPos',
+      (_, __) async => HDGameSession().party.warpToPrev(),
+    );
 
     final flags = () => HDGameSession().gameOption.flags;
     final vars = () => HDGameSession().gameOption.variables;
 
     e.registerCommand('Flag::Set', (stmt, eng) async {
       final flagId = eng.getVal(stmt.args[0]);
-      final idx = flagId is num ? flagId.toInt() : int.tryParse(flagId.toString()) ?? -1;
+      final idx = flagId is num
+          ? flagId.toInt()
+          : int.tryParse(flagId.toString()) ?? -1;
       if (idx >= 0 && idx < HDConfig.maxFlags) {
         flags()[idx] = true;
       } else {
@@ -397,7 +419,9 @@ class HDScriptEngine {
     });
     e.registerCommand('Flag::Reset', (stmt, eng) async {
       final flagIdReset = eng.getVal(stmt.args[0]);
-      final idx = flagIdReset is num ? flagIdReset.toInt() : int.tryParse(flagIdReset.toString()) ?? -1;
+      final idx = flagIdReset is num
+          ? flagIdReset.toInt()
+          : int.tryParse(flagIdReset.toString()) ?? -1;
       if (idx >= 0 && idx < HDConfig.maxFlags) {
         flags()[idx] = false;
       } else {
@@ -478,7 +502,7 @@ class HDScriptEngine {
       if (id == null) return;
       if (!HDGameSession().party.give(id)) {
         debugPrint(
-          '[cm2] Item::Give: backpack full — "${itemById(id)!.name}" not '
+          '[cm2] Item::Give: backpack full — "${lookupItem(id)!.name}" not '
           'added, existing slots untouched',
         );
       }
@@ -489,7 +513,7 @@ class HDScriptEngine {
       if (id == null) return;
       if (!HDGameSession().party.take(id)) {
         debugPrint(
-          '[cm2] Item::Take: the party has no "${itemById(id)!.name}"',
+          '[cm2] Item::Take: the party has no "${lookupItem(id)!.name}"',
         );
       }
     });
@@ -502,13 +526,24 @@ class HDScriptEngine {
         HDGameSession().party.players[pIdx].changeAttribute(attr, valAttr);
       }
     });
+    // `Enemy::ChangeAttribute` 는 등록된 적을 전투 시작 **전에** 고친다.
+    // 새 model 은 개시 입력을 받아 자기 안에서 인스턴스를 만드므로 밖에서
+    // 만질 수 없다 — 어댑터가 중개해야 한다.
+    //
+    // **출하된 cm2 가 23곳에서 부른다** — `L1_ep1d0.cm2` 의 경비병 9명,
+    // `lore_ep1.cm2`·`town2.cm2` 의 병사 7명. 전부 `RegisterEnemy(26)` 로
+    // 같은 적을 여러 번 넣고 이름을 "경비병1".."경비병7" 로 갈라 준 다음
+    // `special`·`castlevel` 을 0 으로 눌러 둔다. 지금은 그 셋이 다 무시되니
+    // **같은 이름의 적이 여럿 나오고 특수 능력도 그대로 산다.**
+    // 고치려면 `BattleSetup` 에 적별 덮어쓰기 항목이 필요하고, 그건 규격
+    // 변경이라 판정을 받아야 한다(B3-01).
     e.registerCommand('Enemy::ChangeAttribute', (stmt, eng) async {
-      final eIdx = (eng.getVal(stmt.args[0]) as num).toInt() - 1;
+      final eIdx = (eng.getVal(stmt.args[0]) as num).toInt();
       final attrEn = stmt.args[1].replaceAll('"', '');
-      final valEn = eng.getVal(stmt.args[2]);
-      if (eIdx >= 0 && eIdx < HDBattle().enemies.length) {
-        HDBattle().enemies[eIdx].changeAttribute(attrEn, valEn);
-      }
+      debugPrint(
+        '[cm2] Enemy::ChangeAttribute($eIdx, "$attrEn") — the new battle '
+        'has no per-enemy override yet, so this was ignored',
+      );
     });
     e.registerCommand('Player::AssignFromEnemyData', (stmt, eng) async {
       final pIdxEn = (eng.getVal(stmt.args[0]) as num).toInt() - 1;
@@ -545,7 +580,9 @@ class HDScriptEngine {
     e.registerCommand('Map::SetEncounter', (stmt, eng) async {
       final encounterId = (eng.getVal(stmt.args[0]) as num).toInt();
       final encounterRate = (eng.getVal(stmt.args[1]) as num).toInt();
-      print("Stub: Map::SetEncounter(encounterId: $encounterId, rate: $encounterRate)");
+      print(
+        "Stub: Map::SetEncounter(encounterId: $encounterId, rate: $encounterRate)",
+      );
     });
 
     e.registerCommand('DisplayMap', (_, __) async => _refreshDisplay());
@@ -615,11 +652,9 @@ class HDScriptEngine {
   /// **경고를 남기고** null — 범위 밖 인자를 조용히 흘려보내는 것이
   /// 부록 F-1 이 기록한 현행 결함이라 그 패턴을 따르지 않는다.
   static HDItemId? _itemArg(dynamic raw, String symbol) {
-    final wire = raw is num
-        ? raw.toInt()
-        : int.tryParse(raw.toString()) ?? -1;
+    final wire = raw is num ? raw.toInt() : int.tryParse(raw.toString()) ?? -1;
     final id = HDItemId.tryFromWire(wire);
-    if (id == null || itemById(id) == null) {
+    if (id == null || lookupItem(id) == null) {
       debugPrint(
         '[cm2] $symbol: $wire does not name an item — ignored. Use a '
         'constant from assets/item4ep1.cm2.',
@@ -645,8 +680,11 @@ class HDScriptEngine {
   }
 
   /// `Map::SetLightArea(x1,y1,x2,y2)` 의 네 인자를 읽는다.
-  static List<int>? _rectArg(CommandStatement stmt, ScriptEngine eng,
-      String symbol) {
+  static List<int>? _rectArg(
+    CommandStatement stmt,
+    ScriptEngine eng,
+    String symbol,
+  ) {
     if (stmt.args.length < 4) {
       debugPrint('[cm2] $symbol needs four coordinates — ignored');
       return null;
@@ -656,8 +694,10 @@ class HDScriptEngine {
       final raw = eng.getVal(stmt.args[i]);
       final n = raw is num ? raw.toInt() : int.tryParse(raw.toString());
       if (n == null || n < 0) {
-        debugPrint('[cm2] $symbol: argument $i ($raw) is not a coordinate '
-            '— ignored');
+        debugPrint(
+          '[cm2] $symbol: argument $i ($raw) is not a coordinate '
+          '— ignored',
+        );
         return null;
       }
       v.add(n);
@@ -669,7 +709,9 @@ class HDScriptEngine {
     final e = _engine;
 
     e.registerFunction('Flag::IsSet', (args, __) {
-      final idx = (args.isNotEmpty && args[0] is num) ? (args[0] as num).toInt() : -1;
+      final idx = (args.isNotEmpty && args[0] is num)
+          ? (args[0] as num).toInt()
+          : -1;
       if (idx >= 0 && idx < HDConfig.maxFlags) {
         return HDGameSession().gameOption.flags[idx] ? 1 : 0;
       }
@@ -718,7 +760,9 @@ class HDScriptEngine {
     });
 
     e.registerFunction('Variable::Get', (args, __) {
-      final idx = (args.isNotEmpty && args[0] is num) ? (args[0] as num).toInt() : -1;
+      final idx = (args.isNotEmpty && args[0] is num)
+          ? (args[0] as num).toInt()
+          : -1;
       if (idx >= 0 && idx < HDConfig.maxVariables) {
         return HDGameSession().gameOption.variables[idx];
       }
@@ -750,13 +794,18 @@ class HDScriptEngine {
       return (px >= x1 && px <= x2 && py >= y1 && py <= y2) ? 1 : 0;
     });
 
-    e.registerFunction('Battle::Result', (_, __) => HDBattle().result());
+    e.registerFunction(
+      'Battle::Result',
+      (_, __) => HDCm2BattleAdapter().result(),
+    );
     e.registerFunction('Select::Result', (_, __) => HDSelect().result());
     e.registerFunction('Party::PosX', (_, __) => HDGameSession().party.x);
     e.registerFunction('Party::PosY', (_, __) => HDGameSession().party.y);
 
     e.registerFunction('Player::GetName', (args, __) {
-      final idx = (args.isNotEmpty && args[0] is num) ? (args[0] as num).toInt() - 1 : 0;
+      final idx = (args.isNotEmpty && args[0] is num)
+          ? (args[0] as num).toInt() - 1
+          : 0;
       if (idx >= 0 && idx < HDGameSession().party.players.length) {
         return HDGameSession().party.players[idx].name;
       }
@@ -764,7 +813,9 @@ class HDScriptEngine {
     });
 
     e.registerFunction('Player::GetGenderName', (args, __) {
-      final idx = (args.isNotEmpty && args[0] is num) ? (args[0] as num).toInt() - 1 : 0;
+      final idx = (args.isNotEmpty && args[0] is num)
+          ? (args[0] as num).toInt() - 1
+          : 0;
       if (idx >= 0 && idx < HDGameSession().party.players.length) {
         return HDGameSession().party.players[idx].getGenderName();
       }
@@ -782,7 +833,9 @@ class HDScriptEngine {
     });
 
     e.registerFunction('Player::IsAvailable', (args, __) {
-      final idx = (args.isNotEmpty && args[0] is num) ? (args[0] as num).toInt() - 1 : 0;
+      final idx = (args.isNotEmpty && args[0] is num)
+          ? (args[0] as num).toInt() - 1
+          : 0;
       if (idx >= 0 && idx < HDGameSession().party.players.length) {
         return HDGameSession().party.players[idx].isValid() ? 1 : 0;
       }

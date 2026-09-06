@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../application/battle.dart';
+import '../../application/battle_bridge/cm2_battle_adapter.dart';
 
 class HDBattleOverlay extends StatelessWidget {
   const HDBattleOverlay({super.key});
@@ -7,12 +7,15 @@ class HDBattleOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: HDBattle(),
+      listenable: HDCm2BattleAdapter(),
       builder: (context, child) {
-        if (!HDBattle().isBattleActive) return const SizedBox.shrink();
+        // B3-01 이후 적의 상태는 새 전투 model 이 들고 있다. 열 정보까지
+        // 함께 보여 주는 제대로 된 view 는 B4-01 이다.
+        final battle = HDCm2BattleAdapter().active;
+        if (battle == null) return const SizedBox.shrink();
 
-        final enemies = HDBattle().enemies;
-        final selectedIx = HDBattle().selectedEnemyIndex;
+        final enemies = battle.enemies;
+        const selectedIx = -1;
 
         return Container(
           width: double.infinity,
@@ -65,7 +68,7 @@ class HDBattleOverlay extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            e.name.text,
+                            '${e.name}  ${e.rank}열',
                             style: TextStyle(
                               color: isSelected
                                   ? Colors.cyanAccent

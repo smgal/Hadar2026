@@ -85,9 +85,9 @@ if (Equal(ScriptMode(), FLAG_MAP))
 
 halt()
 
-이벤트 정리
+# 이벤트 정리
 
-- var
+# - var
 
-- flag
-10: 쓰러진 사람을 데려감
+# - flag
+# 10: 쓰러진 사람을 데려감

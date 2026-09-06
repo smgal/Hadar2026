@@ -1,0 +1,594 @@
+{
+  "name": "적 AI — 서로 치료하고 되살린다 (B2-07)",
+  "note": "적 행동이 `cast_level` 1~6 사다리다.\n레벨 4 이상은 체력이 1/3 아래로 떨어지면 **스스로를 치료**하고,\n레벨 5 이상은 무리가 상하면 **동료 전체를 치료**한다.\n치료는 죽은 동료의 `dead` 를 먼저 지우므로 **부활도 한다.**\nWisp(cast_level 4) 하나를 붙였다 — 체력 1/3(30) 아래로 떨어지면\n**스스로를 36 회복한다.** 이 fixture 에서 세 번 나온다.\n일부러 마법을 쓰지 않는다 — 물리로만 갉으면 Wisp 이 임계값 언저리를\n오르내려서 자가 치료가 반복된다. 마법 한 방이면 그냥 죽는다\n(마법이 물리를 압도하는 문제, 부록 U-3).\n동료 전체 치료·부활은 `적 3마리 이상 + 무리 체력 1/3 이하` 라는 좁은\n조건이 겹쳐야 나오는데, Wisp 셋을 세우면 이쪽이 라운드당 150 을 쏴서\n5인 파티가 2라운드에 전멸한다. 그 조합은 단위 테스트가 고정한다\n(`test/rules/enemy_ai_test.dart`).",
+  "record": "attack,4=heal:19",
+  "setup": {
+    "party": [
+      {
+        "slot": 0,
+        "name": "슴갈",
+        "characterClass": 0,
+        "strength": 18,
+        "mentality": 20,
+        "concentration": 20,
+        "endurance": 15,
+        "resistance": 0,
+        "agility": 12,
+        "luck": 0,
+        "ac": 6,
+        "hp": 150,
+        "maxHp": 150,
+        "sp": 100,
+        "maxSp": 100,
+        "esp": 100,
+        "maxEsp": 100,
+        "accuracyPhysical": 15,
+        "accuracyMagic": 15,
+        "accuracyEsp": 15,
+        "levelPhysical": 1,
+        "levelMagic": 20,
+        "levelEsp": 20,
+        "powOfWeapon": 10,
+        "weaponName": "단도",
+        "weaponKey": "dagger",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 1,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      },
+      {
+        "slot": 1,
+        "name": "유리",
+        "characterClass": 2,
+        "strength": 10,
+        "mentality": 0,
+        "concentration": 0,
+        "endurance": 10,
+        "resistance": 0,
+        "agility": 15,
+        "luck": 0,
+        "ac": 4,
+        "hp": 100,
+        "maxHp": 100,
+        "sp": 100,
+        "maxSp": 100,
+        "esp": 80,
+        "maxEsp": 80,
+        "accuracyPhysical": 10,
+        "accuracyMagic": 0,
+        "accuracyEsp": 0,
+        "levelPhysical": 1,
+        "levelMagic": 0,
+        "levelEsp": 1,
+        "powOfWeapon": 10,
+        "weaponName": "단도",
+        "weaponKey": "dagger",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 2,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      },
+      {
+        "slot": 2,
+        "name": "방패병",
+        "characterClass": 0,
+        "strength": 16,
+        "mentality": 0,
+        "concentration": 0,
+        "endurance": 16,
+        "resistance": 0,
+        "agility": 9,
+        "luck": 8,
+        "ac": 8,
+        "hp": 160,
+        "maxHp": 160,
+        "sp": 20,
+        "maxSp": 20,
+        "esp": 20,
+        "maxEsp": 20,
+        "accuracyPhysical": 15,
+        "accuracyMagic": 0,
+        "accuracyEsp": 0,
+        "levelPhysical": 2,
+        "levelMagic": 0,
+        "levelEsp": 0,
+        "powOfWeapon": 20,
+        "weaponName": "장검",
+        "weaponKey": "long_sword",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 1,
+        "armour": {
+          "body": 3,
+          "head": 1,
+          "leg": 1,
+          "ornament": 0,
+          "shieldBlock": 40
+        }
+      },
+      {
+        "slot": 3,
+        "name": "술사",
+        "characterClass": 0,
+        "strength": 8,
+        "mentality": 20,
+        "concentration": 18,
+        "endurance": 9,
+        "resistance": 0,
+        "agility": 11,
+        "luck": 6,
+        "ac": 3,
+        "hp": 90,
+        "maxHp": 90,
+        "sp": 260,
+        "maxSp": 260,
+        "esp": 80,
+        "maxEsp": 80,
+        "accuracyPhysical": 8,
+        "accuracyMagic": 19,
+        "accuracyEsp": 14,
+        "levelPhysical": 1,
+        "levelMagic": 14,
+        "levelEsp": 8,
+        "powOfWeapon": 6,
+        "weaponName": "지팡이",
+        "weaponKey": "staff",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 3,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      },
+      {
+        "slot": 4,
+        "name": "치유사",
+        "characterClass": 0,
+        "strength": 9,
+        "mentality": 18,
+        "concentration": 20,
+        "endurance": 11,
+        "resistance": 0,
+        "agility": 10,
+        "luck": 10,
+        "ac": 4,
+        "hp": 110,
+        "maxHp": 110,
+        "sp": 300,
+        "maxSp": 300,
+        "esp": 60,
+        "maxEsp": 60,
+        "accuracyPhysical": 9,
+        "accuracyMagic": 16,
+        "accuracyEsp": 12,
+        "levelPhysical": 1,
+        "levelMagic": 16,
+        "levelEsp": 6,
+        "powOfWeapon": 6,
+        "weaponName": "지팡이",
+        "weaponKey": "staff",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 3,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      }
+    ],
+    "enemyKeys": [
+      "wisp"
+    ],
+    "seed": 7,
+    "mode": 0,
+    "consumables": {},
+    "enemyRanks": [],
+    "partyCapacity": 6
+  },
+  "commands": [
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 3,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "castSkill"
+    },
+    {
+      "type": "spell",
+      "slot": 4,
+      "magicId": 19
+    },
+    {
+      "type": "ally",
+      "slot": 4,
+      "allySlot": 0
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 3,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "castSkill"
+    },
+    {
+      "type": "spell",
+      "slot": 4,
+      "magicId": 19
+    },
+    {
+      "type": "ally",
+      "slot": 4,
+      "allySlot": 0
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 3,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "castSkill"
+    },
+    {
+      "type": "spell",
+      "slot": 4,
+      "magicId": 19
+    },
+    {
+      "type": "ally",
+      "slot": 4,
+      "allySlot": 0
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 3,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "castSkill"
+    },
+    {
+      "type": "spell",
+      "slot": 4,
+      "magicId": 19
+    },
+    {
+      "type": "ally",
+      "slot": 4,
+      "allySlot": 0
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 3,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "castSkill"
+    },
+    {
+      "type": "spell",
+      "slot": 4,
+      "magicId": 19
+    },
+    {
+      "type": "ally",
+      "slot": 4,
+      "allySlot": 1
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 4,
+      "action": "castSkill"
+    },
+    {
+      "type": "spell",
+      "slot": 4,
+      "magicId": 19
+    },
+    {
+      "type": "ally",
+      "slot": 4,
+      "allySlot": 3
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 2,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    }
+  ]
+}

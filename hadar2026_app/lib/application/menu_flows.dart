@@ -4,7 +4,9 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-import '../application/battle.dart';
+import 'package:hd_battle/hd_battle.dart' as hb;
+
+import 'battle_bridge/cm2_battle_adapter.dart';
 import '../application/magic_system.dart';
 import '../application/save_manager.dart';
 import '../domain/item/item_type.dart';
@@ -87,25 +89,35 @@ class HDMenuFlows {
     }
   }
 
+  /// 메뉴에서 여는 시험 전투. B3-01 이후 새 model 을 쓴다.
+  ///
+  /// 주석의 "Skeleton"·"Slime" 은 **틀렸다** — 표에서 legacyId 5·7 은
+  /// Giant·Wolf 다. 이름을 고치지 않고 남겨 두는 것은 이 두 줄이
+  /// `fixtures/original/town1_pair.json` 과 같은 조우이기 때문이다.
   Future<void> showBattleMenu() async {
-    HDBattle().init();
-    HDBattle().registerEnemy(5); // Skeleton
-    HDBattle().registerEnemy(7); // Slime
-
-    HDBattle().showEnemy();
+    final battle = HDCm2BattleAdapter();
+    battle.init();
+    battle.registerEnemy(5); // 표 기준 Giant
+    battle.registerEnemy(7); // 표 기준 Wolf
+    // 싸울지 묻기 **전에** 누가 나왔는지 알린다 — cm2 의 `Battle::ShowEnemy`
+    // 와 같은 자리, 같은 이유다.
+    await battle.showEnemy();
 
     final preMenu = ["", "적과 교전한다", "도망간다"];
     int preSel = await _game.showWindowMenu(preMenu);
     if (preSel == 2) {
       final party = _session.party;
-      int avgLuck =
-          party.players
-              .where((p) => p.isValid())
-              .fold(0, (sum, p) => sum + p.luck) ~/
-          party.players.where((p) => p.isValid()).length;
-      int avgAgility =
-          HDBattle().enemies.fold(0, (sum, e) => sum + e.agility) ~/
-          HDBattle().enemies.length;
+      final valid = party.players.where((p) => p.isValid());
+      final avgLuck = valid.isEmpty
+          ? 0
+          : valid.fold(0, (sum, p) => sum + p.luck) ~/ valid.length;
+      // 등록된 적의 민첩 평균. 전투를 시작하기 전이라 표에서 읽는다.
+      final agilities = [
+        for (final key in battle.enemyKeys) hb.enemyByKey[key]!.agility,
+      ];
+      final avgAgility = agilities.isEmpty
+          ? 0
+          : agilities.reduce((a, b) => a + b) ~/ agilities.length;
 
       if (avgLuck + Random().nextInt(10) > avgAgility) {
         await _game.addLog("무사히 도망쳤다...");
@@ -118,7 +130,7 @@ class HDMenuFlows {
       }
     }
 
-    await HDBattle().start(1);
+    await battle.start(1);
 
     _game.clearLogs();
   }
@@ -128,7 +140,10 @@ class HDMenuFlows {
     final validPlayers = party.players.where((p) => p.isValid()).toList();
     if (validPlayers.isEmpty) return;
 
-    final choices = ["누가 마법을 사용하겠습니까 ?", ...validPlayers.map((p) => p.name.text)];
+    final choices = [
+      "누가 마법을 사용하겠습니까 ?",
+      ...validPlayers.map((p) => p.name.text),
+    ];
     int selected = await _game.showWindowMenu(choices);
     if (selected == 0) return;
 
@@ -141,7 +156,10 @@ class HDMenuFlows {
     final validPlayers = party.players.where((p) => p.isValid()).toList();
     if (validPlayers.isEmpty) return;
 
-    final choices = ["누가 초능력을 사용하겠습니까 ?", ...validPlayers.map((p) => p.name.text)];
+    final choices = [
+      "누가 초능력을 사용하겠습니까 ?",
+      ...validPlayers.map((p) => p.name.text),
+    ];
     int selected = await _game.showWindowMenu(choices);
     if (selected == 0) return;
 
@@ -312,8 +330,8 @@ class HDMenuFlows {
       await _game.waitForAnyKey();
       _game.clearLogs();
     } else {
-      final pages = (filled.length + _inventoryRowsPerPage - 1) ~/
-          _inventoryRowsPerPage;
+      final pages =
+          (filled.length + _inventoryRowsPerPage - 1) ~/ _inventoryRowsPerPage;
       for (var page = 0; page < pages; page++) {
         _game.clearLogs();
         await _game.addLog(
@@ -322,8 +340,7 @@ class HDMenuFlows {
         );
         await _game.addLog("");
         final start = page * _inventoryRowsPerPage;
-        final end =
-            (start + _inventoryRowsPerPage).clamp(0, filled.length);
+        final end = (start + _inventoryRowsPerPage).clamp(0, filled.length);
         for (var row = start; row < end; row++) {
           final slot = filled[row];
           await _game.addLog(
@@ -340,10 +357,7 @@ class HDMenuFlows {
       _game.clearLogs();
     }
 
-    final next = await _game.showWindowMenu([
-      "소지품",
-      "장비를 바꾼다",
-    ]);
+    final next = await _game.showWindowMenu(["소지품", "장비를 바꾼다"]);
     if (next == 1) await showEquipment();
   }
 

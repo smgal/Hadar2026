@@ -24,10 +24,12 @@ void main() {
       expect(HDItemType.head.wire, 9);
       expect(HDItemType.leg.wire, 10);
       expect(HDItemType.ornament.wire, 11);
+      // B6-05 — 원작 ETC_MAX(12, 배타 상한) 바로 위. 소비품.
+      expect(HDItemType.consumable.wire, 12);
     });
 
-    test('covers 13 members with no duplicate wire value', () {
-      expect(HDItemType.values.length, 13);
+    test('covers 14 members with no duplicate wire value', () {
+      expect(HDItemType.values.length, 14);
       final wires = HDItemType.values.map((t) => t.wire).toList();
       expect(wires.toSet().length, wires.length);
     });
@@ -36,7 +38,8 @@ void main() {
       for (final type in HDItemType.values) {
         expect(HDItemType.fromWire(type.wire), type);
       }
-      expect(HDItemType.fromWire(12), isNull);
+      expect(HDItemType.fromWire(12), HDItemType.consumable);
+      expect(HDItemType.fromWire(13), isNull);
       expect(HDItemType.fromWire(-2), isNull);
     });
   });
@@ -80,11 +83,17 @@ void main() {
       }
     });
 
-    test('together cover every member except none', () {
+    test('together cover every member except none and consumable', () {
+      // 소비품(B6-05)은 원작의 네 범위 어디에도 없다 — ETC_MAX 바로 위다.
       final grouped = HDItemType.values
           .where((t) => t.isWeapon || t.isShield || t.isArmorGroup || t.isEtc)
           .toSet();
-      expect(grouped, HDItemType.values.toSet()..remove(HDItemType.none));
+      expect(
+        grouped,
+        HDItemType.values.toSet()
+          ..remove(HDItemType.none)
+          ..remove(HDItemType.consumable),
+      );
       expect(grouped.length, 12);
     });
   });
@@ -106,11 +115,12 @@ void main() {
       expect(HDItemType.ornament.equipSlot, HDEquipSlot.etc);
     });
 
-    test('is null only for none', () {
+    test('is null only for none and consumable', () {
+      // 소비품은 쓰는 것이지 입는 것이 아니다 (B6-05).
       final unslotted = HDItemType.values
           .where((t) => t.equipSlot == null)
           .toSet();
-      expect(unslotted, {HDItemType.none});
+      expect(unslotted, {HDItemType.none, HDItemType.consumable});
     });
 
     test('slot order matches EQUIP in ObjTypes.cs:81-85', () {
@@ -144,8 +154,7 @@ void main() {
     });
 
     test('round-trips through fromWire for every kind', () {
-      for (final kind
-          in HDItemType.values.where((t) => t != HDItemType.none)) {
+      for (final kind in HDItemType.values.where((t) => t != HDItemType.none)) {
         final id = HDItemId(kind, detail: 2, index: 7);
         final back = HDItemId.fromWire(id.wire);
         expect(back.kind, kind);
@@ -157,11 +166,13 @@ void main() {
     });
 
     test('rejects wires that do not name an item', () {
-      // 12 is past ORNAMENT, so 0x0C0000 has no kind.
-      expect(HDItemId.tryFromWire(0x0C0000), isNull);
+      // 12 became consumable in B6-05; 13 is past everything, so 0x0D0000
+      // has no kind.
+      expect(HDItemId.tryFromWire(0x0C0000)?.kind, HDItemType.consumable);
+      expect(HDItemId.tryFromWire(0x0D0000), isNull);
       expect(HDItemId.tryFromWire(-1), isNull);
       expect(HDItemId.tryFromWire(0x1000000), isNull);
-      expect(() => HDItemId.fromWire(0x0C0000), throwsArgumentError);
+      expect(() => HDItemId.fromWire(0x0D0000), throwsArgumentError);
     });
 
     test('none is not a usable kind', () {

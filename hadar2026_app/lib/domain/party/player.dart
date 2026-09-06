@@ -30,6 +30,7 @@ class HDPlayer {
   int resistance = 0;
   int agility = 0;
   int luck = 0;
+
   /// 캐릭터 소양의 방어도 — 종족·직업에서 오는 값이다
   /// (`hd_class_pc_player.cpp:402` `ac = data.ac;`). 장비분은 [ac] 가 더한다.
   ///
@@ -245,21 +246,15 @@ class HDPlayer {
     }
   }
 
-  String getWeaponName() => _slotName(
-    HDEquipSlot.hand,
-    legacyWeaponName(0),
-    legacyUnknownWeaponName,
-  );
+  String getWeaponName() =>
+      _slotName(HDEquipSlot.hand, legacyWeaponName(0), legacyUnknownWeaponName);
   String getShieldName() => _slotName(
     HDEquipSlot.handSub,
     legacyShieldName(0),
     legacyUnknownShieldName,
   );
-  String getArmorName() => _slotName(
-    HDEquipSlot.armor,
-    legacyArmorName(0),
-    legacyUnknownArmorName,
-  );
+  String getArmorName() =>
+      _slotName(HDEquipSlot.armor, legacyArmorName(0), legacyUnknownArmorName);
 
   /// 슬롯의 표시 이름. 빈 칸이면 [empty], 카탈로그에 없는 id 면 [unknown].
   /// 조용히 빈 문자열이 되지 않는 것이 요점이다(부록 F-1).
@@ -330,6 +325,8 @@ class HDPlayer {
         return accuracy.esp;
       case 'name':
         return _name.text;
+      case 'class':
+        return characterClass;
       case 'poison':
         return poison;
       case 'unconscious':
@@ -337,6 +334,10 @@ class HDPlayer {
       case 'dead':
         return dead;
       default:
+        // 0 은 "직업 0번" 과 구별되지 않는다. `lore_ep1.cm2:387` 이
+        // `Player::GetAttribute(n, "class")` 로 분기하므로, 조용히 0 을
+        // 주면 늘 첫 갈래로 간다.
+        debugPrint('[cm2] Player::GetAttribute("$attr") — no such attribute');
         return 0;
     }
   }
@@ -474,11 +475,28 @@ class HDPlayer {
   }
 
   void changeAttribute(String attr, dynamic value) {
-    if (value is String)
-      return; // String sets not fully applicable except name, which isn't used usually
+    final key = attr.toLowerCase();
+
+    // 이름은 문자열이다. 예전에는 문자열이면 무조건 돌려보냈고
+    // ("name 은 보통 안 쓴다" 는 주석과 함께), 그래서
+    // `L1_ep1d4.cm2:64` 의 `Player::ChangeAttribute(2, "name", "물의 정령")`
+    // 이 **조용히 아무것도 안 했다** — 합류한 물의 정령이 이름 없이
+    // 남았다. 부록 F-1 과 같은 침묵 실패다.
+    if (key == 'name') {
+      name = value?.toString() ?? '';
+      return;
+    }
+
+    if (value is String) {
+      debugPrint(
+        '[cm2] Player::ChangeAttribute("$attr", "$value") — only "name" '
+        'takes text; this write was ignored',
+      );
+      return;
+    }
     int intVal = value is int ? value : (value as num).toInt();
 
-    switch (attr.toLowerCase()) {
+    switch (key) {
       case 'max_hp':
         maxHp = intVal;
         break;
@@ -579,6 +597,18 @@ class HDPlayer {
       case 'dead':
         dead = intVal;
         break;
+      // 직업. `L1_ep1d0.cm2:578` 과 `L1_ep1d4.cm2:66` 이 쓴다 — 없으면
+      // 합류한 인물이 전 주인의 직업을 그대로 달고 다닌다.
+      case 'class':
+        characterClass = intVal;
+        break;
+      default:
+        // 모르는 이름을 조용히 삼키면 스크립트가 한 일이 없어진 것을
+        // 아무도 모른다. 이 파일의 다른 가드와 같은 규칙이다(부록 F-1).
+        debugPrint(
+          '[cm2] Player::ChangeAttribute("$attr", $intVal) — no such '
+          'attribute; the write was ignored',
+        );
     }
   }
 
@@ -645,9 +675,11 @@ class HDPlayer {
       ..maxEsp = json['maxEsp'] ?? 0
       ..experience = json['experience'] ?? 0
       ..accuracy = SkillStats.fromJson(
-          Map<String, dynamic>.from(json['accuracy'] ?? const {}))
+        Map<String, dynamic>.from(json['accuracy'] ?? const {}),
+      )
       ..level = SkillStats.fromJson(
-          Map<String, dynamic>.from(json['level'] ?? const {}))
+        Map<String, dynamic>.from(json['level'] ?? const {}),
+      )
       ..poison = json['poison'] ?? 0
       ..unconscious = json['unconscious'] ?? 0
       ..dead = json['dead'] ?? 0

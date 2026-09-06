@@ -1,0 +1,16 @@
+name: hd_battle_console
+description: Console view and control for hd_battle. Demo runner and fixture replay.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  hd_battle:
+    path: ../packages/hd_battle
+  hd_battle_text:
+    path: ../packages/hd_battle_text
+
+dev_dependencies:
+  test: ^1.24.0

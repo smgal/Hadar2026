@@ -1,0 +1,266 @@
+{
+  "name": "마을 조우 — Giant + Wolf",
+  "note": "menu_flows.dart:92-93 의 테스트 전투. RegisterEnemy(5)·(7) 이다.\n그 줄의 주석은 \"Skeleton\"·\"Slime\" 이라고 적혀 있는데, 테이블에서\nlegacyId 5·7 은 Giant·Wolf 다 — 주석이 틀렸다.\n**원작 시작 파티(2인) 그대로다.** 규칙 시연은 fixtures/rules/ 쪽이다.",
+  "record": "attack",
+  "setup": {
+    "party": [
+      {
+        "slot": 0,
+        "name": "슴갈",
+        "characterClass": 0,
+        "strength": 18,
+        "mentality": 20,
+        "concentration": 20,
+        "endurance": 15,
+        "resistance": 0,
+        "agility": 12,
+        "luck": 0,
+        "ac": 6,
+        "hp": 150,
+        "maxHp": 150,
+        "sp": 100,
+        "maxSp": 100,
+        "esp": 100,
+        "maxEsp": 100,
+        "accuracyPhysical": 15,
+        "accuracyMagic": 15,
+        "accuracyEsp": 15,
+        "levelPhysical": 1,
+        "levelMagic": 20,
+        "levelEsp": 20,
+        "powOfWeapon": 10,
+        "weaponName": "단도",
+        "weaponKey": "dagger",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 1,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      },
+      {
+        "slot": 1,
+        "name": "유리",
+        "characterClass": 2,
+        "strength": 10,
+        "mentality": 0,
+        "concentration": 0,
+        "endurance": 10,
+        "resistance": 0,
+        "agility": 15,
+        "luck": 0,
+        "ac": 4,
+        "hp": 100,
+        "maxHp": 100,
+        "sp": 100,
+        "maxSp": 100,
+        "esp": 80,
+        "maxEsp": 80,
+        "accuracyPhysical": 10,
+        "accuracyMagic": 0,
+        "accuracyEsp": 0,
+        "levelPhysical": 1,
+        "levelMagic": 0,
+        "levelEsp": 1,
+        "powOfWeapon": 10,
+        "weaponName": "단도",
+        "weaponKey": "dagger",
+        "weakTo": [],
+        "dodgesBack": false,
+        "preset": "aggressive",
+        "knownPresets": [],
+        "poison": 0,
+        "unconscious": 0,
+        "dead": 0,
+        "rank": 1,
+        "armour": {
+          "body": 0,
+          "head": 0,
+          "leg": 0,
+          "ornament": 0,
+          "shieldBlock": 0
+        }
+      }
+    ],
+    "enemyKeys": [
+      "giant",
+      "wolf"
+    ],
+    "seed": 20260904,
+    "mode": 0,
+    "consumables": {},
+    "enemyRanks": [],
+    "partyCapacity": 6
+  },
+  "commands": [
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 0,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 1,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 0,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 1,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 0,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 1,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 0,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 1,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 0,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 1,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 0,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 1,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 0,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "target",
+      "slot": 1,
+      "enemyIndex": 0
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 0,
+      "action": "attack"
+    },
+    {
+      "type": "action",
+      "slot": 1,
+      "action": "attack"
+    }
+  ]
+}
