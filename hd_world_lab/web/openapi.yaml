@@ -1,0 +1,482 @@
+openapi: 3.0.3
+info:
+  title: hd_world lab API
+  version: "0.1.0"
+  description: |
+    `packages/hd_world` 를 HTTP 로 조작하는 표면. 두 클라이언트가 이 문을 쓴다 —
+    `GET /` 의 장비 화면(마우스), 그리고 스크립트·에이전트(JSON).
+
+    **모델이 이미 명령과 사실로 말하기 때문에** 이 서버는 규칙을 하나도 갖지 않는다.
+    명령을 해석해 넘기고, 돌아온 이벤트와 새 상태를 그대로 싣는다.
+
+    ## 세 가지만 알면 된다
+
+    1. **파생값은 저장되지 않는다.** 무기 종류·최종 수치·파티가 지날 수 있는 지형·
+       어둠 속 시야는 전부 읽을 때 계산된다. 호출 순서가 없고 무효화가 없다.
+    2. **아무것도 throw 하지 않는다.** 거절은 `kind: refused` 이벤트로 오고
+       `reason` 이 닫힌 열거다. 세계는 그대로다.
+    3. **한국어는 `GET /api/text`** 에 있다. 모델은 키만 들고 있어서 화면마다
+       이름이 갈리지 않는다.
+
+    도메인 설명은 `GET /api/guide` 가 markdown 으로 준다 — 스펙은 필드를 말하고
+    가이드는 뜻을 말한다.
+servers:
+  - url: http://127.0.0.1:5330
+    description: |
+      로컬 실험실. **인증이 없다** — 개발용 1인 서버이고 메모리 안의 파티 하나를
+      읽고 쓴다. localhost 밖으로 낼 것을 전제로 만들지 않았다.
+
+security: []
+
+tags:
+  - name: 읽기
+  - name: 쓰기
+  - name: 안내
+
+paths:
+  /api/guide:
+    get:
+      tags: [안내]
+      operationId: getGuide
+      summary: 도메인 안내 (markdown)
+      responses:
+        "200":
+          description: 안내 본문
+          content:
+            text/markdown:
+              schema: { type: string }
+
+  /api/state:
+    get:
+      tags: [읽기]
+      operationId: getState
+      summary: 파티 전체 — 파생값까지 계산된 상태
+      responses:
+        "200":
+          description: 지금 상태
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorldView" }
+
+  /api/catalog:
+    get:
+      tags: [읽기]
+      operationId: getCatalog
+      summary: 아이템 전량 · 부위 목록 · 지시 목록 (이름 포함)
+      responses:
+        "200":
+          description: 카탈로그
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/ItemView" }
+                  slots: { type: array, items: { type: object } }
+                  styles: { type: array, items: { type: object } }
+
+  /api/text:
+    get:
+      tags: [읽기]
+      operationId: getText
+      summary: 이름표 전부 (열거 → 한국어)
+      description: |
+        `slot` `class` `classType` `skill` `weaponKind` `style` `styleHint`
+        `stat` `capability` `ailment` `refusal` `item` `annex` `op`.
+        화면은 한국어를 스스로 갖지 않고 이것만 본다.
+      responses:
+        "200":
+          description: 이름표
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: { type: object } }
+
+  /api/candidates:
+    get:
+      tags: [읽기]
+      operationId: getCandidates
+      summary: 그 부위에 지금 채울 수 있는 것
+      description: |
+        `checkEquip` 과 **같은 필터**를 통과한 것만 돌려준다. 그래서 화면이 내놓는
+        목록과 명령이 받아들이는 것이 어긋날 수 없다.
+      parameters:
+        - in: query
+          name: member
+          required: true
+          schema: { type: string }
+          example: knight
+        - in: query
+          name: slot
+          required: true
+          schema: { $ref: "#/components/schemas/SlotName" }
+      responses:
+        "200":
+          description: 채울 수 있는 것
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  member: { type: string }
+                  slot: { type: string }
+                  items: { type: array, items: { type: string } }
+        "400":
+          description: member 또는 slot 이 없거나 모르는 값
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DecodeError" }
+
+  /api/command:
+    post:
+      tags: [쓰기]
+      operationId: applyCommand
+      summary: 명령 하나를 적용한다
+      description: |
+        `{"command": {...}}` 또는 명령 객체 자체를 받는다. 이벤트와 **새 상태 전부**를
+        함께 주므로 한 번의 왕복으로 끝난다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    command: { $ref: "#/components/schemas/Command" }
+                  required: [command]
+                - $ref: "#/components/schemas/Command"
+            examples:
+              양손무기:
+                summary: 장검을 들면 왼손 방패가 가방으로 돌아간다
+                value:
+                  command:
+                    kind: equip
+                    member: knight
+                    slot: rightHand
+                    item: weapon.long_sword
+              횃불:
+                summary: 왼손에 횃불 — 한손 무기여야 들어간다
+                value:
+                  command:
+                    kind: equip
+                    member: knight
+                    slot: leftHand
+                    item: light.torch
+              거절:
+                summary: 기사의 부적을 마법사에게 — wrongClass 로 거절된다
+                value:
+                  command:
+                    kind: equip
+                    member: magician
+                    slot: classAmulet1
+                    item: classAmulet.oath_crest
+      responses:
+        "200":
+          description: 적용됨. 거절도 200 이고 `refused` 에 담긴다
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommandResult" }
+        "400":
+          description: JSON 을 읽을 수 없음 — 세계는 그대로다
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DecodeError" }
+
+  /api/commands:
+    post:
+      tags: [쓰기]
+      operationId: applyCommands
+      summary: 명령 여러 개를 순서대로
+      description: |
+        **해석은 전부 먼저 한다** — 한 항목이라도 읽히지 않으면 아무것도 적용하지
+        않고 400 이다. 규칙에 의한 거절은 그와 별개로 항목마다 이벤트로 나온다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                commands:
+                  type: array
+                  items: { $ref: "#/components/schemas/Command" }
+              required: [commands]
+      responses:
+        "200":
+          description: 적용됨
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommandResult" }
+        "400":
+          description: 항목 하나라도 읽을 수 없음
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DecodeError" }
+
+  /api/magicLight:
+    post:
+      tags: [쓰기]
+      operationId: setMagicLight
+      summary: 마법의 횃불을 켜고 끈다
+      description: |
+        지속 시간은 이 패키지의 일이 아니라서 밖에서 켠다. 실제 횃불보다 **약하다** —
+        손을 안 쓰는 대신 그렇다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { on: { type: boolean } }
+              required: [on]
+      responses:
+        "200":
+          description: 바뀐 상태
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  magicLight: { type: boolean }
+                  state: { $ref: "#/components/schemas/WorldView" }
+
+  /api/reset:
+    post:
+      tags: [쓰기]
+      operationId: reset
+      summary: 실험용 5인 파티로 되돌린다
+      responses:
+        "200":
+          description: 되돌림
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reset: { type: boolean }
+                  state: { $ref: "#/components/schemas/WorldView" }
+
+components:
+  schemas:
+    SlotName:
+      type: string
+      description: 부위 여덟. 두 손이 각각 실제 칸이다.
+      enum:
+        - rightHand
+        - leftHand
+        - body
+        - head
+        - legs
+        - commonAmulet
+        - classAmulet1
+        - classAmulet2
+
+    StyleName:
+      type: string
+      description: 상시 지시 일곱. 절약은 지시가 아니라 토글이다.
+      enum: [bulwark, assault, skirmish, volley, firepower, disrupt, mend]
+
+    RefusalReason:
+      type: string
+      description: |
+        닫힌 열거. `wrongSlot`(자리가 아니다)과 `wrongClass`(직업이 아니다)는
+        **일부러 다른 답**이다 — 화면이 다른 문장을 말해야 한다.
+      enum:
+        - noSuchMember
+        - noSuchItem
+        - notCarried
+        - wrongSlot
+        - wrongClass
+        - offHandLocked
+        - mismatchedPair
+        - noMainHandToPairWith
+        - twoHandedInOffHand
+        - slotEmpty
+        - cannotRemoveBareHands
+        - packFull
+        - duplicateAmulet
+
+    Command:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          enum: [equip, unequip, swapHands, setStyle, give, take, reorder]
+        member: { type: string, description: "equip · unequip · swapHands · setStyle" }
+        slot: { $ref: "#/components/schemas/SlotName" }
+        item: { type: string, description: "equip · give · take" }
+        count: { type: integer, default: 1, description: "give · take" }
+        style: { $ref: "#/components/schemas/StyleName" }
+        thrift: { type: boolean, description: "setStyle. 없으면 그대로 둔다" }
+        order:
+          type: array
+          items: { type: string }
+          description: "reorder. 빠진 사람은 뒤에 남는다"
+
+    Event:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          enum:
+            - equipped
+            - unequipped
+            - offHandCleared
+            - handsSwapped
+            - styleSet
+            - gained
+            - lost
+            - reordered
+            - refused
+        member: { type: string }
+        slot: { $ref: "#/components/schemas/SlotName" }
+        item: { type: string }
+        count: { type: integer }
+        style: { $ref: "#/components/schemas/StyleName" }
+        thrift: { type: boolean }
+        order: { type: array, items: { type: string } }
+        reason: { $ref: "#/components/schemas/RefusalReason" }
+
+    CommandResult:
+      type: object
+      properties:
+        events:
+          type: array
+          items: { $ref: "#/components/schemas/Event" }
+        refused:
+          type: array
+          description: events 중 거절만 걸러 둔 것
+          items: { $ref: "#/components/schemas/Event" }
+        state: { $ref: "#/components/schemas/WorldView" }
+
+    DecodeError:
+      type: object
+      properties:
+        error: { type: string }
+        field: { type: string }
+        allowed: { type: array, items: { type: string } }
+
+    SlotView:
+      type: object
+      properties:
+        slot: { $ref: "#/components/schemas/SlotName" }
+        slotWire:
+          type: integer
+          description: |
+            저장·스크립트가 보는 번호. 0~5 는 이전 모델이 쓰던 값이라 옮기지 않는다.
+        item: { type: string, nullable: true }
+        locked:
+          type: boolean
+          description: 오른손이 양손 무기라 이 칸이 잠겼다
+
+    MemberView:
+      type: object
+      properties:
+        ref: { type: string }
+        name: { type: string }
+        class: { type: string }
+        classWire: { type: integer }
+        classType: { type: string }
+        levels: { type: object }
+        vitals: { type: object }
+        style: { $ref: "#/components/schemas/StyleName" }
+        thrift: { type: boolean }
+        allowedStyles:
+          type: array
+          items: { $ref: "#/components/schemas/StyleName" }
+        weaponKind:
+          type: string
+          description: |
+            **두 손에서 유도된다.** 필드가 아니고 고르는 칸도 없다.
+          enum:
+            - unarmed
+            - oneHanded
+            - swordAndShield
+            - spearAndShield
+            - dualWield
+            - torchbearer
+            - greatSword
+            - warHammer
+            - longStaff
+            - polearm
+            - lance
+            - bow
+            - crossbow
+            - arbalest
+            - thrown
+        attackPower:
+          type: integer
+          description: 쌍수는 두 무기의 **평균**이다 (합이면 두 번 값을 받는다)
+        offHandLocked: { type: boolean }
+        stats:
+          type: object
+          description: |
+            최종 수치. 더하기가 먼저 들어가고 백분율은 **그 소계**에 걸린다 —
+            그래서 장착 순서가 답을 바꿀 수 없다.
+          additionalProperties: { type: integer }
+        immunities: { type: array, items: { type: string } }
+        grants: { type: array, items: { type: string } }
+        skillBands:
+          type: object
+          description: 직업이 무엇인지를 말하는 12칸의 하한·상한
+        slots:
+          type: array
+          items: { $ref: "#/components/schemas/SlotView" }
+
+    ItemView:
+      type: object
+      properties:
+        ref: { type: string }
+        nameKey: { type: string }
+        name: { type: string, description: "/api/catalog 에서만 붙는다" }
+        kind: { type: string }
+        kindWire: { type: integer, description: 원작 ITEM_TYPE 번호 }
+        hands: { type: integer, enum: [1, 2] }
+        shape: { type: string, nullable: true }
+        attackPower: { type: integer }
+        removable: { type: boolean, description: 맨손은 벗을 수 없다 }
+        slots:
+          type: array
+          description: 갈 수 있는 자리가 **여럿**이다 — 한손 무기는 두 손 다
+          items: { $ref: "#/components/schemas/SlotName" }
+        classes:
+          type: array
+          nullable: true
+          description: null 이면 누구나 (공통 부적)
+          items: { type: string }
+        modifiers: { type: array, items: { type: object } }
+        immunities: { type: array, items: { type: string } }
+        grants: { type: array, items: { type: string } }
+        annexKey: { type: string }
+        legacyIndex: { type: integer }
+
+    WorldView:
+      type: object
+      properties:
+        members:
+          type: array
+          items: { $ref: "#/components/schemas/MemberView" }
+        pack:
+          type: array
+          items:
+            type: object
+            properties:
+              item: { type: string }
+              count: { type: integer }
+        party:
+          type: object
+          properties:
+            capabilities:
+              type: array
+              description: 한 사람이 차면 전체가 얻는 것
+              items: { type: string }
+            lightBearers:
+              type: integer
+              description: 겹쳐서 이득이 있는 것은 이것뿐이다
+            magicLight: { type: boolean }
+            sightInDarkness: { type: integer, minimum: 1, maximum: 5 }
+            moonlight: { type: boolean }

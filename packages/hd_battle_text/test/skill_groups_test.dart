@@ -12,9 +12,11 @@ void main() {
     expect(listFor(1, 0).length, lessThanOrEqualTo(skillFoldThreshold));
   });
 
-  test('레벨 20 술사는 접힌다 — 37줄', () {
+  test('레벨 20 술사는 접힌다 — 34줄', () {
+    // 37 이었다. 초능력 41·42·44 는 전투에서 아무 일도 안 해서 목록에서
+    // 빠졌다(부록 Z-9) — 헛턴이 메뉴로 도달하면 안 된다.
     final list = listFor(20, 5);
-    expect(list.length, 37);
+    expect(list.length, 34);
     expect(skillListFolds(list), isTrue);
   });
 
@@ -33,7 +35,7 @@ void main() {
     expect(groups.last.resource, SkillResource.esp);
     // 묶음을 다 합치면 원래 목록이다 — 빠지는 것이 없다.
     final all = [for (final g in groups) ...g.options];
-    expect(all.length, 37);
+    expect(all.length, 34);
   });
 
   test('묶음 이름에 글자와 개수가 붙고, 못 쓰는 것이 있으면 분수로', () {

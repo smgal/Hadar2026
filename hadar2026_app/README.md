@@ -28,6 +28,20 @@ flutter run
 flutter build web --base-href "/Hadar2026/" --release
 ```
 
+### 전투만 띄우기 — 전투 실험실
+
+지도도 스크립트도 거치지 않고 전투 하나만 연다. **한 수 물릴 수 있어서** 같은
+상황에서 다른 수를 시험할 수 있다.
+
+```bash
+flutter run -t lib/battle_lab_main.dart             # 데스크톱
+flutter run -d chrome -t lib/battle_lab_main.dart   # 브라우저
+```
+
+읽는 법과 상황(fixture) 목록은 [hd_battle_console/RUN.md](../hd_battle_console/RUN.md) 에 있다.
+**장비**를 만져 보는 곳은 따로 있다 — [hd_world_lab/RUN.md](../hd_world_lab/RUN.md)
+(Flutter 없이 `dart` 만으로 돈다).
+
 ---
 
 ## 🧪 테스트 실행 (Run Tests)

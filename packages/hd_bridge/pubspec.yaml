@@ -1,0 +1,19 @@
+name: hd_bridge
+description: >-
+  Translates between hd_world (who the party is) and hd_battle (how a
+  fight goes). Pure Dart. Neither of those packages knows the other
+  exists; this one knows both, and nothing else knows this one.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  hd_battle:
+    path: ../hd_battle
+  hd_world:
+    path: ../hd_world
+
+dev_dependencies:
+  test: ^1.24.0

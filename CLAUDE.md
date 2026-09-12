@@ -10,6 +10,11 @@ Flutter/Dart remake of the classic Korean RPG "또 다른 지식의 성전 (Hada
 - `packages/cm2_script/` — standalone Dart package: parser + interpreter for the CM2 scripting language. Pulled in via local path dep.
 - `packages/hd_battle/` — 전투 model. 순수 Dart, Flutter·한국어·화면 전부 없음.
 - `packages/hd_battle_text/` — 그 이벤트의 **한국어 문장**. 콘솔과 앱이 같은 것을 쓴다.
+- `packages/hd_world/` — 인물·파티·아이템·장비 model. 순수 Dart, **이 레포의 어떤 패키지도 import 하지 않는다**.
+- `packages/hd_world_text/` — 그 model 의 한국어 이름표.
+- `packages/hd_world_legacy/` — 출하 스크립트가 쓰는 **옛 어휘**(속성 이름 · 아이템 정수).
+- `packages/hd_bridge/` — `hd_world` ↔ `hd_battle`. **양쪽은 서로를 모른다.**
+- `hd_world_lab/` — 그 model 의 **OpenAPI 서버 + 마우스 장비 화면**. 규칙을 갖지 않는다.
 - `cm2_script_sample/` — CUI demo exercising every cm2_script feature.
 - `tools/` — Python scripts for converting/extracting legacy Hadar binary data (maps, enemies, sprites), plus `tools/mapEditor/` — a TypeScript/Vite web map editor (pnpm) that reads/writes `hadar2026_app/assets/maps/*.json` in place while preserving the full RPG Maker MV format (see `tools/mapEditor/README.md`).
 - `REF_hadar/` (C++ original), `REF_UNITY_LoreEp1/` (Unity port), `REF_FLUTTER_lore2026/` (sibling Flutter port — git submodule). Read-only reference implementations; do not edit.
@@ -32,6 +37,9 @@ Flutter/Dart remake of the classic Korean RPG "또 다른 지식의 성전 (Hada
    그리고 `§7` — **B 트랙**(2026-09-04 신설, 4차 판정): 전투를 별도 pure Dart 패키지로 떼어
    **B1 분리 → B2 확장 → B5 위치 → B3 RPG 연결 → B4 Flutter view**. G1·G2 는 완료 상태다.
    **B5 는 2026-09-05 신설(8차 판정)이고 B3 보다 먼저다** — 규격이 v1 → v2 로 열렸다.
+   그리고 `§8` — **W 트랙**(2026-09-08 신설, 10차 판정): RPG 핵심(인물·파티·아이템·장비)을
+   **새 패키지로 다시 썼다. 9/9 완료(2026-09-09)** — 앱이 새 모델 위에서 돈다.
+   B7·B8·B9 제안을 대신하고, 닫으면서 **B3·B4 도 함께 닫혔다**.
    **두 트랙은 별개이고 S1 과 B1 의 선후는 아직 정하지 않았다.**
 3. `issues/BOARD.md` — 착수 가능한 이슈
 4. 설계 근거가 필요하면 `blueprint/` — 단 **BP-01·BP-50·BP-51 은 1차 노선 기준**이라 참고만 할 것
@@ -65,6 +73,31 @@ Flutter/Dart remake of the classic Korean RPG "또 다른 지식의 성전 (Hada
   `application/battle_bridge/cm2_battle_adapter.dart` 를 거치고,
   `HDBattleRunner` 가 `UiHost` 로 굴린다. 남은 것은 B3-04(전투 밖 효과) ·
   B4-02(게임 안으로) · B4-03(옛 코드 제거).
+- **아군 model 은 `packages/hd_world` 다**(10차 판정, W1 완료). `HDPlayer` ·
+  `domain/item/*` · `equipment_flow.dart` · `setup_assembly.dart` 는 **지웠다**.
+  인물·장비를 고치려면 `packages/hd_world` 를 고친다. 부위는 **여덟**(오른손·왼손·머리·몸통·
+  다리·공통 부적·직업 부적 1·2)이고 저장 번호 0~5 는 옛 값 그대로다.
+  **파생값은 저장하지 않는다** — 무기 종류·최종 수치·통행 능력·시야는 읽을 때 계산된다.
+  `World.apply` 가 유일한 문이고 **throw 하지 않는다**(거절은 닫힌 열거를 실은 이벤트).
+  한국어는 `packages/hd_world_text` 한 곳이다.
+- **앱 쪽 파티는 `HDParty` 이지만 명부와 가방은 `party.world` 가 갖는다.**
+  `party.members` 는 **자리 여섯**이고 빈 자리도 들어 있다 — 자리 번호가 곧 신원이라
+  접으면 cm2 가 손보는 사람이 옮겨진다(`menace.cm2:45` 가 여섯째 자리를 미리 만진다).
+  표시용 조사·직업 이름·장비 이름은 `domain/party/member_display.dart` 의 **확장**이다.
+- **통행 능력과 불은 출처가 둘이다** — 부적(상시)과 마법(칸 수). `party.canWalkOnWater` ·
+  `canWalkOnSwamp` · `canLevitate` · `light` 가 둘을 합쳐 답한다(BP-47 §7.2).
+  쉬면 **마법 잔량만** 줄고 부적은 그대로다.
+- **직업 번호는 원작의 17종이다**(부록 Z-7). 이전 모델의 0=에스퍼·1=싸이보그·2=초능력자는
+  출하 스크립트와 어긋나 있었다 — cm2 가 `class` 에 5·8·9 를 쓴다. 슴갈·유리 둘 다 **에스퍼(8)**.
+- **레벨업은 최대치를 내리지 않는다**(부록 Z-8). 원작 공식이 손으로 정한 시작값보다 작아서
+  슴갈이 처음 레벨 2가 될 때 최대 체력이 150→34 로 떨어졌다. 큰 쪽을 쓴다.
+- **전투에 넘길 때는 `packages/hd_bridge`** 를 쓴다 — `toBattleSetup` · `settle`.
+  손 구성이 만드는 값 넷(`strikes`·`coatingSlots`·`evasionBonus`·`initiativeBonus`)은
+  RPG 가 풀어서 넘긴다. 전투는 두 손을 보지 않으므로 스스로 알 수 없다(규격 **v4**).
+- **장비를 만져 보려면 `cd hd_world_lab && dart run bin/serve.dart`** — 마우스로 여덟 칸을
+  갈아 끼우는 화면과 OpenAPI 표면이 함께 뜬다(`http://127.0.0.1:5330/`).
+  터미널이 아닌 이유는 부위 여덟이 **동시에 보여야** 하고 고칠 때마다 값이 다시 계산되기
+  때문이다. 무엇을 눌러 볼지는 `hd_world_lab/RUN.md`, 도메인 안내는 `GET /api/guide`.
 - **전투를 손보려면 `flutter run -t lib/battle_lab_main.dart`** — 전투만 띄우는
   실험실이다(B4-01). 콘솔과 **같은 fixture** 를 읽고, 「한 수 물리기」가 있어
   같은 상황에서 다른 수를 시험할 수 있다. 화면 위젯
@@ -82,8 +115,10 @@ Flutter/Dart remake of the classic Korean RPG "또 다른 지식의 성전 (Hada
 - **cm2 는 검증된 적 없는 코드다.** `test/application/scripting/cm2_assets_audit_test.dart`
   가 출하 `assets/*.cm2` 전량을 훑는다 — 모르는 명령·함수, 없는 속성 이름,
   값을 못 받은 `variable`, 결과를 안 읽는 `Battle::Start`. cm2 를 고치면 이것도 돈다.
-- **`application/battle.dart`(572줄)는 이제 죽은 코드다** — 테스트 하나만 남았고
-  B4-03 이 지운다. **전투를 고치려면 `packages/hd_battle`** 을 고친다.
+- **`application/battle.dart` 는 없다** — B4-03 이 809줄(옛 전투 · 옛 적 클래스 ·
+  중복된 75행 표)을 지웠다. **전투를 고치려면 `packages/hd_battle`** 을 고친다.
+  게임 안의 전투 화면은 실험실과 **같은 위젯**을 쓴다(`HDFormationStrip` ·
+  `HDEnemyPane` · `HDPartyPane`), 묻는 것은 `UiHost.showWindowMenu` 다.
 - **B6 가 전투 메뉴를 원작에서 떼어 냈다**(9차 판정, 2026-09-06 완료). 최상위 **6줄**
   (⚔ 공격 · ✨ 기술 · 🎒 물건 · 🛡 버팀 · 🏃 도망 · ⚙ 지시), 마법·초능력은 **한 목록**이고
   `SkillScope` 글자가 갈래를 말한다. `BattleAction` 에 `castSingle` 류는 **없다** —
@@ -159,6 +194,29 @@ flutter run -t lib/battle_lab_main.dart             # 데스크톱
 flutter run -d chrome -t lib/battle_lab_main.dart   # 브라우저
 # fixture 는 hd_battle_console 과 **같은 파일**이다. 고치면 다시 만든다:
 cd hd_battle_console && dart run tool/make_fixtures.dart
+
+# 인물·파티·장비 model (순수 Dart, W 트랙) — Flutter SDK 없이 돈다
+cd packages/hd_world
+dart pub get
+dart test                                           # 103개
+
+# 장비를 마우스로 갈아 끼워 보기 (실행 안내: hd_world_lab/RUN.md)
+cd hd_world_lab
+dart pub get
+dart run bin/serve.dart                             # http://127.0.0.1:5330/
+dart run bin/serve.dart 5331                        # 다른 번호로
+# 명령으로도 같은 것을 한다 — 거절도 200 이고 이유가 실려 온다
+curl -s localhost:5330/api/state | jq '.members[] | {name, weaponKind}'
+curl -s localhost:5330/api/guide                    # 도메인 안내
+# 그 장비로 한 판 싸워 본다 — 사거리가 실제로 값을 내는지 보인다
+curl -s -X POST localhost:5330/api/battle \
+  -H 'content-type: application/json' -d '{"seed":7}' | jq '.members'
+
+# 옛 어휘와 다리 (앱 없이 돈다)
+cd packages/hd_world_legacy && dart pub get && dart test
+cd ../hd_bridge && dart pub get && dart test
+# cm2 아이템 상수를 다시 만든다 (카탈로그가 바뀌면)
+cd packages/hd_world_legacy && dart run tool/make_item_constants.dart
 
 # Map editor (web UI for assets/maps/*.json)
 cd tools/mapEditor
@@ -261,12 +319,20 @@ Tile actions are the `HDTileAction` enum (`domain/map/tile_properties.dart`), wh
 
 `test/application/map_navigation_test.dart` is the worked example of the headless seam: it binds a fake `AssetSource` serving maps from an in-memory `Map<String, String>` and drives the whole name → `MapInfos.json` → `MapModel` path with no asset bundle and no filesystem. Copy that shape to test `HDMenuFlows` / `HDBattle` / `HDTileEventDispatcher` — bind fakes via `HDHosts().bind(...)`, `HDHosts().reset()` in `tearDown`. cm2 engine has its own tests in `packages/cm2_script/test/` (run with `dart test`). New domain rules should land with a test in the matching subfolder.
 
+`packages/hd_world/` 는 시험 103개를 갖고 `test/flow/purity_test.dart` 가 **독립성**을
+지킨다 — Flutter · 이 레포의 다른 패키지 · `dart:io` · `DateTime.now` · `print` ·
+시드 없는 `Random` · 한국어 · emoji, 그리고 **파생값을 인물에 저장하는 것**까지 막는다
+(옛 `PartyBuffs` 네 칸 중 셋이 썩은 것이 저장했기 때문이다). `hd_world_lab/test/` 는
+HTTP 표면을 스크립트가 쓰는 방식대로 굴린다(13개).
+
 ## Deployment
 Web is published to GitHub Pages by `.github/workflows/deploy_web.yml` (manual `workflow_dispatch`). It runs `flutter build web --base-href "/Hadar2026/" --release` in `hadar2026_app/` and pushes `build/web` via `peaceiris/actions-gh-pages@v3`. ## CI
 
 `.github/workflows/ci.yml` runs on every push to `main`, every PR, and manual dispatch. Two jobs:
 
 - **hadar2026_app** — `flutter analyze --no-fatal-infos`, `flutter test`, then the two layering greps above.
+- **hd_battle** — `packages/hd_battle` + `hd_battle_text` + `hd_battle_console`, plus a purity grep and a fixture replay determinism check.
+- **hd_world** — `packages/hd_world` + `hd_world_text` + `hd_world_lab`, plus an independence grep (Flutter · 이 레포의 다른 패키지 · `dart:io`) and an OpenAPI parse check.
 - **packages/cm2_script** — `dart analyze` (fatal on warnings), `dart test`.
 
 `--no-fatal-infos` is deliberate: 77 pre-existing style infos (`constant_identifier_names`, `avoid_print`, `withOpacity` deprecations) would make the build red from day one. Errors and warnings *are* fatal, so new regressions still fail. Drop the flag once those infos are cleaned up.

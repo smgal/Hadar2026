@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../domain/party/player.dart';
+import 'package:hd_world/hd_world.dart';
+
+import '../../domain/party/member_display.dart';
 import '../../hd_game_main.dart';
 import '../../hd_config.dart';
 
@@ -54,7 +56,7 @@ class HDStatusPanel extends StatelessWidget {
       child: ListenableBuilder(
         listenable: HDGameMain().party,
         builder: (context, child) {
-          final players = HDGameMain().party.players;
+          final players = HDGameMain().party.members;
 
           return Column(
             children: [
@@ -108,7 +110,7 @@ class HDStatusPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildSlotRow({HDPlayer? player, required bool isSummon}) {
+  Widget _buildSlotRow({Member? player, required bool isSummon}) {
     final filled = player != null;
 
     final Color? bg;
@@ -136,27 +138,27 @@ class HDStatusPanel extends StatelessWidget {
       child: Row(
         children: [
           _buildCell(
-            cellText(player?.name.text ?? ''),
+            cellText(player?.displayName ?? ''),
             _nameW,
             bg: bg,
             border: border,
           ),
           _buildCell(
-            cellText(player?.hp.toString() ?? ''),
+            cellText(player?.hitPoints.toString() ?? ''),
             _statW,
             align: TextAlign.right,
             bg: bg,
             border: border,
           ),
           _buildCell(
-            cellText(player?.sp.toString() ?? ''),
+            cellText(player?.spellPoints.toString() ?? ''),
             _statW,
             align: TextAlign.right,
             bg: bg,
             border: border,
           ),
           _buildCell(
-            cellText(player?.esp.toString() ?? ''),
+            cellText(player?.espPoints.toString() ?? ''),
             _statW,
             align: TextAlign.right,
             bg: bg,

@@ -39,6 +39,14 @@ dependencies:
   shared_preferences: ^2.5.4
   cm2_script:
     path: ../packages/cm2_script
+  hd_bridge:
+    path: ../packages/hd_bridge
+  hd_world:
+    path: ../packages/hd_world
+  hd_world_legacy:
+    path: ../packages/hd_world_legacy
+  hd_world_text:
+    path: ../packages/hd_world_text
   # 전투 model 과 그 문장. 둘 다 순수 Dart 라 Flutter 를 끌어오지 않는다.
   hd_battle:
     path: ../packages/hd_battle

@@ -37,14 +37,14 @@ class HDBattleScreen extends StatelessWidget {
               top: 0,
               width: HDConfig.gameScreenWidth,
               height: _stripHeight,
-              child: _FormationStrip(controller: controller),
+              child: HDFormationStrip(battle: controller.battle),
             ),
             Positioned(
               left: 0,
               top: _stripHeight,
               width: HDConfig.mapViewportWidth,
               height: _topHeight,
-              child: _EnemyPane(controller: controller),
+              child: HDEnemyPane(battle: controller.battle),
             ),
             Positioned(
               left: HDConfig.mapViewportWidth,
@@ -58,7 +58,10 @@ class HDBattleScreen extends StatelessWidget {
               top: HDConfig.mapViewportHeight,
               width: HDConfig.gameScreenWidth,
               height: HDConfig.statusPanelHeight,
-              child: _PartyPane(controller: controller, onExit: onExit),
+              child: HDPartyPane(
+                battle: controller.battle,
+                controls: _Controls(controller: controller, onExit: onExit),
+              ),
             ),
             if (controller.decision != null)
               _DecisionLayer(controller: controller),
@@ -103,10 +106,10 @@ Widget _panel({required Widget child, EdgeInsets? padding}) => Container(
 // --- 대열 -------------------------------------------------------------
 
 /// 두 진영과 간격을 한 줄에. 위치가 결정을 만드는데 안 보이면 결정을 못 한다.
-class _FormationStrip extends StatelessWidget {
-  const _FormationStrip({required this.controller});
+class HDFormationStrip extends StatelessWidget {
+  const HDFormationStrip({super.key, required this.battle});
 
-  final HDBattleController controller;
+  final hb.Battle battle;
 
   String _side(List<({int rank, String name})> members, {required bool flip}) {
     final ranks = <int, List<String>>{};
@@ -127,7 +130,6 @@ class _FormationStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final battle = controller.battle;
     final party = _side([
       for (final c in battle.party)
         if (c.isPresent && c.dead == 0) (rank: c.rank, name: c.name),
@@ -152,14 +154,13 @@ class _FormationStrip extends StatelessWidget {
 
 // --- 적 ---------------------------------------------------------------
 
-class _EnemyPane extends StatelessWidget {
-  const _EnemyPane({required this.controller});
+class HDEnemyPane extends StatelessWidget {
+  const HDEnemyPane({super.key, required this.battle});
 
-  final HDBattleController controller;
+  final hb.Battle battle;
 
   @override
   Widget build(BuildContext context) {
-    final battle = controller.battle;
     return _panel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,16 +240,17 @@ class _LogPane extends StatelessWidget {
 
 // --- 일행 -------------------------------------------------------------
 
-class _PartyPane extends StatelessWidget {
-  const _PartyPane({required this.controller, this.onExit});
+class HDPartyPane extends StatelessWidget {
+  const HDPartyPane({super.key, required this.battle, this.controls});
 
-  final HDBattleController controller;
-  final VoidCallback? onExit;
+  final hb.Battle battle;
+
+  /// 실험실의 조작 줄. 게임 안에서는 없다 — 묻는 것은 창 메뉴가 한다.
+  final Widget? controls;
 
   /// 이 사람의 무기가 지금 몇 번 적에게 닿는지. 계산은 플레이어의 일이 아니다.
   String _reach(hb.Combatant c) {
     if (!c.isConscious) return '';
-    final battle = controller.battle;
     final reachable = <String>[];
     for (var i = 0; i < battle.enemies.length; i++) {
       final e = battle.enemies[i];
@@ -277,7 +279,7 @@ class _PartyPane extends StatelessWidget {
             child: ListView(
               children: [
                 // 리더가 맨 위, 그 다음 앞열부터 (B6-07) — 묻는 순서다.
-                for (final c in tx.partyInDisplayOrder(controller.battle))
+                for (final c in tx.partyInDisplayOrder(battle))
                   Padding(
                     padding: const EdgeInsets.only(bottom: 1),
                     child: _tinted(
@@ -294,7 +296,7 @@ class _PartyPane extends StatelessWidget {
               ],
             ),
           ),
-          _Controls(controller: controller, onExit: onExit),
+          if (controls != null) controls!,
         ],
       ),
     );

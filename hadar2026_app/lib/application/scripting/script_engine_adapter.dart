@@ -12,10 +12,12 @@ import '../window_manager.dart';
 import '../../application/select.dart';
 import '../../hd_config.dart';
 import '../../application/menu_flows.dart';
-import '../../domain/item/item_lookup.dart';
-import '../../domain/item/item_id.dart';
+import 'package:hd_world/hd_world.dart';
+import 'package:hd_world_legacy/hd_world_legacy.dart' as legacy;
+
 import '../../domain/map/map_model.dart';
-import '../../domain/party/player.dart';
+import '../../domain/party/member_display.dart';
+import 'enemy_recruit.dart';
 import '../../domain/map/tile_properties.dart';
 
 /// Thin adapter over [ScriptEngine]: loads scripts from files/bundle and
@@ -463,9 +465,10 @@ class HDScriptEngine {
       // 원작 `hd_class_pc_player.cpp:376-381` — hp/sp/esp 를 최대치로 채운다.
       final p = _playerArg(eng.getVal(stmt.args[0]), 'Player::ApplyAttribute');
       if (p == null) return;
-      p.hp = p.maxHp;
-      p.sp = p.maxSp;
-      p.esp = p.maxEsp;
+      p
+        ..hitPoints = p.maxHitPoints
+        ..spellPoints = p.maxSpellPoints
+        ..espPoints = p.maxEspPoints;
     });
 
     e.registerCommand('Player::ReviseAttribute', (stmt, eng) async {
@@ -473,9 +476,11 @@ class HDScriptEngine {
       // `menace.cm2:48-54` 가 ac 를 0 으로 만든 뒤 이것을 부른다.
       final p = _playerArg(eng.getVal(stmt.args[0]), 'Player::ReviseAttribute');
       if (p == null) return;
-      if (p.hp > p.maxHp) p.hp = p.maxHp;
-      if (p.sp > p.maxSp) p.sp = p.maxSp;
-      if (p.esp > p.maxEsp) p.esp = p.maxEsp;
+      if (p.hitPoints > p.maxHitPoints) p.hitPoints = p.maxHitPoints;
+      if (p.spellPoints > p.maxSpellPoints) {
+        p.spellPoints = p.maxSpellPoints;
+      }
+      if (p.espPoints > p.maxEspPoints) p.espPoints = p.maxEspPoints;
     });
 
     e.registerCommand('Map::SetLightArea', (stmt, eng) async {
@@ -498,33 +503,47 @@ class HDScriptEngine {
     });
 
     e.registerCommand('Item::Give', (stmt, eng) async {
-      final id = _itemArg(eng.getVal(stmt.args[0]), 'Item::Give');
-      if (id == null) return;
-      if (!HDGameSession().party.give(id)) {
+      final ref = _itemArg(eng.getVal(stmt.args[0]), 'Item::Give');
+      if (ref == null) return;
+      if (!HDGameSession().party.give(ref)) {
         debugPrint(
-          '[cm2] Item::Give: backpack full — "${lookupItem(id)!.name}" not '
-          'added, existing slots untouched',
+          '[cm2] Item::Give: backpack full — "${ref.value}" not added, '
+          'nothing was dropped to make room',
         );
       }
     });
 
     e.registerCommand('Item::Take', (stmt, eng) async {
-      final id = _itemArg(eng.getVal(stmt.args[0]), 'Item::Take');
-      if (id == null) return;
-      if (!HDGameSession().party.take(id)) {
-        debugPrint(
-          '[cm2] Item::Take: the party has no "${lookupItem(id)!.name}"',
-        );
+      final ref = _itemArg(eng.getVal(stmt.args[0]), 'Item::Take');
+      if (ref == null) return;
+      if (!HDGameSession().party.take(ref)) {
+        debugPrint('[cm2] Item::Take: the party has no "${ref.value}"');
       }
     });
 
     e.registerCommand('Player::ChangeAttribute', (stmt, eng) async {
-      final pIdx = (eng.getVal(stmt.args[0]) as num).toInt() - 1;
+      final member = _playerArg(
+        eng.getVal(stmt.args[0]),
+        'Player::ChangeAttribute',
+      );
+      if (member == null) return;
       final attr = stmt.args[1].replaceAll('"', '');
-      final valAttr = eng.getVal(stmt.args[2]);
-      if (pIdx >= 0 && pIdx < HDGameSession().party.players.length) {
-        HDGameSession().party.players[pIdx].changeAttribute(attr, valAttr);
+      final result = legacy.writeAttribute(
+        member,
+        attr,
+        eng.getVal(stmt.args[2]),
+        // 장비는 명령이다 — 자리가 맞는지 세계가 판정한다.
+        equip: (slot, index) => _equipLegacy(member, slot, attr, index),
+      );
+      if (!result.changed) {
+        // **조용히 무시하지 않는다.** 이전 모델은 모르는 이름을 `default:`
+        // 로 흘려보냈고, 그래서 오타가 몇 년을 살아 있었다.
+        debugPrint(
+          '[cm2] Player::ChangeAttribute("$attr") '
+          '${result.verdict.name}: ${result.detail}',
+        );
       }
+      HDGameSession().party.notifyListeners();
     });
     // `Enemy::ChangeAttribute` 는 등록된 적을 전투 시작 **전에** 고친다.
     // 새 model 은 개시 입력을 받아 자기 안에서 인스턴스를 만드므로 밖에서
@@ -546,11 +565,19 @@ class HDScriptEngine {
       );
     });
     e.registerCommand('Player::AssignFromEnemyData', (stmt, eng) async {
-      final pIdxEn = (eng.getVal(stmt.args[0]) as num).toInt() - 1;
-      final enemyIdToAs = (eng.getVal(stmt.args[1]) as num).toInt();
-      if (pIdxEn >= 0 && pIdxEn < HDGameSession().party.players.length) {
-        HDGameSession().party.players[pIdxEn].assignFromEnemyData(enemyIdToAs);
+      final member = _playerArg(
+        eng.getVal(stmt.args[0]),
+        'Player::AssignFromEnemyData',
+      );
+      if (member == null) return;
+      final enemyId = (eng.getVal(stmt.args[1]) as num).toInt();
+      if (!assignFromEnemyData(member, enemyId)) {
+        debugPrint(
+          '[cm2] Player::AssignFromEnemyData: $enemyId is outside the '
+          'enemy table — ignored',
+        );
       }
+      HDGameSession().party.notifyListeners();
     });
 
     e.registerCommand('Party::PosX', (_, __) async {});
@@ -651,10 +678,13 @@ class HDScriptEngine {
   /// cm2 가 넘긴 정수를 아이템 id 로 읽는다. 카탈로그에 없는 값이면
   /// **경고를 남기고** null — 범위 밖 인자를 조용히 흘려보내는 것이
   /// 부록 F-1 이 기록한 현행 결함이라 그 패턴을 따르지 않는다.
-  static HDItemId? _itemArg(dynamic raw, String symbol) {
+  static ItemRef? _itemArg(dynamic raw, String symbol) {
     final wire = raw is num ? raw.toInt() : int.tryParse(raw.toString()) ?? -1;
-    final id = HDItemId.tryFromWire(wire);
-    if (id == null || lookupItem(id) == null) {
+    final id = legacy.itemRefFromWire(
+      wire,
+      catalog: HDGameSession().party.catalog,
+    );
+    if (id == null) {
       debugPrint(
         '[cm2] $symbol: $wire does not name an item — ignored. Use a '
         'constant from assets/item4ep1.cm2.',
@@ -666,17 +696,38 @@ class HDScriptEngine {
 
   /// cm2 의 1-base 인물 번호를 파티 구성원으로 읽는다
   /// (`Player::ChangeAttribute` 가 쓰는 관례와 동일).
-  static HDPlayer? _playerArg(dynamic raw, String symbol) {
+  static Member? _playerArg(dynamic raw, String symbol) {
     final n = raw is num ? raw.toInt() : int.tryParse(raw.toString()) ?? 0;
-    final idx = n - 1;
-    final players = HDGameSession().party.players;
-    if (idx < 0 || idx >= players.length) {
+    final seats = HDGameSession().party.members;
+    final member = HDGameSession().party.seat(n - 1);
+    if (member == null) {
       debugPrint(
-        '[cm2] $symbol: player $n is outside 1..${players.length} — ignored',
+        '[cm2] $symbol: player $n is outside 1..${seats.length} — ignored',
       );
       return null;
     }
-    return players[idx];
+    // **빈 자리도 돌려준다.** 출하 스크립트가 여섯째 자리를 미리 손보므로
+    // (`menace.cm2:45`) 앉기 전에 쓰는 것이 정상이다.
+    return member;
+  }
+
+  /// cm2 의 `weapon`/`shield`/`armor` 정수를 장비 명령으로 옮긴다.
+  static bool _equipLegacy(
+    Member member,
+    EquipSlot slot,
+    String attribute,
+    int index,
+  ) {
+    final party = HDGameSession().party;
+    final ref = switch (attribute) {
+      'weapon' => legacy.legacyWeapon(index),
+      'shield' => legacy.legacyShield(index, catalog: party.catalog),
+      _ => legacy.legacyArmour(index, catalog: party.catalog),
+    };
+    if (ref == null) return false;
+    // 스크립트가 주는 것이므로 가방에 없어도 된다 — 넣고 나서 채운다.
+    party.give(ref);
+    return party.equip(member, slot, ref) == null;
   }
 
   /// `Map::SetLightArea(x1,y1,x2,y2)` 의 네 인자를 읽는다.
@@ -806,40 +857,48 @@ class HDScriptEngine {
       final idx = (args.isNotEmpty && args[0] is num)
           ? (args[0] as num).toInt() - 1
           : 0;
-      if (idx >= 0 && idx < HDGameSession().party.players.length) {
-        return HDGameSession().party.players[idx].name;
-      }
-      return "Unknown";
+      final member = HDGameSession().party.seat(idx);
+      return member == null ? 'Unknown' : member.displayName;
     });
 
     e.registerFunction('Player::GetGenderName', (args, __) {
       final idx = (args.isNotEmpty && args[0] is num)
           ? (args[0] as num).toInt() - 1
           : 0;
-      if (idx >= 0 && idx < HDGameSession().party.players.length) {
-        return HDGameSession().party.players[idx].getGenderName();
-      }
-      return "Unknown";
+      final member = HDGameSession().party.seat(idx);
+      return member == null ? 'Unknown' : member.getGenderName();
     });
 
     e.registerFunction('Player::GetAttribute', (args, __) {
       if (args.length < 2) return 0;
-      final pIdx = (args[0] as num).toInt() - 1;
-      final attr = args[1].toString();
-      if (pIdx >= 0 && pIdx < HDGameSession().party.players.length) {
-        return HDGameSession().party.players[pIdx].getAttribute(attr);
+      final party = HDGameSession().party;
+      final member = party.seat((args[0] as num).toInt() - 1);
+      if (member == null) return 0;
+      final attr = args[1].toString().replaceAll('"', '');
+      final value = legacy.readAttribute(
+        member,
+        attr,
+        catalog: party.catalog,
+      );
+      if (value == null) {
+        // **0 을 돌려주지 않는다면 좋겠지만 함수의 반환형이 그렇다.**
+        // 대신 반드시 알린다 — 모르는 심볼에 0 을 주고 조용히 오분기한
+        // 것이 부록 M-3 의 결함이었다.
+        debugPrint(
+          '[cm2] Player::GetAttribute("$attr") — no such attribute; '
+          'returning 0, which may mis-branch',
+        );
+        return 0;
       }
-      return 0;
+      return value;
     });
 
     e.registerFunction('Player::IsAvailable', (args, __) {
       final idx = (args.isNotEmpty && args[0] is num)
           ? (args[0] as num).toInt() - 1
           : 0;
-      if (idx >= 0 && idx < HDGameSession().party.players.length) {
-        return HDGameSession().party.players[idx].isValid() ? 1 : 0;
-      }
-      return 0;
+      final member = HDGameSession().party.seat(idx);
+      return member != null && member.isPresent ? 1 : 0;
     });
   }
 }

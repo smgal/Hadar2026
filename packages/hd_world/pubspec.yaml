@@ -1,0 +1,13 @@
+name: hd_world
+description: >-
+  Character, party, item and equipment model for Hadar2026. Pure Dart:
+  no Flutter, no dart:io, no view, no scripting. Drive it with commands
+  and read the events it returns.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dev_dependencies:
+  test: ^1.24.0

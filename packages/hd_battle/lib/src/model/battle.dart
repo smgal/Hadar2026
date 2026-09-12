@@ -117,7 +117,14 @@ class Battle {
     _gap = clampGap(
       setup.initialGap ??
           openingGap(
-            partyAgility: [for (final c in _party) c.snapshot.agility],
+            // BP-45: a heavy weapon has to be brought to bear and a crossbow
+      // has to be wound, so the style shifts where in the round a member
+      // acts. Folded into agility rather than given its own roll — one
+      // source of order, as B2-05 argued.
+      partyAgility: [
+        for (final c in _party)
+          c.snapshot.agility + c.snapshot.initiativeBonus,
+      ],
             partyLevel: [for (final c in _party) c.snapshot.levelPhysical],
             enemyAgility: [for (final e in _enemies) e.agility],
             enemyLevel: [for (final e in _enemies) e.level],
@@ -755,13 +762,14 @@ class Battle {
       // Coatings count down at the top of each round after the one they
       // were laid in, so `coatingRounds` is the number of rounds the
       // weapon actually swings coated (B6-03).
-      final coating = c.coating;
-      if (coating != null && _round > 1) {
-        if (coating.rounds <= 0) {
-          c.coating = null;
-          events.add(CoatingExpired(c.slot, coating.kind));
-        } else {
-          coating.rounds--;
+      if (_round > 1) {
+        for (final coating in [...c.coatings]) {
+          if (coating.rounds <= 0) {
+            c.coatings.remove(coating);
+            events.add(CoatingExpired(c.slot, coating.kind));
+          } else {
+            coating.rounds--;
+          }
         }
       }
     }
@@ -1011,7 +1019,27 @@ class Battle {
 
   // --- actions ------------------------------------------------------
 
+  /// One attack action.
+  ///
+  /// A pair of weapons lands **two blows**, each rolling its own accuracy
+  /// and its own graze — so the style is steadier rather than harder.
+  /// Summing the two powers instead would have paid for the same thing
+  /// twice, which is why the RPG hands over the average and the count
+  /// separately.
+  ///
+  /// A blow that finds nothing left to hit stops the sequence: a second
+  /// swing at a dead enemy is not something the screen could explain.
   List<BattleEvent> _executeAttack(Combatant c, int requestedTarget) {
+    if (c.strikes <= 1) return _executeOneBlow(c, requestedTarget);
+    final events = <BattleEvent>[];
+    for (var blow = 0; blow < c.strikes; blow++) {
+      if (_firstAliveEnemy() == -1) break;
+      events.addAll(_executeOneBlow(c, requestedTarget));
+    }
+    return events;
+  }
+
+  List<BattleEvent> _executeOneBlow(Combatant c, int requestedTarget) {
     var targetIx = requestedTarget;
     // `battle.dart:428-433` retargeted whenever the chosen enemy was not
     // conscious, which skipped past collapsed ones and made the finishing
@@ -1109,10 +1137,13 @@ class Battle {
     // through the same chart a spell does. B6-03: a fire coating replaces
     // the method's element for the chart; poison and paralysis add their
     // effect after the blow lands.
-    final coating = c.coating;
-    final element = coating == null
-        ? attack.element
-        : (coatingElement(coating.kind) ?? attack.element);
+    //
+    // A pair of weapons carries a coating each, so **all of them land**.
+    // Fire is the one that changes what the chart is asked; the others
+    // add their effect afterwards, and a blade with poison on one edge
+    // and fire on the other does both.
+    final fire = c.coatings.any((x) => x.kind == Coating.fire);
+    final element = fire ? Element.fire : attack.element;
     events.addAll(
       _damageEnemyWithElement(
         c,
@@ -1122,10 +1153,25 @@ class Battle {
         source: DamageSource.physical,
       ),
     );
-    if (coating != null && coating.kind != Coating.fire) {
+    for (final coating in c.coatings) {
+      if (coating.kind == Coating.fire) continue;
       events.addAll(_applyCoatingOnHit(c, targetIx, coating.kind));
     }
     return events;
+  }
+
+  /// Lays a coating on, and says what it pushed off.
+  ///
+  /// A single weapon has one slot, so a new coating replaces the old one
+  /// exactly as before. A pair has two, so poison and fire can be
+  /// carried at once — that is the reason for the style, and the screen
+  /// already reports the second slot, so the rules have to honour it.
+  List<BattleEvent> _layCoating(Combatant c, Coating kind) {
+    final evicted = c.applyCoating(kind);
+    return [
+      if (evicted != null) CoatingExpired(c.slot, evicted.kind),
+      WeaponCoated(c.slot, kind, rounds: coatingRounds),
+    ];
   }
 
   /// What a poisoned or paralytic edge does once it has cut (B6-03).
@@ -1277,8 +1323,7 @@ class Battle {
       return [NotEnoughSpellPoints(c.slot, usesEsp: false)];
     }
     c.sp -= coatingSpellCost;
-    c.coating = WeaponCoating(Coating.poison);
-    return [WeaponCoated(c.slot, Coating.poison, rounds: coatingRounds)];
+    return _layCoating(c, Coating.poison);
   }
 
   /// Single-target and area attack magic (1-12).
@@ -1758,9 +1803,8 @@ class Battle {
         }
         return events;
       }
-      // On the blade. Replaces whatever was there.
-      c.coating = WeaponCoating(kind);
-      events.add(WeaponCoated(c.slot, kind, rounds: coatingRounds));
+      // On the blade. A pair of weapons holds one each.
+      events.addAll(_layCoating(c, kind));
       return events;
     }
 
@@ -2156,6 +2200,10 @@ class Battle {
       evasion: evasionOf(
         agility: t.snapshot.agility,
         luck: t.snapshot.luck,
+        // BP-45: a free hand is what makes a light style light. Small
+        // against a shield on purpose, so dropping the shield is a
+        // decision and not an upgrade.
+        styleBonus: t.snapshot.evasionBonus,
         // B5-03: set for the blow, and much less so for the second one
         // in the same round — a tank that cannot be worn down is not a
         // decision either.

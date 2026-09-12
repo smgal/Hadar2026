@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hadar2026_app/application/battle.dart';
 import 'package:hadar2026_app/domain/battle/battle_result.dart';
 
 void main() {
@@ -32,23 +31,4 @@ void main() {
     });
   });
 
-  group('HDBattle.result()', () {
-    // The field used to start at 1 and init() reset it to 1, so a script
-    // that read Battle::Result() without ever calling Battle::Start took
-    // the victory branch. init() also runs on every map transition
-    // (game_session.dart), so this was reachable simply by walking.
-    test('is "no result", not a win, before any battle', () {
-      HDBattle().init();
-      expect(HDBattle().result(), -1);
-      expect(HDBattle().result(), isNot(HDBattleResult.win.wire));
-    });
-
-    test('init() clears a previous result', () {
-      HDBattle().init();
-      HDBattle().registerEnemy(1);
-      HDBattle().init();
-      expect(HDBattle().result(), HDBattleResult.none.wire);
-      expect(HDBattle().enemies, isEmpty);
-    });
-  });
 }

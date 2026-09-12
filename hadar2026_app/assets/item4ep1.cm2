@@ -1,197 +1,301 @@
 ####### 아이템 상수 ########
 #
-# GENERATED — tools/convert_item.py 가 만든다. 손으로 고치지 말 것.
-# 형식은 flag4ep1.cm2 를 따른다. 최상위 include 로 읽을 것.
+# GENERATED — packages/hd_world_legacy/tool/make_item_constants.dart 가 만든다.
+# 손으로 고치지 말 것. 형식은 flag4ep1.cm2 를 따른다.
+# 최상위 include 로 읽을 것.
 #
-# 값은 HDItemId.wire = kind << 16 | detail << 8 | index 다
-# (ResId 하위 24비트와 같은 배치). 생 숫자를 쓰지 말고 이 이름을
-# 쓸 것 — 이름을 우회하면 충돌을 기계가 잡을 수 없다(부록 M-2).
+# 값은 kind << 16 | index 다 (ResId 하위 24비트와 같은 배치).
+# 생 숫자를 쓰지 말고 이 이름을 쓸 것 — 이름을 우회하면
+# 충돌을 기계가 잡을 수 없다(부록 M-2).
+#
+# 이 빌드가 만든 것(부적·새 무기)은 번호가 없어 여기 없다.
 
-# 무기
+# slashWeapon
 variable(ITEM_WIELD_0)
-ITEM_WIELD_0.assign(0)   # 맨손
+ITEM_WIELD_0.assign(0)   # weapon.fist_cut
 
+# chopWeapon
 variable(ITEM_CHOP_0)
-ITEM_CHOP_0.assign(65536)   # 맨손
+ITEM_CHOP_0.assign(65536)   # weapon.fist_chop
 
+# pierceWeapon
 variable(ITEM_STAB_0)
-ITEM_STAB_0.assign(131072)   # 맨손
+ITEM_STAB_0.assign(131072)   # weapon.fist_thrust
 
+# bluntWeapon
 variable(ITEM_HIT_0)
-ITEM_HIT_0.assign(196608)   # 맨손
+ITEM_HIT_0.assign(196608)   # weapon.fist_strike
 
+# missileWeapon
 variable(ITEM_SHOOT_0)
-ITEM_SHOOT_0.assign(262144)   # 맨손
+ITEM_SHOOT_0.assign(262144)   # weapon.fist_shoot
 
-variable(ITEM_SUMMON_SINGLE_0)
-ITEM_SUMMON_SINGLE_0.assign(327680)   # (없음)
+# slashWeapon
+variable(ITEM_WIELD_1)
+ITEM_WIELD_1.assign(1)   # weapon.dagger
 
-variable(ITEM_SUMMON_MULTI_0)
-ITEM_SUMMON_MULTI_0.assign(393216)   # (없음)
+variable(ITEM_WIELD_2)
+ITEM_WIELD_2.assign(2)   # weapon.gladius
 
-variable(ITEM_STAB_1)
-ITEM_STAB_1.assign(131073)   # 단도
+variable(ITEM_WIELD_3)
+ITEM_WIELD_3.assign(3)   # weapon.sabre
 
-variable(ITEM_HIT_3)
-ITEM_HIT_3.assign(196611)   # 곤봉
+variable(ITEM_WIELD_4)
+ITEM_WIELD_4.assign(4)   # weapon.new_moon_blade
 
-variable(ITEM_CHOP_7)
-ITEM_CHOP_7.assign(65543)   # 미늘창
+variable(ITEM_WIELD_5)
+ITEM_WIELD_5.assign(5)   # weapon.full_moon_blade
 
 variable(ITEM_WIELD_6)
-ITEM_WIELD_6.assign(6)   # 장검
+ITEM_WIELD_6.assign(6)   # weapon.long_sword
+
+variable(ITEM_WIELD_7)
+ITEM_WIELD_7.assign(7)   # weapon.flamberge
+
+# chopWeapon
+variable(ITEM_CHOP_1)
+ITEM_CHOP_1.assign(65537)   # weapon.small_hammer
+
+variable(ITEM_CHOP_2)
+ITEM_CHOP_2.assign(65538)   # weapon.hand_axe
+
+variable(ITEM_CHOP_3)
+ITEM_CHOP_3.assign(65539)   # weapon.flail
+
+variable(ITEM_CHOP_4)
+ITEM_CHOP_4.assign(65540)   # weapon.war_hammer
 
 variable(ITEM_CHOP_5)
-ITEM_CHOP_5.assign(65541)   # 철퇴
+ITEM_CHOP_5.assign(65541)   # weapon.mace
+
+variable(ITEM_CHOP_6)
+ITEM_CHOP_6.assign(65542)   # weapon.battle_axe
+
+variable(ITEM_CHOP_7)
+ITEM_CHOP_7.assign(65543)   # weapon.halberd
+
+# pierceWeapon
+variable(ITEM_STAB_1)
+ITEM_STAB_1.assign(131073)   # weapon.knife
 
 variable(ITEM_STAB_2)
-ITEM_STAB_2.assign(131074)   # 기병창
+ITEM_STAB_2.assign(131074)   # weapon.cavalry_lance
 
-variable(ITEM_STAB_7)
-ITEM_STAB_7.assign(131079)   # 도끼창
+variable(ITEM_STAB_3)
+ITEM_STAB_3.assign(131075)   # weapon.short_spear
+
+variable(ITEM_STAB_4)
+ITEM_STAB_4.assign(131076)   # weapon.rapier
 
 variable(ITEM_STAB_5)
-ITEM_STAB_5.assign(131077)   # 삼지창
+ITEM_STAB_5.assign(131077)   # weapon.trident
 
-variable(ITEM_WIELD_8)
-ITEM_WIELD_8.assign(8)   # 화염검
+variable(ITEM_STAB_6)
+ITEM_STAB_6.assign(131078)   # weapon.lancer
 
-# 방패
+variable(ITEM_STAB_7)
+ITEM_STAB_7.assign(131079)   # weapon.poleaxe
+
+# bluntWeapon
+variable(ITEM_HIT_1)
+ITEM_HIT_1.assign(196609)   # weapon.knuckle
+
+variable(ITEM_HIT_2)
+ITEM_HIT_2.assign(196610)   # weapon.long_staff
+
+variable(ITEM_HIT_3)
+ITEM_HIT_3.assign(196611)   # weapon.club
+
+# missileWeapon
+variable(ITEM_SHOOT_1)
+ITEM_SHOOT_1.assign(262145)   # weapon.blowpipe
+
+variable(ITEM_SHOOT_2)
+ITEM_SHOOT_2.assign(262146)   # weapon.shuriken
+
+variable(ITEM_SHOOT_3)
+ITEM_SHOOT_3.assign(262147)   # weapon.sling
+
+variable(ITEM_SHOOT_4)
+ITEM_SHOOT_4.assign(262148)   # weapon.javelin
+
+variable(ITEM_SHOOT_5)
+ITEM_SHOOT_5.assign(262149)   # weapon.bow
+
+variable(ITEM_SHOOT_6)
+ITEM_SHOOT_6.assign(262150)   # weapon.crossbow
+
+variable(ITEM_SHOOT_7)
+ITEM_SHOOT_7.assign(262151)   # weapon.arbalest
+
+# shield
 variable(ITEM_SHIELD_0)
-ITEM_SHIELD_0.assign(458752)   # 없음
+ITEM_SHIELD_0.assign(458752)   # shield.none
 
 variable(ITEM_SHIELD_1)
-ITEM_SHIELD_1.assign(458753)   # 가죽 방패
+ITEM_SHIELD_1.assign(458753)   # shield.leather
 
 variable(ITEM_SHIELD_2)
-ITEM_SHIELD_2.assign(458754)   # 청동 방패
+ITEM_SHIELD_2.assign(458754)   # shield.small_steel
 
 variable(ITEM_SHIELD_3)
-ITEM_SHIELD_3.assign(458755)   # 강철 방패
+ITEM_SHIELD_3.assign(458755)   # shield.large_steel
 
 variable(ITEM_SHIELD_4)
-ITEM_SHIELD_4.assign(458756)   # 은제 방패
+ITEM_SHIELD_4.assign(458756)   # shield.chromatic
 
 variable(ITEM_SHIELD_5)
-ITEM_SHIELD_5.assign(458757)   # 금제 방패
+ITEM_SHIELD_5.assign(458757)   # shield.platinum
 
-# 갑옷
+# bodyArmour
 variable(ITEM_ARMOR_0)
-ITEM_ARMOR_0.assign(524288)   # 평상복
+ITEM_ARMOR_0.assign(524288)   # bodyArmour.plain_clothes
 
 variable(ITEM_ARMOR_1)
-ITEM_ARMOR_1.assign(524289)   # 가죽 갑옷
+ITEM_ARMOR_1.assign(524289)   # bodyArmour.leather
 
 variable(ITEM_ARMOR_2)
-ITEM_ARMOR_2.assign(524290)   # 청동 갑옷
+ITEM_ARMOR_2.assign(524290)   # bodyArmour.bronze
 
 variable(ITEM_ARMOR_3)
-ITEM_ARMOR_3.assign(524291)   # 강철 갑옷
+ITEM_ARMOR_3.assign(524291)   # bodyArmour.steel
 
 variable(ITEM_ARMOR_4)
-ITEM_ARMOR_4.assign(524292)   # 은제 갑옷
+ITEM_ARMOR_4.assign(524292)   # bodyArmour.silver
 
 variable(ITEM_ARMOR_5)
-ITEM_ARMOR_5.assign(524293)   # 금제 갑옷
+ITEM_ARMOR_5.assign(524293)   # bodyArmour.gold
 
-# 머리
+# helmet
 variable(ITEM_HEAD_0)
-ITEM_HEAD_0.assign(589824)   # 없음
+ITEM_HEAD_0.assign(589824)   # helmet.none
 
 variable(ITEM_HEAD_1)
-ITEM_HEAD_1.assign(589825)   # 두건
+ITEM_HEAD_1.assign(589825)   # helmet.hood
 
 variable(ITEM_HEAD_2)
-ITEM_HEAD_2.assign(589826)   # 사냥 모자
+ITEM_HEAD_2.assign(589826)   # helmet.hunting_cap
 
 variable(ITEM_HEAD_3)
-ITEM_HEAD_3.assign(589827)   # 반쪽 가면
+ITEM_HEAD_3.assign(589827)   # helmet.half_mask
 
 variable(ITEM_HEAD_4)
-ITEM_HEAD_4.assign(589828)   # 중절모
+ITEM_HEAD_4.assign(589828)   # helmet.fedora
 
 variable(ITEM_HEAD_5)
-ITEM_HEAD_5.assign(589829)   # 가죽캡
+ITEM_HEAD_5.assign(589829)   # helmet.leather_cap
 
 variable(ITEM_HEAD_6)
-ITEM_HEAD_6.assign(589830)   # 가죽 투구
+ITEM_HEAD_6.assign(589830)   # helmet.leather_helm
 
 variable(ITEM_HEAD_7)
-ITEM_HEAD_7.assign(589831)   # 멋쟁이 모자
+ITEM_HEAD_7.assign(589831)   # helmet.dandy_hat
 
 variable(ITEM_HEAD_8)
-ITEM_HEAD_8.assign(589832)   # 청동 투구
+ITEM_HEAD_8.assign(589832)   # helmet.bronze_helm
 
 variable(ITEM_HEAD_9)
-ITEM_HEAD_9.assign(589833)   # 판금 투구
+ITEM_HEAD_9.assign(589833)   # helmet.plate_helm
 
 variable(ITEM_HEAD_10)
-ITEM_HEAD_10.assign(589834)   # 황금 왕관
+ITEM_HEAD_10.assign(589834)   # helmet.gold_crown
 
-# 다리
+# boots
 variable(ITEM_LEG_0)
-ITEM_LEG_0.assign(655360)   # 없음
+ITEM_LEG_0.assign(655360)   # boots.none
 
 variable(ITEM_LEG_1)
-ITEM_LEG_1.assign(655361)   # 헝겊 신발
+ITEM_LEG_1.assign(655361)   # boots.cloth_shoes
 
 variable(ITEM_LEG_2)
-ITEM_LEG_2.assign(655362)   # 가죽 신발
+ITEM_LEG_2.assign(655362)   # boots.leather_shoes
 
 variable(ITEM_LEG_3)
-ITEM_LEG_3.assign(655363)   # 망사 스타킹
+ITEM_LEG_3.assign(655363)   # boots.mesh_stockings
 
 variable(ITEM_LEG_4)
-ITEM_LEG_4.assign(655364)   # 날개 신발
+ITEM_LEG_4.assign(655364)   # boots.winged_shoes
 
 variable(ITEM_LEG_5)
-ITEM_LEG_5.assign(655365)   # 미늘 부츠
+ITEM_LEG_5.assign(655365)   # boots.scale_boots
 
 variable(ITEM_LEG_6)
-ITEM_LEG_6.assign(655366)   # 다리6
+ITEM_LEG_6.assign(655366)   # boots.legs6
 
 variable(ITEM_LEG_7)
-ITEM_LEG_7.assign(655367)   # 다리7
+ITEM_LEG_7.assign(655367)   # boots.legs7
 
 variable(ITEM_LEG_8)
-ITEM_LEG_8.assign(655368)   # 다리8
+ITEM_LEG_8.assign(655368)   # boots.legs8
 
 variable(ITEM_LEG_9)
-ITEM_LEG_9.assign(655369)   # 다리9
+ITEM_LEG_9.assign(655369)   # boots.legs9
 
 variable(ITEM_LEG_10)
-ITEM_LEG_10.assign(655370)   # 다리A
+ITEM_LEG_10.assign(655370)   # boots.legsA
 
-# 장식
+# commonAmulet
 variable(ITEM_ORNAMENT_0)
-ITEM_ORNAMENT_0.assign(720896)   # 없음
+ITEM_ORNAMENT_0.assign(720896)   # commonAmulet.none
 
 variable(ITEM_ORNAMENT_1)
-ITEM_ORNAMENT_1.assign(720897)   # 멋쟁이 혁띠
+ITEM_ORNAMENT_1.assign(720897)   # commonAmulet.dandy_belt
 
 variable(ITEM_ORNAMENT_2)
-ITEM_ORNAMENT_2.assign(720898)   # 민무늬 반지
+ITEM_ORNAMENT_2.assign(720898)   # commonAmulet.plain_ring
 
 variable(ITEM_ORNAMENT_3)
-ITEM_ORNAMENT_3.assign(720899)   # 은 가락지
+ITEM_ORNAMENT_3.assign(720899)   # commonAmulet.silver_ring
 
 variable(ITEM_ORNAMENT_4)
-ITEM_ORNAMENT_4.assign(720900)   # 루비 목걸이
+ITEM_ORNAMENT_4.assign(720900)   # commonAmulet.ruby_necklace
 
 variable(ITEM_ORNAMENT_5)
-ITEM_ORNAMENT_5.assign(720901)   # 가짜 훈장
+ITEM_ORNAMENT_5.assign(720901)   # commonAmulet.fake_medal
 
 variable(ITEM_ORNAMENT_6)
-ITEM_ORNAMENT_6.assign(720902)   # 장식6
+ITEM_ORNAMENT_6.assign(720902)   # commonAmulet.trinket6
 
 variable(ITEM_ORNAMENT_7)
-ITEM_ORNAMENT_7.assign(720903)   # 장식7
+ITEM_ORNAMENT_7.assign(720903)   # commonAmulet.trinket7
 
 variable(ITEM_ORNAMENT_8)
-ITEM_ORNAMENT_8.assign(720904)   # 장식8
+ITEM_ORNAMENT_8.assign(720904)   # commonAmulet.trinket8
 
 variable(ITEM_ORNAMENT_9)
-ITEM_ORNAMENT_9.assign(720905)   # 장식9
+ITEM_ORNAMENT_9.assign(720905)   # commonAmulet.trinket9
 
 variable(ITEM_ORNAMENT_10)
-ITEM_ORNAMENT_10.assign(720906)   # 장식A
+ITEM_ORNAMENT_10.assign(720906)   # commonAmulet.trinketA
+
+# consumable
+variable(ITEM_CONSUMABLE_0)
+ITEM_CONSUMABLE_0.assign(786432)   # consumable.potion
+
+variable(ITEM_CONSUMABLE_1)
+ITEM_CONSUMABLE_1.assign(786433)   # consumable.antidote
+
+variable(ITEM_CONSUMABLE_2)
+ITEM_CONSUMABLE_2.assign(786434)   # consumable.elixir
+
+variable(ITEM_CONSUMABLE_3)
+ITEM_CONSUMABLE_3.assign(786435)   # consumable.revive_charm
+
+variable(ITEM_CONSUMABLE_4)
+ITEM_CONSUMABLE_4.assign(786436)   # consumable.sp_tonic
+
+variable(ITEM_CONSUMABLE_5)
+ITEM_CONSUMABLE_5.assign(786437)   # consumable.poison_vial
+
+variable(ITEM_CONSUMABLE_6)
+ITEM_CONSUMABLE_6.assign(786438)   # consumable.paralysis_vial
+
+variable(ITEM_CONSUMABLE_7)
+ITEM_CONSUMABLE_7.assign(786439)   # consumable.fire_vial
+
+variable(ITEM_CONSUMABLE_8)
+ITEM_CONSUMABLE_8.assign(786440)   # consumable.fire_crystal
+
+variable(ITEM_CONSUMABLE_9)
+ITEM_CONSUMABLE_9.assign(786441)   # consumable.storm_crystal
+

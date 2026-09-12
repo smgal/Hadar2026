@@ -152,8 +152,19 @@ List<int> castableSkills({required int levelMagic, required int levelEsp}) {
       if (isCurse(id)) id,
   ]);
   ids.addAll(castableCures(magicLevel: levelMagic));
+  // **The inert three do not appear.** 41 · 42 · 44 read the future,
+  // read minds and see far — their effect is outside a fight, and the
+  // original printed the name and returned. Offering them spends a turn
+  // on nothing, which is the one thing B5 forbids: a wasted turn must
+  // not be reachable through the menu.
+  //
+  // Spells 33-40 were left out for the same reason (B6-01); these three
+  // are the same case and were missed. They are still field abilities.
   final espCount = levelEsp > 5 ? 5 : levelEsp;
-  ids.addAll([for (var i = 0; i < espCount; i++) 41 + i]);
+  ids.addAll([
+    for (var i = 0; i < espCount; i++)
+      if (espAbilityFor(41 + i) != EspAbility.inert) 41 + i,
+  ]);
   if (levelEsp >= abilityDrainEspLevel) ids.add(abilityDrainSpellId);
   return ids;
 }

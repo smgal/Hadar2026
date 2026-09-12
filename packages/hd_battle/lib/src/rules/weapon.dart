@@ -279,6 +279,141 @@ const Map<String, WeaponProfile> weaponTable = {
       ),
     ],
   ),
+
+  // --- W1-06: the styles a pair of hands can make -------------------
+  //
+  // `hd_world` reads a fighting style off what the two hands hold, and
+  // four of the styles it can name had **no profile here at all**: the
+  // original ships seven missile weapons and this table had none, so a
+  // hunter holding a bow could not be handed to a battle. These rows
+  // close that gap.
+  //
+  // The reach bands are the ones BP-45 argued for. Nothing above this
+  // line changed — the enemy table and every fixture keep the keys they
+  // already used.
+
+  /// One blade, the other hand free.
+  'one_hand_slash': WeaponProfile(
+    key: 'one_hand_slash',
+    attacks: [
+      WeaponAttack(method: AttackMethod.slash, minReach: 0, maxReach: 1),
+    ],
+  ),
+
+  /// A blade and a shield. The shield is the second way to strike, which
+  /// is what gives a swordsman an answer to bone and stone.
+  'sword_shield': WeaponProfile(
+    key: 'sword_shield',
+    attacks: [
+      WeaponAttack(method: AttackMethod.slash, minReach: 0, maxReach: 1),
+      WeaponAttack(
+        method: AttackMethod.blunt,
+        minReach: 0,
+        maxReach: 0,
+        power: 55,
+      ),
+    ],
+  ),
+
+  /// A one-handed spear. Holds a line at arm's length whether or not the
+  /// other hand carries a shield.
+  'spear': WeaponProfile(
+    key: 'spear',
+    attacks: [
+      WeaponAttack(method: AttackMethod.pierce, minReach: 1, maxReach: 2),
+      WeaponAttack(
+        method: AttackMethod.blunt,
+        minReach: 0,
+        maxReach: 1,
+        power: 60,
+      ),
+    ],
+  ),
+
+  /// Two-handed weight. Charges, and the charge is the point of it.
+  'war_hammer': WeaponProfile(
+    key: 'war_hammer',
+    attacks: [
+      WeaponAttack(
+        method: AttackMethod.blunt,
+        minReach: 0,
+        maxReach: 1,
+        power: 120,
+        charge: true,
+      ),
+    ],
+  ),
+
+  /// Reaches the whole board from the back rank, and is helpless once
+  /// something is on top of it — the bowstave is all it has at zero.
+  'bow': WeaponProfile(
+    key: 'bow',
+    attacks: [
+      WeaponAttack(
+        method: AttackMethod.pierce,
+        minReach: 1,
+        maxReach: 3,
+        power: 90,
+      ),
+      WeaponAttack(
+        method: AttackMethod.blunt,
+        minReach: 0,
+        maxReach: 0,
+        power: 40,
+      ),
+    ],
+  ),
+
+  /// The opposite trade: weaker, and shoots from anywhere at all.
+  'crossbow': WeaponProfile(
+    key: 'crossbow',
+    attacks: [
+      WeaponAttack(
+        method: AttackMethod.pierce,
+        minReach: 0,
+        maxReach: 3,
+        power: 85,
+      ),
+    ],
+  ),
+
+  /// The hardest-hitting missile, from a set position.
+  'arbalest': WeaponProfile(
+    key: 'arbalest',
+    attacks: [
+      WeaponAttack(
+        method: AttackMethod.pierce,
+        minReach: 2,
+        maxReach: 3,
+        power: 130,
+      ),
+      WeaponAttack(
+        method: AttackMethod.blunt,
+        minReach: 0,
+        maxReach: 1,
+        power: 45,
+      ),
+    ],
+  ),
+
+  /// Thrown from the middle rank, with a hand left over for a shield.
+  'thrown': WeaponProfile(
+    key: 'thrown',
+    attacks: [
+      WeaponAttack(
+        method: AttackMethod.pierce,
+        minReach: 1,
+        maxReach: 2,
+        power: 70,
+      ),
+      WeaponAttack(
+        method: AttackMethod.blunt,
+        minReach: 0,
+        maxReach: 0,
+        power: 40,
+      ),
+    ],
+  ),
 };
 
 /// The weapon for a key, falling back to bare hands.

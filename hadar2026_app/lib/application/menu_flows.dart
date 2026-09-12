@@ -9,10 +9,12 @@ import 'package:hd_battle/hd_battle.dart' as hb;
 import 'battle_bridge/cm2_battle_adapter.dart';
 import '../application/magic_system.dart';
 import '../application/save_manager.dart';
-import '../domain/item/item_type.dart';
+import 'package:hd_world/hd_world.dart';
+import 'package:hd_world_text/hd_world_text.dart' as wtx;
+
+import '../domain/party/member_display.dart';
+import '../domain/party/party.dart';
 import '../domain/party/party_actions.dart';
-import '../domain/party/player.dart';
-import 'equipment_flow.dart';
 import 'game_reload_exception.dart';
 import 'game_session.dart';
 import 'ports/host_binding.dart';
@@ -107,10 +109,11 @@ class HDMenuFlows {
     int preSel = await _game.showWindowMenu(preMenu);
     if (preSel == 2) {
       final party = _session.party;
-      final valid = party.players.where((p) => p.isValid());
+      final valid = party.present.toList();
       final avgLuck = valid.isEmpty
           ? 0
-          : valid.fold(0, (sum, p) => sum + p.luck) ~/ valid.length;
+          : valid.fold<int>(0, (sum, p) => sum + p.stats.luck) ~/
+                valid.length;
       // 등록된 적의 민첩 평균. 전투를 시작하기 전이라 표에서 읽는다.
       final agilities = [
         for (final key in battle.enemyKeys) hb.enemyByKey[key]!.agility,
@@ -137,12 +140,12 @@ class HDMenuFlows {
 
   Future<void> _selectPlayerForMagic() async {
     final party = _session.party;
-    final validPlayers = party.players.where((p) => p.isValid()).toList();
+    final validPlayers = party.present.toList();
     if (validPlayers.isEmpty) return;
 
     final choices = [
       "누가 마법을 사용하겠습니까 ?",
-      ...validPlayers.map((p) => p.name.text),
+      ...validPlayers.map((p) => p.displayName),
     ];
     int selected = await _game.showWindowMenu(choices);
     if (selected == 0) return;
@@ -153,12 +156,12 @@ class HDMenuFlows {
 
   Future<void> _selectPlayerForESP() async {
     final party = _session.party;
-    final validPlayers = party.players.where((p) => p.isValid()).toList();
+    final validPlayers = party.present.toList();
     if (validPlayers.isEmpty) return;
 
     final choices = [
       "누가 초능력을 사용하겠습니까 ?",
-      ...validPlayers.map((p) => p.name.text),
+      ...validPlayers.map((p) => p.displayName),
     ];
     int selected = await _game.showWindowMenu(choices);
     if (selected == 0) return;
@@ -171,9 +174,8 @@ class HDMenuFlows {
     final party = _session.party;
     _game.clearLogs();
 
-    for (final p in party.players) {
-      if (!p.isValid()) continue;
-      final result = HDPartyActions.restPlayer(p, party);
+    for (final m in party.present) {
+      final result = HDPartyActions.restMember(m, party);
       await _game.addLog(_restMessageFor(result));
     }
 
@@ -188,24 +190,24 @@ class HDMenuFlows {
   }
 
   String _restMessageFor(RestEntryResult r) {
-    final p = r.player;
+    final p = r.member.noun;
     switch (r.outcome) {
       case RestOutcome.noFood:
         return "일행은 식량이 바닥났다";
       case RestOutcome.alreadyDead:
-        return "${p.name}${p.name.sub1} 죽었다";
+        return "$p${p.sub1} 죽었다";
       case RestOutcome.unconsciousRecovered:
-        return "${p.name}${p.name.sub1} 의식이 회복되었다";
+        return "$p${p.sub1} 의식이 회복되었다";
       case RestOutcome.unconsciousStillOut:
-        return "${p.name}${p.name.sub1} 여전히 의식 불명이다";
+        return "$p${p.sub1} 여전히 의식 불명이다";
       case RestOutcome.unconsciousPoisoned:
-        return "독 때문에 ${p.name}의 의식은 회복되지 않았다";
+        return "독 때문에 $p의 의식은 회복되지 않았다";
       case RestOutcome.poisoned:
-        return "독 때문에 ${p.name}의 건강은 회복되지 않았다";
+        return "독 때문에 $p의 건강은 회복되지 않았다";
       case RestOutcome.fullyHealed:
-        return "${p.name}${p.name.sub1} 모든 건강이 회복되었다";
+        return "$p${p.sub1} 모든 건강이 회복되었다";
       case RestOutcome.partiallyHealed:
-        return "${p.name}${p.name.sub1} 치료되었다";
+        return "$p${p.sub1} 치료되었다";
     }
   }
 
@@ -219,13 +221,41 @@ class HDMenuFlows {
     await _game.addLog("남은 황금 = ${party.gold}");
     await _game.addLog("");
 
-    await _game.addLog("마법의 횃불 : ${party.magicTorch}");
-    await _game.addLog("공중 부상   : ${party.levitation}");
-    await _game.addLog("물위를 걸음 : ${party.walkOnWater}");
-    await _game.addLog("늪위를 걸음 : ${party.walkOnSwamp}");
+    // 이제 출처가 둘이다 — 부적(상시)과 마법(칸 수). 숫자만 찍으면
+    // **왜 되는지**를 말하지 못한다(BP-47 §7.4).
+    final light = party.light;
+    await _game.addLog(
+      "어둠 속 시야 : ${light.radius}"
+      "${light.moonlight ? '   (달빛 있음)' : ''}",
+    );
+    await _game.addLog(
+      "불          : ${_lightSource(party)}",
+    );
+    await _game.addLog("공중 부상   : ${_capabilitySource(party, Capability.levitate, party.levitation)}");
+    await _game.addLog("물위를 걸음 : ${_capabilitySource(party, Capability.walkOnWater, party.walkOnWater)}");
+    await _game.addLog("늪위를 걸음 : ${_capabilitySource(party, Capability.walkOnSwamp, party.walkOnSwamp)}");
 
     await _game.waitForAnyKey();
     _game.clearLogs();
+  }
+
+  /// 불이 **어디서 오는지**. 숫자만 찍으면 왜 되는지를 말하지 못한다.
+  String _lightSource(HDParty party) {
+    final bearers = party.abilities.lightBearers;
+    final spell = party.magicTorch;
+    if (bearers == 0 && spell == 0) return "없음";
+    return [
+      if (bearers > 0) "횃불 $bearers",
+      if (spell > 0) "마법 $spell칸",
+    ].join(" · ");
+  }
+
+  /// 통행 능력이 부적에서 오는지 마법에서 오는지 (BP-47 §1).
+  String _capabilitySource(HDParty party, Capability c, int spellLeft) {
+    final worn = party.abilities.can(c);
+    if (worn) return "부적 (상시)";
+    if (spellLeft > 0) return "마법 $spellLeft칸";
+    return "없음";
   }
 
   Future<void> showHealthStatus() async {
@@ -234,15 +264,13 @@ class HDMenuFlows {
     await _game.addLog("                이름    중독  의식불명    죽음");
     await _game.addLog("");
 
-    for (var p in _session.party.players) {
-      if (p.isValid()) {
-        final nameStr = p.name.text.padLeft(20);
-        final unStr = p.unconscious.toString().padLeft(9);
-        final deadStr = p.dead.toString().padLeft(7);
-        final poiStr = p.poison.toString().padLeft(5);
+    for (final m in _session.party.present) {
+      final nameStr = m.displayName.padLeft(20);
+      final unStr = m.unconscious.toString().padLeft(9);
+      final deadStr = m.dead.toString().padLeft(7);
+      final poiStr = m.poison.toString().padLeft(5);
 
-        await _game.addLog("$nameStr   $poiStr $unStr $deadStr");
-      }
+      await _game.addLog("$nameStr   $poiStr $unStr $deadStr");
     }
 
     await _game.waitForAnyKey();
@@ -251,12 +279,12 @@ class HDMenuFlows {
 
   Future<void> showCharacterStatus() async {
     final party = _session.party;
-    final validPlayers = party.players.where((p) => p.isValid()).toList();
+    final validPlayers = party.present.toList();
     if (validPlayers.isEmpty) return;
 
     final choices = [
       "능력을 보고싶은 인물을 선택하시오",
-      ...validPlayers.map((p) => p.name.text),
+      ...validPlayers.map((p) => p.displayName),
     ];
 
     int selected = await _game.showWindowMenu(choices);
@@ -265,43 +293,54 @@ class HDMenuFlows {
     final player = validPlayers[selected - 1];
 
     _game.clearLogs();
-    await _game.addLog("# 이름 : ${player.name}");
+    // 최종 수치를 보인다 — 장비가 얹힌 뒤의 값이다. 기본값을 보이면
+    // 부적을 끼고도 숫자가 안 바뀌어 보인다.
+    final stats = player.resolved;
+    await _game.addLog("# 이름 : ${player.displayName}");
     await _game.addLog("# 성별 : ${player.getGenderName()}");
     await _game.addLog("# 계급 : ${player.getClassName()}");
     await _game.addLog("");
-    await _game.addLog("체력   : ${player.strength}");
-    await _game.addLog("정신력 : ${player.mentality}");
-    await _game.addLog("집중력 : ${player.concentration}");
-    await _game.addLog("인내력 : ${player.endurance}");
-    await _game.addLog("저항력 : ${player.resistance}");
-    await _game.addLog("민첩성 : ${player.agility}");
-    await _game.addLog("행운   : ${player.luck}");
+    await _game.addLog("체력   : ${stats[StatKey.strength]}");
+    await _game.addLog("정신력 : ${stats[StatKey.mentality]}");
+    await _game.addLog("집중력 : ${stats[StatKey.concentration]}");
+    await _game.addLog("인내력 : ${stats[StatKey.endurance]}");
+    await _game.addLog("저항력 : ${stats[StatKey.resistance]}");
+    await _game.addLog("민첩성 : ${stats[StatKey.agility]}");
+    await _game.addLog("행운   : ${stats[StatKey.luck]}");
+    await _game.addLog("방어   : ${stats[StatKey.defence]}");
 
     await _game.waitForAnyKey();
 
     _game.clearLogs();
-    await _game.addLog("# 이름 : ${player.name}");
+    await _game.addLog("# 이름 : ${player.displayName}");
     await _game.addLog("# 성별 : ${player.getGenderName()}");
     await _game.addLog("# 계급 : ${player.getClassName()}");
     await _game.addLog("");
 
+    String pad(int v) => v.toString().padLeft(2);
     await _game.addLog(
-      "무기의 정확성   : ${player.accuracy.physical.toString().padLeft(2)}    전투 레벨   : ${player.level.physical.toString().padLeft(2)}",
+      "무기의 정확성   : ${pad(stats[StatKey.accuracyPhysical])}"
+      "    전투 레벨   : ${pad(player.levels.physical)}",
     );
     await _game.addLog(
-      "정신력의 정확성 : ${player.accuracy.magic.toString().padLeft(2)}    마법 레벨   : ${player.level.magic.toString().padLeft(2)}",
+      "정신력의 정확성 : ${pad(stats[StatKey.accuracyMagic])}"
+      "    마법 레벨   : ${pad(player.levels.magic)}",
     );
     await _game.addLog(
-      "초감각의 정확성 : ${player.accuracy.esp.toString().padLeft(2)}    초감각 레벨 : ${player.level.esp.toString().padLeft(2)}",
+      "초감각의 정확성 : ${pad(stats[StatKey.accuracyEsp])}"
+      "    초감각 레벨 : ${pad(player.levels.esp)}",
     );
     await _game.addLog("## 경험치   : ${player.experience}");
     await _game.addLog("");
-    // 한 줄에 하나씩. 실데이터 이름은 '불확실한 방패'(7자)까지 길어지고
-    // 콘솔 폰트는 한글이 2배폭이라 문자 수 기준 padRight 로는 정렬이
-    // 맞지 않는다. 부위가 6칸으로 늘면(G1-04) 어차피 한 줄에 못 담는다.
-    await _game.addLog("사용 무기 - ${player.getWeaponName()}");
-    await _game.addLog("방패 - ${player.getShieldName()}");
-    await _game.addLog("갑옷 - ${player.getArmorName()}");
+    // 손 구성이 무기 종류를 정한다(BP-45). 그것을 먼저 말하고 나서
+    // 여덟 칸을 한 줄씩 보인다 — 콘솔 폰트가 고정폭이 아니라 정렬이
+    // 문자 수로 맞지 않는다.
+    await _game.addLog("싸우는 법 : ${player.weaponKindName}");
+    for (final slot in EquipSlot.displayOrder) {
+      await _game.addLog(
+        "${wtx.slotName(slot).padRight(6)} - ${player.slotName(slot)}",
+      );
+    }
 
     await _game.waitForAnyKey();
     _game.clearLogs();
@@ -316,13 +355,9 @@ class HDMenuFlows {
 
   Future<void> showInventory() async {
     final party = _session.party;
+    final rows = _packRows(party);
 
-    final filled = <int>[];
-    for (var i = 0; i < party.itemCapacity; i++) {
-      if (party.itemAt(i) != null) filled.add(i);
-    }
-
-    if (filled.isEmpty) {
+    if (rows.isEmpty) {
       _game.clearLogs();
       await _game.addLog("## 소지품                    0 / ${party.itemCapacity}");
       await _game.addLog("");
@@ -331,21 +366,19 @@ class HDMenuFlows {
       _game.clearLogs();
     } else {
       final pages =
-          (filled.length + _inventoryRowsPerPage - 1) ~/ _inventoryRowsPerPage;
+          (rows.length + _inventoryRowsPerPage - 1) ~/ _inventoryRowsPerPage;
       for (var page = 0; page < pages; page++) {
         _game.clearLogs();
         await _game.addLog(
           "## 소지품                    "
-          "${filled.length} / ${party.itemCapacity}",
+          "${rows.length} / ${party.itemCapacity}",
         );
         await _game.addLog("");
         final start = page * _inventoryRowsPerPage;
-        final end = (start + _inventoryRowsPerPage).clamp(0, filled.length);
+        final end = (start + _inventoryRowsPerPage).clamp(0, rows.length);
         for (var row = start; row < end; row++) {
-          final slot = filled[row];
           await _game.addLog(
-            "${(row + 1).toString().padLeft(2)}. "
-            "${HDEquipmentFlow.describe(party.itemAt(slot)!)}",
+            "${(row + 1).toString().padLeft(2)}. ${_describeRow(rows[row])}",
           );
         }
         await _game.addLog("");
@@ -361,62 +394,112 @@ class HDMenuFlows {
     if (next == 1) await showEquipment();
   }
 
+  /// 가방을 이름 순으로. 같은 것이 여럿이면 개수로 묶는다.
+  ///
+  /// 이전 모델은 20칸 배열이라 같은 물건이 여러 줄로 나왔다. 이제 가방이
+  /// `{물건: 개수}` 라 한 줄이고, 칸 수는 **종류 수**를 센다.
+  List<({ItemRef ref, int count})> _packRows(HDParty party) {
+    final rows = [
+      for (final e in party.pack.counts.entries)
+        (ref: e.key, count: e.value),
+    ];
+    rows.sort((a, b) => _itemLabel(a.ref).compareTo(_itemLabel(b.ref)));
+    return rows;
+  }
+
+  String _itemLabel(ItemRef ref) {
+    final def = party0.catalog[ref];
+    // 카탈로그에 없는 참조는 조용히 사라지지 않는다 — 세이브가 이 빌드에
+    // 없는 물건을 들고 올라온 것이고 그것이 보여야 한다.
+    return def == null ? '불확실한 물건 (${ref.value})' : wtx.itemName(def.nameKey);
+  }
+
+  HDParty get party0 => _session.party;
+
+  String _describeRow(({ItemRef ref, int count}) row) {
+    final label = _itemLabel(row.ref);
+    return row.count > 1 ? '$label x${row.count}' : label;
+  }
+
   /// 인물 → 부위 → 후보 3단계. 각 단계가 `showWindowMenu` 한 번이고
   /// 새 위젯이나 새 포트 메서드를 쓰지 않는다.
+  ///
+  /// **부위가 여덟이다**(BP-47 §2). 양손 무기를 들면 왼손이 잠기고, 잠긴
+  /// 칸은 목록에 이유를 함께 적는다 — 회색으로 두는 것은 콘솔에서 할 수
+  /// 없으므로 글자로 말한다.
   Future<void> showEquipment() async {
     final party = _session.party;
-    final validPlayers = party.players.where((p) => p.isValid()).toList();
+    final validPlayers = party.present.toList();
     if (validPlayers.isEmpty) return;
 
     final who = await _game.showWindowMenu([
       "누구의 장비인가",
-      ...validPlayers.map((p) => p.name.text),
+      ...validPlayers.map((p) => p.displayName),
     ]);
     if (who == 0) return;
-    final player = validPlayers[who - 1];
+    final member = validPlayers[who - 1];
 
-    // 부위를 고르고 바꾸는 것을 Esc 까지 반복한다 — 한 인물의 여섯 칸을
-    // 채우려고 메뉴를 여섯 번 여는 것은 원작에도 없다.
+    // 부위를 고르고 바꾸는 것을 Esc 까지 반복한다 — 한 인물의 여덟 칸을
+    // 채우려고 메뉴를 여덟 번 여는 것은 원작에도 없다.
     while (true) {
-      final slots = HDEquipSlot.values;
+      final slots = EquipSlot.displayOrder;
+      final locked = isOffHandLocked(member, party.catalog);
       final part = await _game.showWindowMenu([
-        "어느 부위를 바꾸는가",
-        ...slots.map((s) => HDEquipmentFlow.describeSlot(player, s)),
+        "어느 부위를 바꾸는가  (${member.weaponKindName})",
+        ...slots.map((s) => _describeSlot(member, s, locked: locked)),
       ]);
       if (part == 0) return;
       final slot = slots[part - 1];
 
-      final candidates = HDEquipmentFlow.candidatesFor(party, slot);
-      final canClear = HDEquipmentFlow.canUnequip(party, player, slot);
+      if (slot == EquipSlot.leftHand && locked) {
+        await _game.showMessageWindow(
+          wtx.refusalMessage(RefusalReason.offHandLocked),
+        );
+        continue;
+      }
+
+      final candidates = party.candidates(member, slot);
+      final worn = member.at(slot);
+      final canClear =
+          worn != null && (party.catalog[worn]?.removable ?? true);
 
       if (candidates.isEmpty && !canClear) {
         await _game.showMessageWindow(
-          "${HDEquipmentFlow.slotLabel(slot)}에 채울 것이 없다.",
+          "${wtx.slotName(slot)}에 채울 것이 없다.",
         );
         continue;
       }
 
       final choices = <String>[
         "무엇을 채우는가",
-        if (canClear) "(비운다)",
-        ...candidates.map((i) => HDEquipmentFlow.describe(party.itemAt(i)!)),
+        if (canClear) "(비운다) — ${_itemLabel(worn)}",
+        ...candidates.map(_itemLabel),
       ];
       final picked = await _game.showWindowMenu(choices);
       if (picked == 0) continue;
 
-      if (canClear && picked == 1) {
-        HDEquipmentFlow.unequipToBackpack(party, player, slot);
-      } else {
-        final offset = canClear ? 2 : 1;
-        HDEquipmentFlow.equipFromBackpack(
-          party,
-          player,
-          slot,
-          candidates[picked - offset],
-        );
+      final refusal = (canClear && picked == 1)
+          ? party.unequip(member, slot)
+          : party.equip(
+              member,
+              slot,
+              candidates[picked - (canClear ? 2 : 1)],
+            );
+      // 거절 이유를 말한다. **자리가 틀린 것과 직업이 틀린 것은 다른
+      // 문장이다** — 하나로 뭉치면 왜 안 되는지 알 수 없다.
+      if (refusal != null) {
+        await _game.showMessageWindow(wtx.refusalMessage(refusal));
       }
       _game.refresh();
     }
+  }
+
+  String _describeSlot(Member m, EquipSlot slot, {required bool locked}) {
+    final label = wtx.slotName(slot).padRight(6);
+    if (slot == EquipSlot.leftHand && locked) {
+      return "$label- (양손 무기라 잠김)";
+    }
+    return "$label- ${m.slotName(slot)}";
   }
 
   Future<void> selectGameOption() async {
@@ -457,10 +540,13 @@ class HDMenuFlows {
 
   Future<void> _sortParty() async {
     final party = _session.party;
-    List<HDPlayer> validPlayers = party.players
-        .where((p) => p.isValid())
-        .toList();
-    if (validPlayers.length <= 1) {
+    // 번호가 곧 자리이므로 **자리 번호를 들고 다닌다** — 앉은 사람만 걸러
+    // 놓고 그 목록의 위치로 자리를 바꾸면 빈 자리를 건너뛴 만큼 어긋난다.
+    final seated = <({int seat, Member member})>[
+      for (final (i, m) in party.members.indexed)
+        if (m.isPresent) (seat: i, member: m),
+    ];
+    if (seated.length <= 1) {
       await _game.addLog("순서를 바꿀 수 있을만한 인원수가 아닙니다.");
       await _game.waitForAnyKey();
       _game.clearLogs();
@@ -469,7 +555,7 @@ class HDMenuFlows {
 
     final choices = [
       "누구의 순서를 바꾸겠습니까? (기준점)",
-      ...validPlayers.map((p) => p.name.text),
+      ...seated.map((s) => s.member.displayName),
     ];
     int srcIdx = await _game.showWindowMenu(choices);
     if (srcIdx == 0) {
@@ -479,7 +565,7 @@ class HDMenuFlows {
 
     final targetChoices = [
       "누구와 자리를 교환하겠습니까?",
-      ...validPlayers.map((p) => p.name.text),
+      ...seated.map((s) => s.member.displayName),
     ];
     int destIdx = await _game.showWindowMenu(targetChoices);
     if (destIdx == 0) {
@@ -487,12 +573,10 @@ class HDMenuFlows {
       return;
     }
 
-    final srcPlayer = validPlayers[srcIdx - 1];
-    final destPlayer = validPlayers[destIdx - 1];
     HDPartyActions.swapMembers(
       party,
-      party.players.indexOf(srcPlayer),
-      party.players.indexOf(destPlayer),
+      seated[srcIdx - 1].seat,
+      seated[destIdx - 1].seat,
     );
 
     await _game.addLog("일행의 순서가 변경되었습니다.");
@@ -502,10 +586,11 @@ class HDMenuFlows {
 
   Future<void> _dismissPartyMember() async {
     final party = _session.party;
-    List<HDPlayer> validPlayers = party.players
-        .where((p) => p.isValid())
-        .toList();
-    if (validPlayers.length <= 1) {
+    final seated = <({int seat, Member member})>[
+      for (final (i, m) in party.members.indexed)
+        if (m.isPresent) (seat: i, member: m),
+    ];
+    if (seated.length <= 1) {
       await _game.addLog("더 이상 일행을 제외시킬 수 없습니다.");
       await _game.waitForAnyKey();
       _game.clearLogs();
@@ -514,7 +599,7 @@ class HDMenuFlows {
 
     final choices = [
       "누구를 일행에서 제외시키겠습니까?",
-      ...validPlayers.map((p) => p.name.text),
+      ...seated.map((s) => s.member.displayName),
     ];
     int selected = await _game.showWindowMenu(choices);
     if (selected == 0 || selected == 1) {
@@ -526,10 +611,10 @@ class HDMenuFlows {
       return;
     }
 
-    final player = validPlayers[selected - 1];
-    // Capture the name *before* dismissal — `dismissMember` clears it.
-    final dismissedName = player.name;
-    HDPartyActions.dismissMember(party, party.players.indexOf(player));
+    final chosen = seated[selected - 1];
+    // 이름은 **내보내기 전에** 붙잡는다 — `dismissMember` 가 지운다.
+    final dismissedName = chosen.member.noun;
+    HDPartyActions.dismissMember(party, chosen.seat);
 
     await _game.addLog("$dismissedName가 일행에서 제외되었습니다.");
     await _game.waitForAnyKey();

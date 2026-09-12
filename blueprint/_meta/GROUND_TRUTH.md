@@ -2129,3 +2129,132 @@ Ogre 둘은 시작 파티에게 전멸 조합이다 — 밸런스 판단 자료�
 | 부족한 기술 고르면 턴 상실 | B6-01 | 거절하고 돌아옴 |
 
 한 답짜리 물음 생략의 크기: 적 하나짜리 전투에서 5인 파티는 라운드마다 **5번** 눌렀다.
+
+---
+
+# 부록 Z — 장비 슬롯과 통행 지형 실측 (2026-09-07, BP-47 착수 전)
+
+[BP-47](../47_equipment_and_traversal.md) 을 쓰면서 확인한 것이다. **경고 문구는 있는데 규칙이 없는 곳이 셋**이다.
+
+## Z-1 절벽은 평지다
+
+`domain/map/tile_properties.dart` `isUnitPassable` 은 `none` · 상호작용 셋 · `water` 만 걸러내고
+나머지를 `return true` 로 보낸다. `cliff`(ixTile 70~71, `_getTileAction`)가 거기 걸려
+**그냥 걸어 들어간다.** 타일 이벤트도 `application/tile_event_dispatcher.dart` 의
+`case HDTileAction.cliff: break;` 라 아무 일도 안 일어난다.
+
+원작에는 둘 다 있었다 — `ObjParty.EnterCliff` 는 `levitation <= 0` 이면 `dx = dy = 0` 으로 **막고**,
+`TilingEngine.cs:301` 은 절벽 타일 위에서 **바라보는 방향으로 계속 이동시킨다**(표류).
+
+## Z-2 늪은 아프지 않다
+
+`"일행은 독이 있는 늪에 들어갔다 !!!"` 를 찍는 것이 전부다(`tile_event_dispatcher.dart`).
+독도 피해도 없다. **경고가 거짓말이다.** 용암(`lava`)도 같은 모양이다 — 메시지만 있다
+(원작 `ObjParty` 는 `(random(40) + 40 - 2*random(luck)) * 2` 피해를 준다).
+
+## Z-3 마법 35·36 은 SP 만 깎는다
+
+`application/magic_system.dart` 의 `magicId >= 33 && magicId <= 39` 분기 안에 본문이 있는 것은
+**33(마법의 횃불) 과 34(공중 부상) 뿐**이다. 35(물위를 걸음) · 36(늪위를 걸음) · 37 · 38 · 39 는
+SP 만 차감하고 지나간다.
+
+## Z-4 `walkOnWater` 는 읽는 쪽만 살아 있다
+
+부록 M 시절 BP-42 §1.7 은 이것을 "살아 있다" 로 적었는데, **읽는 쪽만** 그렇다:
+
+| | 상태 |
+|---|---|
+| 읽기 | `isUnitPassable` 의 `unit.ixTile == 56 && walkOnWater > 0` · 물 한 칸마다 `walkOnWater--` |
+| 쓰기 | **없다.** 마법 35 는 Z-3 대로 아무것도 안 하고, cm2 에도 세우는 커맨드가 없다(`Party::` 등록은 `PosX`·`PosY`·`PlusGold`·`Move`·`CheckIf` 다섯) |
+
+즉 `walkOnWater` 는 **어떤 경로로도 0 을 벗어나지 못한다.** 얕은 물은 통과 불가가 확정이다.
+
+## Z-5 왼손이 방패 전용인 것은 `equipSlot` 이 단수이기 때문이다
+
+`HDItemType.equipSlot` 이 부위를 **하나** 돌려주고 `equipItem` 이 `id.kind.equipSlot != slot` 으로
+거절한다. 그래서 한손 무기는 `hand` 에만, 방패는 `handSub` 에만 간다 — 쌍수·횃불이 들어갈 자리가
+구조적으로 없다. BP-45 · BP-47 이 요구하는 최소 변경이 이 한 줄이다.
+
+## Z-6 원작은 통행 능력을 이미 물건에 얹었다
+
+`ObjParty.Use_WingedBoots` 는 비행 부츠 하나로 `levitation` · `walk_on_water` · `walk_on_swamp` 셋을
+**한꺼번에 255** 로 만든다. `PARTY_ITEM` 에는 `BIG_TORCH` 도 있다. 통행 능력의 장비화는 우리 발상이
+아니라 원작 구현이다.
+
+그리고 `Cast_Levitate` 는 SP 5 에 `levitation = 255` 다 — **한 번 걸면 사실상 무제한**이라
+마법이 있는 한 지형 게이트가 성립하지 않는다(BP-47 §4 가 이 값을 칸 수로 줄이는 근거).
+
+## Z-7 출하 스크립트는 이미 **원작의 17직업 번호**를 쓴다. 앱은 안 쓴다
+
+`Player::ChangeAttribute(n, "class", v)` 가 쓰는 값은 **5 · 8 · 9** 다:
+
+| 어디 | 값 | 원작 `CLASS` |
+|---|---|---|
+| `L1_ep1d0.cm2:578` · `menace.cm2:45` · `lore_ep1.cm2:115` · `town2.cm2:115` | 8 | 에스퍼 |
+| `L1_ep1d4.cm2:66` | 9 | 검사 |
+| `lore_ep1.cm2:387~417` (`GetAttribute` 비교 6곳) | 5 | 전사 |
+
+그런데 `HDPlayer.getClassName()` 은 **0 = 에스퍼 · 1 = 싸이보그 · 2 = 초능력자**이고
+`default:` 는 `"알 수 없음"` 이다. 즉 **cm2 가 직업을 정하면 화면에 "알 수 없음" 이 나온다.**
+시작 파티도 `characterClass = 0`(원작 번호로는 `UNKNOWN`)과 `2`(원작 번호로는 `기사`)다.
+
+`characterClass` 를 읽는 곳은 표시와 `CombatantSnapshot.characterClass` 둘뿐이고
+**전투는 그 값을 싣기만 하고 어떤 규칙도 읽지 않는다**(`battle_setup.dart` 에 저장·직렬화만).
+그래서 번호 체계를 원작 것으로 바꾸는 것은 표시 외에 아무것도 깨뜨리지 않는다 —
+`packages/hd_world` 의 `CharacterClass` 가 그 번호를 쓴다(W1-04).
+
+**앱의 세 직업 이름이 원작에 없다는 것도 함께 확인된다** — 싸이보그·초능력자는
+`CLASS` 열거에 없다. 초능력자는 에스퍼의 아종으로 보는 것이 BP-44 §7.2 의 판정이다.
+
+## Z-8 레벨이 오르면 **최대 체력이 줄어든다** (2026-09-09, W1-09 이식 중 발견)
+
+`checkLevelUp()` 은 오를 때마다 최대치를 공식으로 **덮어쓴다**:
+
+```dart
+maxHp = endurance * level.physical;
+maxSp = mentality * level.magic;
+maxEsp = concentration * level.esp;
+hp = maxHp;   // 그리고 가득 채운다
+```
+
+그런데 시작 파티의 최대치는 **손으로 정한 값이고 공식과 맞지 않는다**:
+
+| | 인내력 | 물리 레벨 | 공식 값 | 실제 시작값 |
+|---|---|---|---|---|
+| 슴갈 | 15 | 1 | **15** | **150** |
+| 유리 | 10 | 1 | **10** | **100** |
+
+즉 슴갈이 처음 레벨 2가 되는 순간 최대 체력이 **150 → 34**(인내력이 17로 자란 뒤 ×2)로
+떨어지고 `hp = maxHp` 가 그 값으로 채운다. **레벨을 올리면 약해진다.**
+
+`experience` 는 전투에서 쌓이지만 `checkLevelUp` 을 부르는 곳이 죽은 코드뿐이었으므로
+(부록 O·B3-05) 이 결함은 **한 번도 발동한 적이 없다** — B3-05 가 호출처를 되살렸고
+W1-09 가 시작값을 그대로 옮기면서 처음으로 조건이 갖춰졌다.
+
+**판정: 최대치는 내려가지 않는다.** 공식 값과 지금 값 중 **큰 쪽**을 쓴다
+(`domain/party/level_up.dart`). 6차 판정의 "버그처럼 보이면 버그다" 를 따른 것이고,
+시작값을 공식에 맞춰 낮추는 쪽은 밸런스 변경이라 콘텐츠 판단이 필요하다.
+
+## Z-9 초능력 41·42·44 가 전투 메뉴에 있고 **아무 일도 하지 않았다** (2026-09-09, B3-04 착수 중 발견)
+
+`castableSkills` 는 초능력 레벨만큼 `41 + i` 를 그대로 넣었다:
+
+```dart
+final espCount = levelEsp > 5 ? 5 : levelEsp;
+ids.addAll([for (var i = 0; i < espCount; i++) 41 + i]);
+```
+
+그런데 `rules/esp.dart` 의 판정으로 **41(투시) · 42(예언) · 44(천리안)는 `inert`** 이고
+모델은 `EspHadNoEffect` 이벤트 하나를 내고 턴을 끝낸다. 즉 **메뉴에서 고를 수 있고 턴을
+잃는 선택지가 셋** 있었다.
+
+이것은 **B5 의 유일한 불변식 위반**이다 — "헛턴이 나오는 경로를 만들면 안 된다"
+(`packages/hd_battle/CONTRACT.md` §, 부록 X). 마법 33~40 은 효과가 전투 밖이라는 같은
+이유로 B6-01 이 이미 목록에서 뺐는데, 초능력 셋은 같은 경우인데 빠뜨렸다.
+
+**판정: 목록에서 뺀다.** 야외 능력으로는 그대로 남는다(`magic_system.useESP`).
+초능력 사다리는 43(독심, 레벨 3) · 45(염력, 레벨 5) 둘만 전투에 오른다.
+
+이 발견으로 **`BattleOutcome.worldEffects` 를 채우는 경로가 전투에 하나도 없음**이
+확정된다 — 33~40 은 메뉴에 없고, 41·42·44 도 이제 없다. B3-04 이 해석하려던 요청은
+애초에 발생하지 않는다.

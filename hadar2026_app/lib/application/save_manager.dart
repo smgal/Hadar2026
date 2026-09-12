@@ -56,7 +56,13 @@ class HDSaveManager {
       int? savedY;
       int? savedFaced;
       if (data['party'] != null) {
-        session.party.fromJson(data['party']);
+        // 읽지 못한 것은 **조용히 빠지지 않는다.** 이 빌드에 없는 물건을
+        // 든 세이브는 그 칸이 비워지고 여기에 남는다(부록 F-1 과 같은 종류).
+        for (final issue in session.party.fromJson(data['party'])) {
+          debugPrint('[save] ${issue.message}'
+              '${issue.member != null ? ' (${issue.member})' : ''}'
+              '${issue.item != null ? ' — ${issue.item}' : ''}');
+        }
         savedX = session.party.x;
         savedY = session.party.y;
         savedFaced = session.party.faced;

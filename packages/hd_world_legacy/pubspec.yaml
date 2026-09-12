@@ -1,0 +1,17 @@
+name: hd_world_legacy
+description: >-
+  The old vocabularies hd_world has to keep answering: the attribute
+  names shipped scripts write, and the integer item indices they pass.
+  Pure Dart, depends only on hd_world.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  hd_world:
+    path: ../hd_world
+
+dev_dependencies:
+  test: ^1.24.0

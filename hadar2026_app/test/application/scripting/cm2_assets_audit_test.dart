@@ -11,7 +11,8 @@ import 'package:hadar2026_app/application/ports/host_binding.dart';
 import 'package:hadar2026_app/application/ports/movement_host.dart';
 import 'package:hadar2026_app/application/ports/ui_host.dart';
 import 'package:hadar2026_app/application/scripting/script_engine_adapter.dart';
-import 'package:hadar2026_app/domain/party/player.dart';
+import 'package:hd_world/hd_world.dart';
+import 'package:hd_world_legacy/hd_world_legacy.dart' as legacy;
 
 /// 출하되는 `assets/*.cm2` 전체를 훑는 감사.
 ///
@@ -175,9 +176,29 @@ void main() {
     };
     try {
       for (final key in keys.keys) {
-        final probe = HDPlayer();
-        probe.getAttribute(key);
-        probe.changeAttribute(key, key == 'name' ? 'x' : 1);
+        // 속성 이름이 이 빌드에 있는지 묻는다. 이제 「모른다」와
+        // 「있지만 아무것도 안 한다」가 다른 답이라(부록 Z-7 다음 단계)
+        // 감사가 전자만 불평한다.
+        final probe = Member(ref: const MemberRef('probe'), name: 'probe');
+        final read = legacy.readAttribute(
+          probe,
+          key,
+          catalog: ItemCatalog.builtIn,
+        );
+        if (read == null) {
+          complaints.add('Player::GetAttribute("$key") — no such attribute');
+        }
+        final wrote = legacy.writeAttribute(
+          probe,
+          key,
+          key == 'name' ? 'x' : 1,
+          equip: (_, __) => true,
+        );
+        if (wrote.verdict == legacy.AttributeVerdict.unknown) {
+          complaints.add(
+            'Player::ChangeAttribute("$key") — ${wrote.detail}',
+          );
+        }
       }
     } finally {
       debugPrint = previous;

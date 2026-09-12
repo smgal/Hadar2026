@@ -174,8 +174,25 @@ void _noWastedTurns() {
       );
     });
 
-    test('the contract says v3', () {
-      expect(contractVersion, 'v3');
+    test('no skill the menu offers spends a turn on nothing', () {
+      // The invariant the whole position track rests on, checked where
+      // it was actually broken: three ESP abilities were offered and
+      // did nothing at all (appendix Z-9). Spells 33-40 were left out
+      // for the same reason; these were the same case.
+      for (var level = 0; level <= 20; level++) {
+        for (final id in castableSkills(levelMagic: level, levelEsp: level)) {
+          if (id < 41) continue;
+          expect(
+            espAbilityFor(id),
+            isNot(EspAbility.inert),
+            reason: 'skill $id is offered at esp level $level and is inert',
+          );
+        }
+      }
+    });
+
+    test('the contract says v4', () {
+      expect(contractVersion, 'v4');
     });
   });
 }

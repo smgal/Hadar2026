@@ -48,6 +48,10 @@ class CombatantSnapshot {
     this.weaponName = '',
     this.weaponKey = 'unarmed',
     this.weakTo = const <Element>{},
+    this.strikes = 1,
+    this.coatingSlots = 1,
+    this.evasionBonus = 0,
+    this.initiativeBonus = 0,
     this.dodgesBack = false,
     this.preset = PresetKind.aggressive,
     this.knownPresets = const <PresetKind>{},
@@ -156,6 +160,37 @@ class CombatantSnapshot {
   /// position rules rather than needing a counter of its own.
   final bool dodgesBack;
 
+  /// How many blows one attack action lands.
+  ///
+  /// ## Why the wielder carries this and not the weapon
+  ///
+  /// Two daggers and one dagger are the **same row** in the reach table —
+  /// same method, same band. What differs is the style, and the style is
+  /// read off both hands, which is knowledge the RPG has and the battle
+  /// deliberately does not. So the RPG resolves it to a number.
+  ///
+  /// Expected values are 1 and 2. Each blow rolls its own accuracy and
+  /// its own graze, so two blows are not one blow twice as hard.
+  final int strikes;
+
+  /// How many coatings the weapon holds at once.
+  ///
+  /// Two for a pair of weapons — one poison, one fire. The same
+  /// reasoning as [strikes]: the number is the style's, and the style is
+  /// the RPG's to work out.
+  final int coatingSlots;
+
+  /// Added to this member's evasion, before the shield.
+  ///
+  /// A free hand is what makes a light style light. Deliberately small
+  /// against a shield's contribution, so dropping the shield is a
+  /// decision rather than an upgrade.
+  final int evasionBonus;
+
+  /// Added to this member's initiative roll. Negative for a heavy
+  /// weapon — a crossbow has to be wound.
+  final int initiativeBonus;
+
   /// The standing orders this member runs when told to act on their own
   /// (B5-08).
   ///
@@ -216,6 +251,10 @@ class CombatantSnapshot {
     'weaponName': weaponName,
     'weaponKey': weaponKey,
     'weakTo': [for (final e in weakTo) e.name],
+    'strikes': strikes,
+    'coatingSlots': coatingSlots,
+    'evasionBonus': evasionBonus,
+    'initiativeBonus': initiativeBonus,
     'dodgesBack': dodgesBack,
     'preset': preset.name,
     'knownPresets': [for (final p in knownPresets) p.name],
@@ -258,6 +297,10 @@ class CombatantSnapshot {
           for (final n in (j['weakTo'] as List? ?? []))
             Element.values.firstWhere((e) => e.name == n),
         },
+        strikes: j['strikes'] as int? ?? 1,
+        coatingSlots: j['coatingSlots'] as int? ?? 1,
+        evasionBonus: j['evasionBonus'] as int? ?? 0,
+        initiativeBonus: j['initiativeBonus'] as int? ?? 0,
         dodgesBack: j['dodgesBack'] as bool? ?? false,
         preset: PresetKind.values.firstWhere(
           (p) => p.name == j['preset'],
@@ -283,7 +326,7 @@ class CombatantSnapshot {
 /// `initialGap`), weapon reach, physical elements, presets and party
 /// capacity all cross the boundary. B5-99 closed it again as v2.
 /// `packages/hd_battle/CONTRACT.md` is the document.
-const String contractVersion = 'v3';
+const String contractVersion = 'v4';
 
 /// Everything the battle needs to start.
 ///

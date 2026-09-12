@@ -1,0 +1,16 @@
+name: hd_world_text
+description: >-
+  Korean names and sentences for hd_world. The model holds keys; this
+  package turns them into words. Pure Dart, no view framework.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  hd_world:
+    path: ../hd_world
+
+dev_dependencies:
+  test: ^1.24.0

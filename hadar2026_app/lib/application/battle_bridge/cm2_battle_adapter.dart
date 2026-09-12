@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:hd_battle/hd_battle.dart' as hb;
 import 'package:hd_battle_text/hd_battle_text.dart' as tx;
+import 'package:hd_world/hd_world.dart';
 
 import '../../domain/battle/battle_result.dart';
 import '../game_session.dart';
@@ -8,7 +9,7 @@ import '../menu_flows.dart';
 import '../ports/host_binding.dart';
 import 'battle_runner.dart';
 import 'level_up.dart';
-import 'setup_assembly.dart';
+import 'package:hd_bridge/hd_bridge.dart' as bridge;
 
 /// cm2 동사 5개를 새 전투 model 위에 얹는 호환 계층 (B3-01).
 ///
@@ -127,8 +128,8 @@ class HDCm2BattleAdapter with ChangeNotifier {
       return;
     }
     final party = HDGameSession().party;
-    final setup = assembleSetup(
-      party: party,
+    final setup = bridge.toBattleSetup(
+      party.world,
       enemyKeys: List.of(_enemyKeys),
       enemyRanks: [
         for (final r in _enemyRanks)
@@ -156,7 +157,16 @@ class HDCm2BattleAdapter with ChangeNotifier {
     notifyListeners();
     _lastOutcome = outcome;
     _result = _toLegacy(outcome.resultCode);
-    applyOutcome(party, outcome);
+    // 정산은 `hd_bridge` 가 한다 — 체력·상태는 바로 쓰고, 세계가 규칙을
+    // 갖는 것(쓴 물건 빼기)만 명령으로 돌려준다. 거절은 삼키지 않는다.
+    final settlement = bridge.settle(party.world, outcome);
+    for (final command in settlement.commands) {
+      for (final event in party.world.apply(command)) {
+        if (event is CommandRefused) {
+          debugPrint('[battle] 정산이 거절됐다 — ${event.reason.name}');
+        }
+      }
+    }
     // 레벨업은 전투가 아니라 RPG 의 일이다(B3-05). 정산이 끝난 뒤에 온다 —
     // 오르면 hp 를 최대로 채우기 때문에 순서가 바뀌면 회복분이 덮인다.
     await settleLevelUps(party, outcome, HDHosts().ui);

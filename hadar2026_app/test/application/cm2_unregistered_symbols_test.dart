@@ -118,40 +118,40 @@ if (Not(Party::CheckIf(0)))
 
   group('Player::ApplyAttribute / ReviseAttribute', () {
     test('ApplyAttribute fills the 1-based player to full', () async {
-      final p = party.players[0]
-        ..maxHp = 150
-        ..hp = 10
-        ..maxSp = 100
-        ..sp = 5
-        ..maxEsp = 80
-        ..esp = 0;
+      final p = party.members[0]
+        ..baseMaxHitPoints = 150
+        ..hitPoints = 10
+        ..baseMaxSpellPoints = 100
+        ..spellPoints = 5
+        ..baseMaxEspPoints = 80
+        ..espPoints = 0;
       await _run('Player::ApplyAttribute(1)');
-      expect([p.hp, p.sp, p.esp], [150, 100, 80]);
+      expect([p.hitPoints, p.spellPoints, p.espPoints], [150, 100, 80]);
     });
 
     // menace.cm2:54 calls ReviseAttribute(6) after zeroing the sixth
     // member's gear, to pull current values back under their maxima.
     test('ReviseAttribute clamps the 6th player and leaves the rest', () async {
-      final sixth = party.players[5]
-        ..maxHp = 40
-        ..hp = 999
-        ..maxSp = 20
-        ..sp = 5;
-      final first = party.players[0]..hp = 7;
+      final sixth = party.members[5]
+        ..baseMaxHitPoints = 40
+        ..hitPoints = 999
+        ..baseMaxSpellPoints = 20
+        ..spellPoints = 5;
+      final first = party.members[0]..hitPoints = 7;
       await _run('Player::ReviseAttribute(6)');
-      expect(sixth.hp, 40);
-      expect(sixth.sp, 5, reason: 'already under max, untouched');
-      expect(first.hp, 7, reason: 'a different player is not touched');
+      expect(sixth.hitPoints, 40);
+      expect(sixth.spellPoints, 5, reason: 'already under max, untouched');
+      expect(first.hitPoints, 7, reason: 'a different player is not touched');
     });
 
     test('a player index outside 1..6 is refused, not applied to slot 0',
         () async {
-      final first = party.players[0]
-        ..maxHp = 100
-        ..hp = 1;
+      final first = party.members[0]
+        ..baseMaxHitPoints = 100
+        ..hitPoints = 1;
       await _run('Player::ApplyAttribute(0)');
       await _run('Player::ApplyAttribute(7)');
-      expect(first.hp, 1);
+      expect(first.hitPoints, 1);
     });
   });
 

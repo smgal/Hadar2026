@@ -4,6 +4,7 @@ library;
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hadar2026_app/domain/party/member_display.dart';
 import 'package:hadar2026_app/application/battle_bridge/cm2_battle_adapter.dart';
 import 'package:hadar2026_app/application/game_session.dart';
 import 'package:hadar2026_app/application/ports/asset_source.dart';
@@ -85,10 +86,10 @@ void main() {
     flags.fillRange(0, flags.length, false);
     // 싱글턴이라 앞 테스트의 상처가 남는다. 시드까지 고정해야 이겼는지
     // 졌는지가 실행마다 달라지지 않는다.
-    for (final p in HDGameSession().party.players) {
-      p.hp = p.maxHp;
-      p.sp = p.maxSp;
-      p.esp = p.maxEsp;
+    for (final p in HDGameSession().party.members) {
+      p.hitPoints = p.maxHitPoints;
+      p.spellPoints = p.maxSpellPoints;
+      p.espPoints = p.maxEspPoints;
       p.unconscious = 0;
       p.dead = 0;
     }

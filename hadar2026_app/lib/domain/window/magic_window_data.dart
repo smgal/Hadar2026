@@ -3,10 +3,10 @@ import 'dart:math' as math;
 
 import 'game_window.dart';
 import '../magic/magic.dart';
-import '../party/player.dart';
+import 'package:hd_world/hd_world.dart';
 
 class HDMagicSelectionWindow extends HDWindow {
-  final HDPlayer player;
+  final Member player;
   final List<HDMagic> magics;
   final String title;
   int selectedIndex = 0;
@@ -98,8 +98,10 @@ class HDMagicSelectionWindow extends HDWindow {
     }
   }
 
-  List<HDMagic> getAvailableSpells(HDPlayer player, int minId, int maxId) {
-    int availableSpells = (minId >= 40) ? player.level.esp : player.level.magic;
+  List<HDMagic> getAvailableSpells(Member player, int minId, int maxId) {
+    int availableSpells = (minId >= 40)
+        ? player.levels.esp
+        : player.levels.magic;
     if (availableSpells > (maxId - minId + 1))
       availableSpells = (maxId - minId + 1);
 

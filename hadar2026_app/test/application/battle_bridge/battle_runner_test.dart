@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hd_battle/hd_battle.dart' as hb;
 import 'package:hd_battle_text/hd_battle_text.dart' as tx;
 import 'package:hadar2026_app/application/battle_bridge/battle_runner.dart';
-import 'package:hadar2026_app/application/battle_bridge/setup_assembly.dart';
+import 'package:hd_bridge/hd_bridge.dart';
 import 'package:hadar2026_app/application/ports/ui_host.dart';
 import 'package:hadar2026_app/domain/party/party.dart';
 
@@ -57,7 +57,8 @@ class _ScriptedUi implements UiHost {
 
 void main() {
   hb.BattleSetup setupFor(List<String> enemies, {int seed = 3}) =>
-      assembleSetup(party: HDParty(), enemyKeys: enemies, seed: seed);
+      toBattleSetup(
+        HDParty().world, enemyKeys: enemies, seed: seed);
 
   group('운전자가 전투를 끝까지 굴린다', () {
     test('메뉴를 물어보고 답을 model 로 돌려준다', () async {
@@ -153,13 +154,14 @@ void main() {
   group('전투가 파티를 직접 고치지 않는다', () {
     test('정산을 반영하기 전에는 파티가 그대로다', () async {
       final party = HDParty();
-      final before = [for (final p in party.players) p.hp];
+      final before = [for (final p in party.members) p.hitPoints];
       final ui = _ScriptedUi();
       await HDBattleRunner(
         ui,
-      ).run(assembleSetup(party: party, enemyKeys: const ['giant'], seed: 5));
+      ).run(toBattleSetup(
+        party.world, enemyKeys: const ['giant'], seed: 5));
       expect(
-        [for (final p in party.players) p.hp],
+        [for (final p in party.members) p.hitPoints],
         before,
         reason: '전투는 스냅샷만 보고, 되쓰기는 applyOutcome 이 한다',
       );

@@ -1,4 +1,6 @@
-import '../domain/party/player.dart';
+import 'package:hd_world/hd_world.dart';
+
+import '../domain/party/member_display.dart';
 import '../domain/magic/magic.dart';
 import '../domain/window/magic_window_data.dart';
 import 'ports/host_binding.dart';
@@ -6,19 +8,19 @@ import 'game_session.dart';
 import 'window_manager.dart';
 
 class HDMagicSystem {
-  static Future<void> castSpell(HDPlayer player) async {
+  static Future<void> castSpell(Member player) async {
     final ui = HDHosts().ui;
 
-    if (!player.isConscious()) {
+    if (!player.isConscious) {
       await ui.addLog(
-        "${player.name}${player.name.sub1} 마법을 사용할 수 있는 상태가 아닙니다.",
+        "${player.noun}${player.noun.sub1} 마법을 사용할 수 있는 상태가 아닙니다.",
       );
       await ui.waitForAnyKey();
       ui.clearLogs();
       return;
     }
 
-    if (player.level.magic == 0) {
+    if (player.levels.magic == 0) {
       await ui.addLog("당신에게는 아직 능력이 없습니다.");
       await ui.waitForAnyKey();
       ui.clearLogs();
@@ -55,7 +57,7 @@ class HDMagicSystem {
     final magic = HDMagicMap.getMagic(magicId);
     int spCost = (magicId >= 33) ? 10 : 5;
 
-    if (player.sp < spCost) {
+    if (player.spellPoints < spCost) {
       await ui.addLog("마법 지수가 충분하지 않습니다.");
       await ui.waitForAnyKey();
       ui.clearLogs();
@@ -65,26 +67,27 @@ class HDMagicSystem {
     // Logic for Heal
     if (magicId >= 19 && magicId <= 32) {
       final pChoices = ["누구에게 사용할 것입니까?"];
-      for (var p in HDGameSession().party.players) {
-        if (p.isValid()) pChoices.add(p.name.text);
+      for (var p in HDGameSession().party.members) {
+        if (p.isValid()) pChoices.add(p.displayName);
       }
       int tSel = await ui.showWindowMenu(pChoices);
       if (tSel == 0) return;
 
-      player.sp -= spCost;
-      var target = HDGameSession().party.players[tSel - 1];
+      player.spellPoints -= spCost;
+      var target = HDGameSession().party.members[tSel - 1];
       await ui.addLog(
-        "${player.name}${player.name.sub1} ${target.name}에게 ${magic.name}${magic.name.obj} 시전했다!",
+        "${player.noun}${player.noun.sub1} ${target.displayName}에게 ${magic.name}${magic.name.obj} 시전했다!",
       );
 
       if (magicId == 19) {
-        int recovery = (player.level.magic * 5);
-        target.hp += recovery;
-        if (target.hp > target.maxHp) target.hp = target.maxHp;
-        await ui.addLog("${target.name}의 건강이 회복되었다!");
+        int recovery = (player.levels.magic * 5);
+        target.hitPoints += recovery;
+        if (target.hitPoints > target.maxHitPoints)
+          target.hitPoints = target.maxHitPoints;
+        await ui.addLog("${target.displayName}의 건강이 회복되었다!");
       }
     } else if (magicId >= 33 && magicId <= 39) {
-      player.sp -= spCost;
+      player.spellPoints -= spCost;
       if (magicId == 33) {
         HDGameSession().party.magicTorch += 10;
         await ui.addLog("주위가 횃불의 기운으로 밝아졌다.");
@@ -93,9 +96,9 @@ class HDMagicSystem {
         await ui.addLog("일행의 몸이 가벼워졌다.");
       }
     } else {
-      player.sp -= spCost;
+      player.spellPoints -= spCost;
       await ui.addLog(
-        "${player.name}${player.name.sub1} ${magic.name}${magic.name.obj} 시전했다! (전투 외)",
+        "${player.noun}${player.noun.sub1} ${magic.name}${magic.name.obj} 시전했다! (전투 외)",
       );
     }
 
@@ -103,19 +106,19 @@ class HDMagicSystem {
     ui.clearLogs();
   }
 
-  static Future<void> useESP(HDPlayer player) async {
+  static Future<void> useESP(Member player) async {
     final ui = HDHosts().ui;
 
-    if (!player.isConscious()) {
+    if (!player.isConscious) {
       await ui.addLog(
-        "${player.name}${player.name.sub1} 초감각을 사용할 수 있는 상태가 아닙니다.",
+        "${player.noun}${player.noun.sub1} 초감각을 사용할 수 있는 상태가 아닙니다.",
       );
       await ui.waitForAnyKey();
       ui.clearLogs();
       return;
     }
 
-    if (player.level.esp == 0 && !HDGameSession().party.canUseEsp) {
+    if (player.levels.esp == 0 && !HDGameSession().party.canUseEsp) {
       await ui.addLog("당신에게는 아직 능력이 없습니다.");
       await ui.waitForAnyKey();
       ui.clearLogs();
@@ -153,26 +156,26 @@ class HDMagicSystem {
     }
 
     int spCost = 10;
-    if (player.esp < spCost) {
+    if (player.espPoints < spCost) {
       await ui.addLog("ESP 지수가 충분하지 않습니다.");
       await ui.waitForAnyKey();
       ui.clearLogs();
       return;
     }
 
-    player.esp -= spCost;
+    player.espPoints -= spCost;
     final magic = HDMagicMap.getMagic(magicId);
 
     if (magicId == 41) {
       // 41: 투시
       await ui.addLog(
-        "${player.name}${player.name.sub1} ${magic.name}${magic.name.obj} 사용했다!",
+        "${player.noun}${player.noun.sub1} ${magic.name}${magic.name.obj} 사용했다!",
       );
 
       // Logic would go here
     } else {
       await ui.addLog(
-        "${player.name}${player.name.sub1} ${magic.name}${magic.name.obj} 사용했다!",
+        "${player.noun}${player.noun.sub1} ${magic.name}${magic.name.obj} 사용했다!",
       );
     }
 
@@ -180,101 +183,4 @@ class HDMagicSystem {
     ui.clearLogs();
   }
 
-  static Future<bool> castBattleSpellUI(
-    HDPlayer player,
-    int cmd,
-    List<int> commandArgs,
-  ) async {
-    final ui = HDHosts().ui;
-
-    // cmd:
-    // 2: 한 명의 적에게 마법 공격 (1~3)
-    // 3: 모든 적에게 마법 공격 (4~10)
-    // 4: 적에게 특수 마법 공격 (11~18)
-    // 5: 일행을 치료 (19~32)
-    // 6: 적에게 초능력 사용 (41~45)
-
-    int minId = 1, maxId = 18;
-    int spCost = 5;
-    String catName = "";
-
-    if (cmd == 2) {
-      minId = 1;
-      maxId = 3;
-      catName = "공격 마법";
-    } else if (cmd == 3) {
-      minId = 4;
-      maxId = 10;
-      catName = "전체 공격 마법";
-    } else if (cmd == 4) {
-      minId = 11;
-      maxId = 18;
-      catName = "특수 공격 마법";
-    } else if (cmd == 5) {
-      minId = 19;
-      maxId = 32;
-      catName = "치료 마법";
-      spCost = 10;
-    } else if (cmd == 6) {
-      minId = 41;
-      maxId = 45;
-      catName = "초감각 능력";
-      spCost = 10;
-    }
-
-    int availableSpells = (cmd == 6) ? player.level.esp : player.level.magic;
-    if (availableSpells > (maxId - minId + 1))
-      availableSpells = (maxId - minId + 1);
-
-    if (availableSpells <= 0) {
-      await ui.addLog("사용 가능한 기술이 없습니다.");
-      return false;
-    }
-
-    final choices = ["사용할 $catName ===>"];
-    for (int i = 0; i < availableSpells; i++) {
-      choices.add(HDMagicMap.getMagic(minId + i).name.text);
-    }
-
-    int selected = await ui.showWindowMenu(choices);
-    if (selected == 0) return false;
-
-    // Check SP/ESP
-    if (cmd == 6) {
-      if (player.esp < spCost) {
-        await ui.addLog("ESP 지수가 충분하지 않습니다.");
-        await ui.waitForAnyKey();
-        return false;
-      }
-    } else {
-      if (player.sp < spCost) {
-        await ui.addLog("마법 지수가 충분하지 않습니다.");
-        await ui.waitForAnyKey();
-        return false;
-      }
-    }
-
-    int magicId = minId + selected - 1;
-    commandArgs[1] = magicId; // Store selected magic id
-
-    // Target Selection
-    if (cmd == 2 || cmd == 4 || cmd == 6) {
-      commandArgs[2] =
-          0; // Temporarily placeholder since actual enemy target is chosen inside Battle UI via `_selectEnemyUI` in Battle class
-      // We return true because magic index is saved to commandArgs[1], Battle class will ask target next.
-    } else if (cmd == 5) {
-      // Heal single target vs all targets
-      if (magicId >= 19 && magicId <= 25) {
-        // Single target heal
-        return true;
-      } else {
-        // All target heal
-        commandArgs[2] = -1; // All
-      }
-    } else if (cmd == 3) {
-      commandArgs[2] = -1; // All enemies
-    }
-
-    return true;
-  }
 }

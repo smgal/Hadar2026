@@ -1,3 +1,4 @@
+import '../contract/battle_event.dart';
 import '../contract/battle_setup.dart';
 import '../rules/coating.dart';
 import '../rules/condition.dart';
@@ -51,9 +52,39 @@ class Combatant {
   /// in `departedSlots` so the RPG clears it.
   bool departed = false;
 
-  /// What is on the weapon right now, if anything (B6-03). Counts down
-  /// at the top of each round and is replaced, not stacked, by a new one.
-  WeaponCoating? coating;
+  /// What is on the weapon right now (B6-03).
+  ///
+  /// A list because a pair of weapons carries one coating each — poison
+  /// on the left, fire on the right, which is the whole reason for the
+  /// style. [CombatantSnapshot.coatingSlots] says how many fit; a new
+  /// coating replaces the oldest once they are full rather than
+  /// stacking, so the count can never run away.
+  final List<WeaponCoating> coatings = [];
+
+  /// The one a single-weapon style has, for the many places that only
+  /// ever cared about that.
+  WeaponCoating? get coating => coatings.isEmpty ? null : coatings.first;
+
+  /// How many coatings this style holds at once.
+  int get coatingSlots =>
+      snapshot.coatingSlots < 1 ? 1 : snapshot.coatingSlots;
+
+  /// Lays one on, evicting the oldest if there is no room.
+  ///
+  /// Returns the one that was pushed off, or null.
+  WeaponCoating? applyCoating(Coating kind) {
+    // The same kind twice is a refresh, not a second slot.
+    coatings.removeWhere((c) => c.kind == kind);
+    WeaponCoating? evicted;
+    if (coatings.length >= coatingSlots) {
+      evicted = coatings.removeAt(0);
+    }
+    coatings.add(WeaponCoating(kind));
+    return evicted;
+  }
+
+  /// How many blows one attack action lands.
+  int get strikes => snapshot.strikes < 1 ? 1 : snapshot.strikes;
 
   /// Accumulated during the battle and reported per slot. The original
   /// wrote straight into the player's `experience` field, and did it in

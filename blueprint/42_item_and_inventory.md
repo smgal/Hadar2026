@@ -169,6 +169,11 @@ class PartyBuffs {
 | `penetration` | — | **`party.dart` 밖에 참조 0건** | ❌ 죽음 |
 | `canUseSpecialMagic` | — | **`party.dart` 밖에 참조 0건** | ❌ 죽음 |
 
+> **정정 (2026-09-07, [부록 Z-4](_meta/GROUND_TRUTH.md))**: `walkOnWater` 는 **읽는 쪽만** 살아 있다.
+> 세우는 곳이 코드에도 cm2 에도 없어 값이 0 을 벗어나지 못한다 — 마법 35 는 SP 만 깎는다(Z-3).
+> 따라서 R-42-0 의 "살아 있는 3종" 은 실제로는 `magicTorch` · `canUseEsp` **둘**이다.
+> 통행 능력 넷을 장비로 옮기는 설계는 [BP-47](47_equipment_and_traversal.md) 이 소유한다.
+
 - **R-42-0** 아이템 효과가 "버프" 를 준다고 쓰려면 **위 3종(`magicTorch`/`walkOnWater`/`canUseEsp`) 중 하나**여야 한다.
   나머지 5종에 값을 넣는 것은 §1.3 의 `powOfArmor` 와 같은 종류의 자기기만이다.
 - **그런데 v1 DSL(D-05)의 22 do 에 버프를 세우는 것이 하나도 없다.** `set_flag`/`add_var` 는

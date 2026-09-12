@@ -192,12 +192,25 @@ void main() {
       expect(cures, [19, 20]);
     });
 
-    test('ESP opens one ability per level', () {
-      final esp = castableSkills(
+    test('ESP opens one ability per level, and the inert three never', () {
+      // 41 · 42 · 44 read the future, read minds and see far: their
+      // effect is outside a fight and the original printed the name and
+      // returned. Offering them spends a turn on nothing, which is the
+      // one thing B5 forbids. Spells 33-40 were left out for the same
+      // reason (B6-01); these three were the same case and were missed.
+      List<int> esp(int level) => castableSkills(
         levelMagic: 0,
-        levelEsp: 2,
-      ).where((id) => id >= 41 && id <= 45);
-      expect(esp, [41, 42]);
+        levelEsp: level,
+      ).where((id) => id >= 41 && id <= 45).toList();
+
+      expect(esp(2), isEmpty, reason: 'only the inert ones open this low');
+      expect(esp(3), [43], reason: 'mind control is the first real one');
+      expect(esp(4), [43]);
+      expect(esp(5), [43, 45]);
+      expect(esp(9), [43, 45], reason: 'the ladder stops at five');
+      for (final id in const [41, 42, 44]) {
+        expect(esp(9), isNot(contains(id)), reason: '$id does nothing');
+      }
     });
   });
 

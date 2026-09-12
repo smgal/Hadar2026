@@ -159,9 +159,14 @@ int grazeScale({
 /// graze that comes out at zero is reported as a block when there is a
 /// shield to credit. One roll, one idea, and `powOfShield` still does
 /// what B2-08 brought it back to life for.
-int evasionOf({required int agility, required int luck, int shieldBlock = 0}) {
+int evasionOf({
+  required int agility,
+  required int luck,
+  int shieldBlock = 0,
+  int styleBonus = 0,
+}) {
   final shield = shieldBlock > maxShieldBlock ? maxShieldBlock : shieldBlock;
-  return agility ~/ 2 + luck ~/ 4 + shield ~/ 2;
+  return agility ~/ 2 + luck ~/ 4 + shield ~/ 2 + styleBonus;
 }
 
 /// Applies [grazeScale] to a damage figure.

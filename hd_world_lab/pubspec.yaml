@@ -1,0 +1,23 @@
+name: hd_world_lab
+description: >-
+  HTTP surface and mouse-driven screen for hd_world. Serves an OpenAPI
+  described command API plus a single-page equipment screen, so the
+  model can be exercised by hand, by a script, or by an agent.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  hd_battle:
+    path: ../packages/hd_battle
+  hd_bridge:
+    path: ../packages/hd_bridge
+  hd_world:
+    path: ../packages/hd_world
+  hd_world_text:
+    path: ../packages/hd_world_text
+
+dev_dependencies:
+  test: ^1.24.0

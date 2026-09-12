@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>hd_world 실험실 — 장비</title>
+<style>
+  :root {
+    --bg: #14161a; --panel: #1c1f26; --line: #2b3038; --ink: #dfe3ea;
+    --dim: #8c94a3; --ok: #7fd18b; --no: #e8858a; --hi: #6fa8f5;
+    --warn: #e2b45c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.55 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  }
+  header {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    padding: 12px 18px; border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--dim); font-size: 12px; }
+  header .grow { flex: 1; }
+  button {
+    font: inherit; color: var(--ink); background: #242832;
+    border: 1px solid var(--line); border-radius: 5px;
+    padding: 4px 10px; cursor: pointer;
+  }
+  button:hover { border-color: var(--hi); }
+  button.on { border-color: var(--hi); color: var(--hi); }
+  main {
+    display: grid; gap: 14px; padding: 14px 18px;
+    grid-template-columns: 210px 1fr 300px;
+    align-items: start;
+  }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 7px; padding: 11px 13px;
+  }
+  .panel h2 {
+    font-size: 12px; letter-spacing: .04em; color: var(--dim);
+    margin: 0 0 9px; font-weight: 600; text-transform: uppercase;
+  }
+  .row {
+    display: flex; justify-content: space-between; gap: 10px;
+    padding: 3px 0;
+  }
+  .row .k { color: var(--dim); }
+  .member {
+    display: block; width: 100%; text-align: left; margin-bottom: 6px;
+    padding: 7px 9px; line-height: 1.35;
+  }
+  .member .who { font-weight: 600; }
+  .member .job { color: var(--dim); font-size: 12px; }
+  .member.sel { border-color: var(--hi); background: #212b3a; }
+  .slots { display: grid; gap: 6px; }
+  .slot {
+    display: grid; grid-template-columns: 92px 1fr auto; gap: 9px;
+    align-items: center; width: 100%; text-align: left; padding: 7px 9px;
+  }
+  .slot .name { color: var(--dim); font-size: 12px; }
+  .slot .what { font-weight: 500; }
+  .slot .what.empty { color: #5c6474; font-weight: 400; }
+  .slot.sel { border-color: var(--hi); background: #212b3a; }
+  .slot.locked { opacity: .5; }
+  .tag {
+    font-size: 11px; border: 1px solid var(--line); border-radius: 4px;
+    padding: 0 5px; color: var(--dim);
+  }
+  .tag.hi { color: var(--hi); border-color: var(--hi); }
+  .tag.warn { color: var(--warn); border-color: var(--warn); }
+  .list { display: grid; gap: 5px; max-height: 340px; overflow: auto; }
+  .item {
+    display: grid; grid-template-columns: 1fr auto; gap: 8px;
+    width: 100%; text-align: left; padding: 6px 9px;
+  }
+  .item .meta { color: var(--dim); font-size: 11px; }
+  .kv { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; }
+  .kv .k { color: var(--dim); }
+  .kv .v { text-align: right; font-variant-numeric: tabular-nums; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .styles { display: flex; flex-wrap: wrap; gap: 5px; }
+  .styles button { font-size: 12px; padding: 3px 8px; }
+  #log {
+    font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+    max-height: 190px; overflow: auto; white-space: pre-wrap;
+  }
+  #log .ok { color: var(--ok); }
+  #log .no { color: var(--no); }
+  .empty-note { color: var(--dim); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>hd_world 실험실</h1>
+  <span class="sub">장비를 마우스로 갈아 끼우고 무엇이 바뀌는지 본다</span>
+  <span class="grow"></span>
+  <button id="magic">마법의 횃불 끄기/켜기</button>
+  <button id="fight">한 판 싸워 본다</button>
+  <button id="reset">처음으로</button>
+  <a class="sub" href="/api/guide" target="_blank">API 안내</a>
+  <a class="sub" href="/openapi.yaml" target="_blank">OpenAPI</a>
+</header>
+
+<main>
+  <div>
+    <div class="panel">
+      <h2>일행</h2>
+      <div id="party"></div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h2>파티</h2>
+      <div id="partyInfo" class="kv"></div>
+      <div class="chips" id="caps" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <h2>부위 여덟</h2>
+      <div class="slots" id="slots"></div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h2>상시 지시</h2>
+      <div class="styles" id="styles"></div>
+      <div class="row" style="margin-top:6px">
+        <span class="k">절약 — 마법 지수가 절반 아래면 기술을 쓰지 않는다</span>
+        <button id="thrift">끄기/켜기</button>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h2>일어난 일</h2>
+      <div id="log"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <h2 id="candTitle">채울 수 있는 것</h2>
+      <div class="list" id="cands"></div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h2>더한 값</h2>
+      <div class="kv" id="stats"></div>
+      <div class="chips" id="marks" style="margin-top:8px"></div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h2>가방</h2>
+      <div class="list" id="pack"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let TEXT = null, CATALOG = null, STATE = null;
+let who = null, slot = null;
+
+const nameOf = (ref) => (TEXT && TEXT.item[ref]) || ref || '';
+const t = (table, key) => (TEXT && TEXT[table] && TEXT[table][key]) || key;
+
+async function get(path) {
+  const r = await fetch(path);
+  if (!r.ok) throw new Error(path + ' → ' + r.status);
+  return r.json();
+}
+async function post(path, body) {
+  const r = await fetch(path, {
+    method: 'POST',
+    headers: {'content-type': 'application/json'},
+    body: JSON.stringify(body || {}),
+  });
+  return r.json();
+}
+
+function log(line, cls) {
+  const el = document.createElement('div');
+  if (cls) el.className = cls;
+  el.textContent = line;
+  $('log').prepend(el);
+}
+
+function describeEvent(e) {
+  const w = e.member ? memberName(e.member) : '';
+  switch (e.kind) {
+    case 'equipped':   return `${w} ${t('slot', e.slot)}에 ${nameOf(e.item)}을 채웠다.`;
+    case 'unequipped': return `${w} ${t('slot', e.slot)}의 ${nameOf(e.item)}을 벗었다.`;
+    case 'offHandCleared': return `${w} 양손 무기라 왼손의 ${nameOf(e.item)}이 가방으로 돌아갔다.`;
+    case 'handsSwapped': return `${w} 두 손을 바꿔 들었다.`;
+    case 'styleSet':   return `${w} 지시를 ${t('style', e.style)}로 두었다${e.thrift ? ' (절약)' : ''}.`;
+    case 'gained':     return `${nameOf(e.item)} ${e.count}개를 얻었다.`;
+    case 'lost':       return `${nameOf(e.item)} ${e.count}개를 잃었다.`;
+    case 'reordered':  return `대열을 바꿨다.`;
+    case 'refused':    return `거절 — ${t('refusal', e.reason)}`;
+    default:           return e.kind;
+  }
+}
+
+function memberName(ref) {
+  const m = STATE && STATE.members.find((m) => m.ref === ref);
+  return m ? m.name : ref;
+}
+
+function selected() {
+  return STATE && STATE.members.find((m) => m.ref === who);
+}
+
+async function apply(command) {
+  const out = await post('/api/command', {command});
+  if (out.error) { log('요청이 잘못됐다 — ' + out.error, 'no'); return; }
+  for (const e of out.events) {
+    log(describeEvent(e), e.kind === 'refused' ? 'no' : 'ok');
+  }
+  STATE = out.state;
+  render();
+}
+
+function renderParty() {
+  const box = $('party');
+  box.innerHTML = '';
+  for (const m of STATE.members) {
+    const b = document.createElement('button');
+    b.className = 'member panel' + (m.ref === who ? ' sel' : '');
+    b.innerHTML =
+      `<div class="who">${m.name}</div>` +
+      `<div class="job">${t('class', m.class)} · ${t('weaponKind', m.weaponKind)}</div>`;
+    b.onclick = () => { who = m.ref; slot = null; render(); };
+    box.append(b);
+  }
+}
+
+function renderSlots() {
+  const m = selected();
+  const box = $('slots');
+  box.innerHTML = '';
+  if (!m) { box.innerHTML = '<div class="empty-note">사람을 고르시오.</div>'; return; }
+  for (const s of m.slots) {
+    const b = document.createElement('button');
+    b.className = 'slot panel' + (s.slot === slot ? ' sel' : '') +
+                  (s.locked ? ' locked' : '');
+    const what = s.item
+      ? `<span class="what">${nameOf(s.item)}</span>`
+      : `<span class="what empty">(비어 있음)</span>`;
+    const tag = s.locked
+      ? '<span class="tag warn">양손 무기라 잠김</span>'
+      : (s.item ? '<span class="tag">벗기려면 눌러 고르시오</span>' : '');
+    b.innerHTML = `<span class="name">${t('slot', s.slot)}</span>${what}${tag}`;
+    b.onclick = () => { slot = s.slot; render(); };
+    box.append(b);
+  }
+}
+
+function modifierLine(item) {
+  const parts = [];
+  for (const mod of item.modifiers || []) {
+    const sign = mod.value >= 0 ? '+' : '';
+    parts.push(`${t('stat', mod.stat)} ${sign}${mod.value}${mod.op === 'percent' ? '%' : ''}`);
+  }
+  for (const a of item.immunities || []) parts.push(`${t('ailment', a)} 면역`);
+  for (const c of item.grants || []) parts.push(t('capability', c));
+  if (item.annexKey) parts.push(t('annex', item.annexKey));
+  if (item.attackPower > 1) {
+    parts.unshift(`공격력 ${item.attackPower}` +
+      (item.hands === 2 ? ' · 양손' : ' · 한손'));
+  }
+  return parts.join(' · ');
+}
+
+async function renderCandidates() {
+  const box = $('cands');
+  box.innerHTML = '';
+  const m = selected();
+  if (!m || !slot) {
+    $('candTitle').textContent = '채울 수 있는 것';
+    box.innerHTML = '<div class="empty-note">부위를 고르시오.</div>';
+    return;
+  }
+  $('candTitle').textContent = `${t('slot', slot)}에 채울 수 있는 것`;
+  const current = m.slots.find((s) => s.slot === slot);
+
+  if (current && current.item) {
+    const def = CATALOG.items.find((i) => i.ref === current.item);
+    const b = document.createElement('button');
+    b.className = 'item panel';
+    b.innerHTML = `<span>(비운다) — ${nameOf(current.item)}</span>` +
+      (def && !def.removable ? '<span class="meta">벗을 수 없다</span>' : '');
+    b.onclick = () => apply({kind: 'unequip', member: who, slot});
+    box.append(b);
+  }
+
+  const out = await get(`/api/candidates?member=${who}&slot=${slot}`);
+  if (out.items.length === 0) {
+    const note = document.createElement('div');
+    note.className = 'empty-note';
+    note.textContent = current && current.locked
+      ? '오른손이 양손 무기라 이 칸은 잠겨 있다.'
+      : '가방에 채울 것이 없다.';
+    box.append(note);
+  }
+  for (const ref of out.items) {
+    const def = CATALOG.items.find((i) => i.ref === ref);
+    const b = document.createElement('button');
+    b.className = 'item panel';
+    b.innerHTML = `<span>${nameOf(ref)}<div class="meta">${def ? modifierLine(def) : ''}</div></span>` +
+      `<span class="meta">${STATE.pack.find((p) => p.item === ref)?.count ?? ''}</span>`;
+    b.onclick = () => apply({kind: 'equip', member: who, slot, item: ref});
+    box.append(b);
+  }
+
+  if (slot === 'rightHand' || slot === 'leftHand') {
+    const b = document.createElement('button');
+    b.className = 'item panel';
+    b.innerHTML = '<span>두 손을 바꿔 든다</span>';
+    b.onclick = () => apply({kind: 'swapHands', member: who});
+    box.append(b);
+  }
+}
+
+function renderStats() {
+  const m = selected();
+  const box = $('stats');
+  const marks = $('marks');
+  box.innerHTML = '';
+  marks.innerHTML = '';
+  if (!m) return;
+  const show = [
+    ['maxHitPoints', m.vitals.maxHitPoints],
+    ['maxSpellPoints', m.vitals.maxSpellPoints],
+    ['maxEspPoints', m.vitals.maxEspPoints],
+    ['defence', m.stats.defence],
+    ['shieldBlock', m.stats.shieldBlock],
+    ['evasion', m.stats.evasion],
+    ['accuracyPhysical', m.stats.accuracyPhysical],
+    ['coatingSlots', m.stats.coatingSlots],
+  ];
+  for (const [key, value] of show) {
+    box.insertAdjacentHTML('beforeend',
+      `<div class="k">${t('stat', key)}</div><div class="v">${value}</div>`);
+  }
+  box.insertAdjacentHTML('beforeend',
+    `<div class="k">무기 종류</div><div class="v">${t('weaponKind', m.weaponKind)}</div>`);
+  box.insertAdjacentHTML('beforeend',
+    `<div class="k">공격력</div><div class="v">${m.attackPower}</div>`);
+  for (const a of m.immunities) {
+    marks.insertAdjacentHTML('beforeend',
+      `<span class="tag hi">${t('ailment', a)} 면역</span>`);
+  }
+  for (const c of m.grants) {
+    marks.insertAdjacentHTML('beforeend',
+      `<span class="tag hi">${t('capability', c)}</span>`);
+  }
+  if (m.offHandLocked) {
+    marks.insertAdjacentHTML('beforeend',
+      '<span class="tag warn">왼손 잠김</span>');
+  }
+}
+
+function renderStyles() {
+  const m = selected();
+  const box = $('styles');
+  box.innerHTML = '';
+  if (!m) return;
+  for (const s of CATALOG.styles) {
+    const allowed = m.allowedStyles.includes(s.style);
+    const b = document.createElement('button');
+    b.className = m.style === s.style ? 'on' : '';
+    b.textContent = s.name;
+    b.title = s.hint + (allowed ? '' : ' — 이 직업에는 없다');
+    b.disabled = !allowed;
+    if (!allowed) b.style.opacity = .35;
+    b.onclick = () => apply({kind: 'setStyle', member: who, style: s.style});
+    box.append(b);
+  }
+  $('thrift').className = m.thrift ? 'on' : '';
+  $('thrift').onclick = () =>
+    apply({kind: 'setStyle', member: who, style: m.style, thrift: !m.thrift});
+}
+
+function renderPartyInfo() {
+  const p = STATE.party;
+  $('partyInfo').innerHTML =
+    `<div class="k">어둠 속 시야</div><div class="v">${p.sightInDarkness}</div>` +
+    `<div class="k">횃불 든 사람</div><div class="v">${p.lightBearers}</div>` +
+    `<div class="k">달빛</div><div class="v">${p.moonlight ? '있음' : '없음'}</div>` +
+    `<div class="k">마법의 횃불</div><div class="v">${p.magicLight ? '켜짐' : '꺼짐'}</div>`;
+  const caps = $('caps');
+  caps.innerHTML = '';
+  if (p.capabilities.length === 0) {
+    caps.innerHTML = '<span class="empty-note">지형을 여는 것이 없다.</span>';
+  }
+  for (const c of p.capabilities) {
+    caps.insertAdjacentHTML('beforeend',
+      `<span class="tag hi">${t('capability', c)}</span>`);
+  }
+  $('magic').className = p.magicLight ? 'on' : '';
+}
+
+function renderPack() {
+  const box = $('pack');
+  box.innerHTML = '';
+  const rows = [...STATE.pack].sort((a, b) =>
+    nameOf(a.item).localeCompare(nameOf(b.item), 'ko'));
+  for (const row of rows) {
+    const def = CATALOG.items.find((i) => i.ref === row.item);
+    box.insertAdjacentHTML('beforeend',
+      `<div class="item panel"><span>${nameOf(row.item)}` +
+      `<div class="meta">${def ? modifierLine(def) : ''}</div></span>` +
+      `<span class="meta">${row.count}</span></div>`);
+  }
+}
+
+function render() {
+  renderParty();
+  renderSlots();
+  renderStats();
+  renderStyles();
+  renderPartyInfo();
+  renderPack();
+  renderCandidates();
+}
+
+$('fight').onclick = async () => {
+  const out = await post('/api/battle', {enemyKeys: ['orc','orc','wolf'], seed: Date.now() % 1000});
+  if (out.error) { log('전투가 끝나지 않았다 — ' + out.error, 'no'); return; }
+  const label = {win: '이겼다', lose: '전멸했다', escape: '도망쳤다'}[out.result] || out.result;
+  log(`${out.result === 'win' ? '' : ''}${out.rounds}라운드, ${label}. (오크 둘 + 늑대, 간격 ${out.openingGap ?? '자동'})`,
+      out.result === 'win' ? 'ok' : 'no');
+  for (const m of out.members) {
+    const d = m.hitPointsBefore - m.hitPointsAfter;
+    log(`  ${m.name} ${t('weaponKind', m.weaponKind)}(사거리 ${m.reach}) ` +
+        `체력 ${m.hitPointsBefore}→${m.hitPointsAfter}` +
+        (d > 0 ? ` (−${d})` : '') +
+        (m.experience ? ` · 경험치 +${m.experience}` : ''));
+  }
+  for (const [k, v] of Object.entries(out.spent || {})) {
+    log(`  ${nameOf('consumable.' + k)} ${v}개를 썼다.`);
+  }
+  STATE = out.state;
+  render();
+};
+
+$('reset').onclick = async () => {
+  const out = await post('/api/reset');
+  STATE = out.state;
+  log('처음 상태로 되돌렸다.', 'ok');
+  render();
+};
+$('magic').onclick = async () => {
+  const out = await post('/api/magicLight', {on: !STATE.party.magicLight});
+  STATE = out.state;
+  log('마법의 횃불을 ' + (out.magicLight ? '켰다' : '껐다') + '.', 'ok');
+  render();
+};
+
+(async () => {
+  [TEXT, CATALOG, STATE] = await Promise.all([
+    get('/api/text'), get('/api/catalog'), get('/api/state'),
+  ]);
+  who = STATE.members[0]?.ref ?? null;
+  slot = 'rightHand';
+  render();
+  log('불러왔다. 사람과 부위를 고르고 오른쪽에서 채우시오.', 'ok');
+})();
+</script>
+</body>
+</html>

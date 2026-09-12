@@ -3,6 +3,29 @@
 > 상태 규약은 [README.md](README.md), 구간 정의는 [MILESTONES.md](MILESTONES.md), 판정 이력은 [DECISION-LOG.md](DECISION-LOG.md).
 > **노선: sample-first + cm2.** 선언적 콘텐츠 팩 노선은 [deferred/](deferred/) 로 보류되었다.
 
+## W1 — RPG 핵심 재작성 (**완료** 2026-09-09 · 9/9 · [10차 판정](DECISION-LOG.md))
+
+> 인물·파티·아이템·장비를 **새 순수 Dart 패키지로 다시 쓴다.** 기존 코드를 고치지 않는다.
+> 전투가 간 길(`application/battle.dart` → `packages/hd_battle`)과 같다.
+> 자세한 것은 [W1 _README](W1-world-core/_README.md) · 만져 보려면
+> [hd_world_lab/RUN.md](../hd_world_lab/RUN.md).
+
+| ID | 제목 | 상태 | 규모 | 선행 |
+|---|---|---|---|---|
+| [W1-01](W1-world-core/W1-01-package-skeleton.md) | 패키지 셋 · 독립성 게이트 · CI | **DONE** | M | 없음 |
+| [W1-02](W1-world-core/W1-02-slots-and-items.md) | 부위 여덟 · 아이템 31종 · 자격 검사 | **DONE** | L | W1-01 ✅ |
+| [W1-03](W1-world-core/W1-03-derived-values.md) | 파생값 무저장 — 무기 종류 · 수치 · 통행 · 시야 | **DONE** | L | W1-02 ✅ |
+| [W1-04](W1-world-core/W1-04-classes-and-styles.md) | 직업 17 이식 · 상시 지시 7 유도 | **DONE** | M | W1-01 ✅ |
+| [W1-05](W1-world-core/W1-05-openapi-lab.md) | OpenAPI 표면 · 마우스 화면 | **DONE** | L | W1-03 ✅ |
+| [W1-06](W1-world-core/W1-06-battle-bridge.md) | 전투 다리 — `hd_world` → `hd_battle` (**규격 v4**) | **DONE** | M | W1-03 ✅ |
+| [W1-07](W1-world-core/W1-07-save-format.md) | 세이브 — 부위 여덟을 싣는 포맷 | **DONE** | M | W1-02 ✅ |
+| [W1-08](W1-world-core/W1-08-cm2-adapter.md) | cm2 어댑터 — 속성 15개 · 아이템 명령 | **DONE** | M | W1-02 ✅ |
+| [W1-09](W1-world-core/W1-09-app-swap.md) | 앱 교체 — 포트 뒤에서 옛 모델을 뺀다 | **DONE** | L | W1-06·07·08 ✅ |
+
+> **W1 은 B7·B8·B9 를 대신한다.** BP-44~47 이 요구하는 변경이 전부 같은 파일 여섯 개를
+> 만지므로, 세 트랙으로 나누어 같은 파일을 세 번 고치는 대신 한 번 다시 쓴다.
+> 적 명세(BP-44 §1~§6)는 `hd_battle` 쪽이라 **여전히 별개**다.
+
 ## G1 — 아이템·장비 이식 (**완료** 2026-09-03 · 10/10)
 
 > 원본: `REF_UNITY_LoreEp1/src_as_cs/ObjItem.cs`(877줄) · `GameEventEquipment.cs`(448줄) · `ObjTypes.cs`
@@ -140,11 +163,15 @@
 B5-09 → B5-08 → B5-99** 였다. 최소 프로토타입(01+04)이 먼저 돌아간 덕에
 "앞열이 실제로 더 맞는다" 를 확인하고 나머지를 얹었다.
 
-### B3 — RPG 연결 (**4/5** 2026-09-06 — 규격 v2 위에서)
+### B3 — RPG 연결 (**완료** 2026-09-09 · 5/5)
 
 > **전투가 실제로 새 model 로 돈다.** cm2 동사 다섯 개가 어댑터를 거치고,
 > `HDBattleRunner` 가 `UiHost` 로 굴리고, 정산이 끝나고 한 번 반영된다.
 > `assets/*.cm2` 는 한 줄도 안 고쳤다.
+>
+> ² B3-04 의 답은 **해석할 요청이 없다**는 것이다 — 전투에서 `worldEffects` 를 채우는
+> 경로가 하나도 없다. 마법 33~40 은 메뉴에 없고(B6-01), 초능력 41·42·44 도 규격 v4 가
+> 뺐다(부록 Z-9 — 셋 다 아무 일도 안 하면서 턴을 먹고 있었다). 필드는 남기되 쓰이지 않는다.
 >
 > ¹ B3-03 은 **부분 완료**다 — 속성은 B5 가 전투 안으로 흡수해(체질·공격 방식)
 > RPG 쪽에 넣을 것이 없어졌고, 소비 아이템 키 대응만 남았다.
@@ -154,16 +181,16 @@ B5-09 → B5-08 → B5-99** 였다. 최소 프로토타입(01+04)이 먼저 돌�
 | [B3-01](B3-battle-integrate/B3-01-cm2-adapter.md) | cm2 동사 5개 호환 adapter — **콘텐츠 53곳 무변경** | **DONE** | M | B5-99 ✅ |
 | [B3-02](B3-battle-integrate/B3-02-setup-and-settle.md) | 개시 입력 조립 · 정산 결과 반영 · **`UiHost` 운전자** | **DONE** | L | B5-99 ✅ · B3-01 ✅ |
 | [B3-03](B3-battle-integrate/B3-03-rpg-attributes.md) | RPG → 규격 v2 매핑 (무기 키 · 부위별 방어구 · 열) | **DONE**¹ | L | B5-99 ✅ |
-| [B3-04](B3-battle-integrate/B3-04-world-effects.md) | 전투 밖 효과 요청 해석 + `worldEffects` 형식 확정 | **TODO — 다음** | M | B5-99 ✅ · B3-02 ✅ |
+| [B3-04](B3-battle-integrate/B3-04-world-effects.md) | 전투 밖 효과 요청 해석 + `worldEffects` 형식 확정 | **DONE**² | M | B5-99 ✅ · B3-02 ✅ |
 | [B3-05](B3-battle-integrate/B3-05-exp-and-levelup.md) | 경험치·레벨업 정산을 RPG 로 — **레벨이 안 오르고 있었다** | **DONE** | S | B3-02 ✅ |
 
-### B4 — Flutter view (model 무변경) — **1/3** 2026-09-06
+### B4 — Flutter view (model 무변경) — **완료** 2026-09-09 · 3/3
 
 | ID | 제목 | 상태 | 규모 | 선행 |
 |---|---|---|---|---|
 | [B4-01](B4-battle-view/B4-01-flutter-view.md) | Flutter 전투 view — **실험실 모드로 먼저** (`flutter run -t lib/battle_lab_main.dart`) | **DONE** | L | B3-02 ✅ |
-| [B4-02](B4-battle-view/B4-02-input-wiring.md) | 게임 안으로 넣기 + 키보드·가상 입력 배선 | **TODO** | M | B4-01 ✅ |
-| [B4-03](B4-battle-view/B4-03-remove-old-battle.md) | 구 전투 코드 제거 (`battle.dart` 572줄 등) | BLOCKED | M | B4-02 |
+| [B4-02](B4-battle-view/B4-02-input-wiring.md) | 게임 안으로 넣기 + 키보드·가상 입력 배선 | **DONE** | M | B4-01 ✅ |
+| [B4-03](B4-battle-view/B4-03-remove-old-battle.md) | 구 전투 코드 제거 (`battle.dart` 572줄 등) | **DONE** | M | B4-02 ✅ |
 
 ### B6 — 전투 메뉴·행동 현대화 (**완료** 2026-09-06 · 7/7 · [9차 판정](DECISION-LOG.md))
 

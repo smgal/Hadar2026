@@ -1,5 +1,4 @@
 import 'dart:async';
-import '../domain/item/consumable_data.dart';
 
 import 'package:flutter/foundation.dart';
 
@@ -32,14 +31,7 @@ String _resolveCm2Asset(String cm2Ref) =>
 class HDGameSession extends ChangeNotifier {
   static final HDGameSession _instance = HDGameSession._internal();
   factory HDGameSession() => _instance;
-  HDGameSession._internal() {
-    // B6-05: 새 게임은 마실 것과 바를 것을 몇 개 들고 시작한다. 세이브는
-    // `party.fromJson` 이 가방을 전부 비우고 다시 채우므로 이것을 덮는다.
-    // 파티 객체 자체는 비어 있게 두었다 — 테스트가 그 전제를 고정한다.
-    for (final id in startingBackpack()) {
-      party.give(id);
-    }
-  }
+  HDGameSession._internal();
 
   /// Bumped on every successful `loadGame` so listeners can drop caches
   /// keyed on the previous run.

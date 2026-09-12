@@ -173,3 +173,93 @@ jobs:
 
       - name: Test 🧪
         run: dart test
+
+  hd_world:
+    name: hd_world + text + legacy + bridge + lab (analyze + test + purity)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Dart 🎯
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install Dependencies 📦
+        run: |
+          cd packages/hd_world && dart pub get
+          cd ../hd_world_text && dart pub get
+          cd ../hd_world_legacy && dart pub get
+          cd ../hd_bridge && dart pub get
+          cd ../../hd_world_lab && dart pub get
+
+      - name: Analyze 🔍
+        run: |
+          cd packages/hd_world && dart analyze
+          cd ../hd_world_text && dart analyze
+          cd ../hd_world_legacy && dart analyze
+          cd ../hd_bridge && dart analyze
+          cd ../../hd_world_lab && dart analyze
+
+      - name: Test 🧪
+        run: |
+          cd packages/hd_world && dart test
+          cd ../hd_world_text && dart test
+          cd ../hd_world_legacy && dart test
+          cd ../hd_bridge && dart test
+          cd ../../hd_world_lab && dart test
+
+      # 독립성이 이 패키지의 요점이다. test/flow/purity_test.dart 가 주석을
+      # 걷어내고 확인하지만, import 만 보는 빠른 실패를 여기 둔다 —
+      # 이쪽이 다른 패키지를 참조하기 시작하면 되붙이기가 다시 어려워진다.
+      - name: Check hd_world independence 🧱
+        run: |
+          fail=0
+
+          # 주석은 걸러 낸다 — 문서가 "dart:io 를 쓰지 않는다" 고 적는 것은
+          # 위반이 아니다. 실행되는 줄만 본다(purity 테스트와 같은 규칙).
+          code_hits() {
+            grep -rn "$1" "$2" 2>/dev/null \
+              | grep -vE '^[^:]+:[0-9]+: *//' || true
+          }
+
+          for forbidden in "package:flutter" "package:hd_battle" "package:cm2_script" "package:hadar2026_app" "dart:io"; do
+            hits="$(code_hits "$forbidden" packages/hd_world/lib)"
+            if [ -n "$hits" ]; then
+              echo "::error::hd_world must not depend on $forbidden"
+              echo "$hits"
+              fail=1
+            fi
+          done
+          if [ "$fail" = "0" ]; then
+            echo "ok: hd_world depends on nothing in this repository"
+          fi
+
+          # 한국어는 hd_world_text 한 곳에만 있어야 한다. 모델이 문장을 들면
+          # 화면을 갈아끼울 수 없게 된다.
+          for pkg in hd_world_text hd_world_legacy hd_bridge; do
+            hits="$(code_hits "package:flutter" packages/$pkg/lib)"
+            if [ -n "$hits" ]; then
+              echo "::error::$pkg must not depend on Flutter"
+              echo "$hits"
+              fail=1
+            fi
+          done
+
+          # 다리는 양쪽을 알지만 **양쪽은 서로를 모른다.** 그 규칙이 깨지면
+          # 어느 쪽도 따로 시험할 수 없게 된다.
+          hits="$(code_hits "package:hd_world" packages/hd_battle/lib)"
+          hits="$hits$(code_hits "package:hd_battle" packages/hd_world/lib)"
+          if [ -n "$hits" ]; then
+            echo "::error::hd_world and hd_battle must not know each other"
+            echo "$hits"
+            fail=1
+          fi
+          exit $fail
+
+      # 규격이 파싱되지 않으면 클라이언트가 조용히 틀린 요청을 만든다.
+      - name: Check the OpenAPI document parses 📄
+        run: python3 -c "import yaml,sys; d=yaml.safe_load(open('hd_world_lab/web/openapi.yaml')); assert d['paths'] and d['components']['schemas']; print('ok:', len(d['paths']), 'paths')"
