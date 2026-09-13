@@ -173,6 +173,44 @@ void main() {
     });
   });
 
+  group('the weapon name a reader sees', () {
+    // `BattleSetup.weaponName` 은 규격이 「풀어 놓은 표시 이름」 이라고
+    // 적어 두었는데 실제로는 참조가 그대로 갔다. 전투 메뉴가
+    // `⚔ 공격 — weapon.sabre로` 로 나오던 까닭이다.
+    test('a lookup turns the reference into the name', () {
+      final world = sample();
+      final setup = toBattleSetup(
+        world,
+        enemyKeys: const ['orc'],
+        seed: 1,
+        itemName: (ref) => ref.value == 'weapon.sabre' ? '샤벨' : ref.value,
+      );
+      final knight = setup.party.firstWhere((p) => p.slot == 0);
+      expect(knight.weaponName, '샤벨');
+    });
+
+    test('without one the reference still comes through', () {
+      // 한국어를 아는 쪽이 없을 수도 있다. 그때 빈 문자열을 주면
+      // 메뉴가 「⚔ 공격 — 로」 가 되므로 참조를 남긴다.
+      final setup = toBattleSetup(sample(), enemyKeys: const ['orc'], seed: 1);
+      final knight = setup.party.firstWhere((p) => p.slot == 0);
+      expect(knight.weaponName, 'weapon.sabre');
+    });
+
+    test('bare hands stay empty', () {
+      final world = hw.World(
+        members: [hw.Member(ref: const hw.MemberRef('bare'), name: '맨손')],
+      );
+      final setup = toBattleSetup(
+        world,
+        enemyKeys: const ['orc'],
+        seed: 1,
+        itemName: (ref) => 'never',
+      );
+      expect(setup.party.first.weaponName, '');
+    });
+  });
+
   group('empty seats', () {
     test('an absent member does not fight and nobody is renumbered', () {
       // Shipped scripts configure the sixth seat for somebody who joins

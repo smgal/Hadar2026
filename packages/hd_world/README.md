@@ -51,9 +51,14 @@ final events = world.apply(EquipFromPack(
 cd ../../hd_world_lab && dart run bin/serve.dart
 ```
 
-마우스로 장비를 갈아 끼우는 화면과 OpenAPI 표면이 함께 뜬다.
+마우스로 장비를 갈아 끼우는 화면과 OpenAPI 표면이 함께 뜬다. 탭 다섯 —
+장비 · 가방 · 전투 · 플래그 · 기록.
 [hd_world_lab/RUN.md](../../hd_world_lab/RUN.md).
 
+물건을 집으면 다섯 사람 × 부위 여덟이 **초록과 빨강으로 갈린다.** 그 판정은
+`checkEquip` 하나가 내고 화면은 색으로 옮기기만 한다 — 브라우저가 같은 판단을
+다시 쓰면 갈라지는 날이 오고, 그 갈라짐은 색으로만 보여서 아무도 눈치채지 못한다.
+
 ```bash
-dart pub get && dart test        # 103개
+dart pub get && dart test        # 112개
 ```

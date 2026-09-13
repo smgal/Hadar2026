@@ -14,12 +14,17 @@
 | 무엇 | 명령 | 자세히 |
 |---|---|---|
 | **게임** | `cd hadar2026_app && flutter pub get && flutter run` | [hadar2026_app/README.md](hadar2026_app/README.md) |
-| **장비 실험실** — 마우스로 여덟 칸을 갈아 끼우고 그 장비로 한 판 싸운다 | `cd hd_world_lab && dart pub get && dart run bin/serve.dart` → `http://127.0.0.1:5330/` | [hd_world_lab/RUN.md](hd_world_lab/RUN.md) |
+| **실험실** — 장비 · 가방 · 전투 격자 · 시나리오 플래그를 마우스로 | `cd hd_world_lab && dart pub get && dart run bin/serve.dart` → `http://127.0.0.1:5330/` | [hd_world_lab/RUN.md](hd_world_lab/RUN.md) |
 | **전투 실험실** — 전투만 띄운다. 한 수 물릴 수 있다 | `cd hadar2026_app && flutter run -t lib/battle_lab_main.dart` | [hd_battle_console/RUN.md §0](hd_battle_console/RUN.md) |
 | **전투 콘솔** — 터미널에서 같은 전투를 굴린다 | `cd hd_battle_console && dart pub get && dart run bin/battle.dart` | [hd_battle_console/RUN.md](hd_battle_console/RUN.md) |
 
-두 실험실은 **게임을 켜지 않고** 규칙을 만져 보는 곳이다. 장비를 바꾸면 최종 수치가
+실험실은 **게임을 켜지 않고** 규칙을 만져 보는 곳이다. 장비를 바꾸면 최종 수치가
 바로 다시 계산되고, 전투는 같은 판을 씨앗으로 몇 번이든 다시 굴릴 수 있다.
+
+`hd_world_lab` 은 탭 다섯이다 — **장비 · 가방 · 전투 · 플래그 · 기록**. 전투 탭은
+격자이고 y 축이 거리다(`거리 = 간격 + (내 열-1) + (상대 열-1)`). 플래그 탭은 시나리오
+진행을 **날값과 사람 말이 같이** 보여 주고 켜고 끈다 — `Flag::IsSet(41) = 1` 과
+「물의 정령과 합류했다」 가 한 칸에 있다.
 
 ### 시험 전량
 

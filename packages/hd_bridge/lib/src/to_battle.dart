@@ -31,13 +31,19 @@ hb.BattleSetup toBattleSetup(
   int mode = 0,
   List<int> enemyRanks = const [],
   int? initialGap,
+  ItemNameLookup? itemName,
 }) {
   final members = world.members;
   return hb.BattleSetup(
     party: [
       for (final (index, member) in members.indexed)
         if (member.isPresent)
-          snapshotOf(member, index: index, catalog: world.catalog),
+          snapshotOf(
+            member,
+            index: index,
+            catalog: world.catalog,
+            itemName: itemName,
+          ),
     ],
     enemyKeys: enemyKeys,
     enemyRanks: enemyRanks,
@@ -51,11 +57,27 @@ hb.BattleSetup toBattleSetup(
   );
 }
 
+/// Turns an item reference into the name a reader should see.
+///
+/// ## Why this is a parameter and not a table
+///
+/// `BattleSetup.weaponName` is documented as "the resolved display
+/// name", and the battle prints it — `⚔ 공격 — 샤벨로`. But the display
+/// names are Korean and live in `hd_world_text`, which neither this
+/// package nor `hd_battle` may depend on: the whole arrangement rests on
+/// the model holding keys and one text package holding words.
+///
+/// So the caller, which already knows both, hands the lookup in. Leaving
+/// it out keeps the reference, which is what this did unconditionally
+/// before — and the menu read `⚔ 공격 — weapon.sabre로`.
+typedef ItemNameLookup = String Function(hw.ItemRef ref);
+
 /// One member, resolved.
 hb.CombatantSnapshot snapshotOf(
   hw.Member member, {
   required int index,
   required hw.ItemCatalog catalog,
+  ItemNameLookup? itemName,
 }) {
   final stats = hw.resolveStats(member: member, catalog: catalog);
   int at(hw.StatKey key) => stats[key];
@@ -90,7 +112,10 @@ hb.CombatantSnapshot snapshotOf(
     levelMagic: member.levels.magic,
     levelEsp: member.levels.esp,
     powOfWeapon: stats.attackPower,
-    weaponName: member.at(hw.EquipSlot.rightHand)?.value ?? '',
+    weaponName: switch (member.at(hw.EquipSlot.rightHand)) {
+      final ref? => itemName == null ? ref.value : itemName(ref),
+      null => '',
+    },
     weaponKey: weaponKeyFor(
       style: stats.weaponKind,
       mainHandKind: stats.mainHandKind,

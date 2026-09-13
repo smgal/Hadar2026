@@ -23,6 +23,12 @@ void main() {
     for (final v in WeaponKind.values) {
       expect(weaponKindNames[v], isNotNull, reason: v.name);
     }
+    for (final v in ItemKind.values) {
+      expect(itemKindNames[v], isNotNull, reason: v.name);
+    }
+    for (final v in WeaponShape.values) {
+      expect(weaponShapeNames[v], isNotNull, reason: v.name);
+    }
     for (final v in FightingStyle.values) {
       expect(styleNames[v], isNotNull, reason: v.name);
       expect(styleHints[v], isNotNull, reason: v.name);

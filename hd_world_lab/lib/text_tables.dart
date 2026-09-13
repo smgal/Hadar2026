@@ -16,6 +16,11 @@ Map<String, Object?> textTablesJson() => {
   'weaponKind': {
     for (final v in WeaponKind.values) v.name: weaponKindName(v),
   },
+  // The screen picks a glyph from these two and labels the legend with
+  // them, so they have to travel with the rest rather than being
+  // hard-coded next to the icons.
+  'itemKind': {for (final v in ItemKind.values) v.name: itemKindName(v)},
+  'shape': {for (final v in WeaponShape.values) v.name: weaponShapeName(v)},
   'style': {for (final v in FightingStyle.values) v.name: styleName(v)},
   'styleHint': {
     for (final v in FightingStyle.values) v.name: styleHints[v],

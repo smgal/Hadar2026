@@ -79,7 +79,7 @@ v3 은 B6-99 가 얼렸고 W1(RPG 핵심 재작성, 10차 판정)이 다시 열�
 | `levelPhysical` `levelMagic` `levelEsp` | **전투 중 변하지 않는다** |
 | `powOfWeapon` | 무기 공격력 (맨손 1). **RPG 가 얼마나 센지를 정한다** |
 | `weaponKey` | 전투 무기 표의 키. **전투가 어떻게 닿는지를 정한다** — 모르는 키는 맨손 |
-| `weaponName` | 표시용. 어떤 규칙도 읽지 않는다 |
+| `weaponName` | 표시용. 어떤 규칙도 읽지 않는다. **풀어 놓은 이름을 넣는다** — 메뉴가 `⚔ 공격 — 샤벨로` 로 읽히는 자리라 참조를 그대로 넣으면 `weapon.sabre로` 가 된다. `hd_bridge` 의 `toBattleSetup(itemName:)` 이 그것을 받는다 |
 | `rank` | 열 1(앞)~3(뒤). 안 주면 슬롯에서 유도 (0-1 앞 · 2-3 중 · 4-5 뒤) |
 | `weakTo: Set<Element>` | 이 사람이 유독 약한 속성. 보통은 비어 있다 |
 | `dodgesBack: bool` | 치명타를 맞으면 물러나 피하는 passive |

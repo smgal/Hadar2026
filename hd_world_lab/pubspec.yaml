@@ -14,6 +14,8 @@ dependencies:
     path: ../packages/hd_battle
   hd_bridge:
     path: ../packages/hd_bridge
+  hd_battle_text:
+    path: ../packages/hd_battle_text
   hd_world:
     path: ../packages/hd_world
   hd_world_text:

@@ -14,7 +14,8 @@ Flutter/Dart remake of the classic Korean RPG "또 다른 지식의 성전 (Hada
 - `packages/hd_world_text/` — 그 model 의 한국어 이름표.
 - `packages/hd_world_legacy/` — 출하 스크립트가 쓰는 **옛 어휘**(속성 이름 · 아이템 정수).
 - `packages/hd_bridge/` — `hd_world` ↔ `hd_battle`. **양쪽은 서로를 모른다.**
-- `hd_world_lab/` — 그 model 의 **OpenAPI 서버 + 마우스 장비 화면**. 규칙을 갖지 않는다.
+- `hd_world_lab/` — **OpenAPI 서버 + 마우스 화면.** 규칙을 갖지 않는다.
+  탭 다섯: 장비 · 가방 · 전투 · 플래그 · 기록.
 - `cm2_script_sample/` — CUI demo exercising every cm2_script feature.
 - `tools/` — Python scripts for converting/extracting legacy Hadar binary data (maps, enemies, sprites), plus `tools/mapEditor/` — a TypeScript/Vite web map editor (pnpm) that reads/writes `hadar2026_app/assets/maps/*.json` in place while preserving the full RPG Maker MV format (see `tools/mapEditor/README.md`).
 - `REF_hadar/` (C++ original), `REF_UNITY_LoreEp1/` (Unity port), `REF_FLUTTER_lore2026/` (sibling Flutter port — git submodule). Read-only reference implementations; do not edit.
@@ -94,10 +95,35 @@ Flutter/Dart remake of the classic Korean RPG "또 다른 지식의 성전 (Hada
 - **전투에 넘길 때는 `packages/hd_bridge`** 를 쓴다 — `toBattleSetup` · `settle`.
   손 구성이 만드는 값 넷(`strikes`·`coatingSlots`·`evasionBonus`·`initiativeBonus`)은
   RPG 가 풀어서 넘긴다. 전투는 두 손을 보지 않으므로 스스로 알 수 없다(규격 **v4**).
-- **장비를 만져 보려면 `cd hd_world_lab && dart run bin/serve.dart`** — 마우스로 여덟 칸을
-  갈아 끼우는 화면과 OpenAPI 표면이 함께 뜬다(`http://127.0.0.1:5330/`).
+  **`itemName` 을 같이 넘겨야 무기 이름이 사람 말로 나온다** — 안 넘기면 규격이
+  「표시용」 이라고 적어 둔 `weaponName` 에 참조가 그대로 가서 전투 메뉴가
+  `⚔ 공격 — weapon.sabre로` 가 된다. 다리도 전투도 한국어를 가질 수 없으므로
+  아는 쪽이 넘긴다.
+- **규칙을 만져 보려면 `cd hd_world_lab && dart run bin/serve.dart`**
+  (`http://127.0.0.1:5330/`). 탭 다섯 — **장비 · 가방 · 전투 · 플래그 · 기록**.
   터미널이 아닌 이유는 부위 여덟이 **동시에 보여야** 하고 고칠 때마다 값이 다시 계산되기
   때문이다. 무엇을 눌러 볼지는 `hd_world_lab/RUN.md`, 도메인 안내는 `GET /api/guide`.
+  - 칸 하나가 물건 하나이고 **모양이 무엇인지를, 색이 지금 어떤지를** 말한다.
+    물건을 집으면 다섯 사람 × 부위 여덟이 초록·빨강으로 갈린다(`GET /api/eligibility`).
+  - **`POST /api/preview`** 가 사본에 굴려 차이만 준다 — 끼워 보고 되돌릴 필요가 없다.
+    사본은 `saveWorld`→`loadWorld` 왕복이다(저장 형식이 곧 복사가 실어야 할 것의 정의다).
+  - 전투 탭은 **격자**다. y 축이 거리이고 `거리 = 간격 + (내 열-1) + (상대 열-1)` 을
+    그대로 그린다. 물음마다 멈추고 마우스로 답한다(`POST /api/battle/command`).
+    `POST /api/battle` 은 예전대로 끝까지 스스로 굴린다.
+- **플래그에 뜻을 붙이는 표가 생겼다** — `hd_world_lab/lib/quest/flag_registry.dart`.
+  게임이 아는 것은 번호뿐이고 `assets/flag4ep1.cm2` 는 이름까지다. **언제 켜지는지 ·
+  켜지면 무엇이 열리는지**는 이 표에만 있다. 갈래가 둘이다 — `Flag::`(켜짐/꺼짐)와
+  `Variable::`(단계, 값 3이면 1·2는 끝났고 3을 하는 중).
+  **런타임이 아니라 저작 자료다** — cm2 는 지금처럼 번호로 돌고,
+  `test/quest_registry_test.dart` 가 `flag4ep1.cm2` 와 출하 `*.cm2` 전량을 **실제로 열어**
+  맞춘다. 스크립트가 쓰는데 설명이 없는 번호가 있으면 거기서 걸린다.
+  - ⚠ **그 표가 번호 충돌 셋을 찾아냈다(10 · 31 · 50).** `lore_ep1.cm2` · `town2.cm2` ·
+    `menace.cm2` 가 `flag4ep1.cm2` 를 include 하지 않고 번호를 직접 써서,
+    D1·D3·D5 의 이름 붙은 플래그와 **같은 칸**을 쓴다. 이름이 아예 없는 칸도 여섯이다
+    (32 · 51~55). 아직 고치지 않았다 — 번호를 옮기면 기존 세이브가 깨진다.
+  - 플래그가 `grants` 로 **통행 능력**을 열 수 있다. 물 위를 걷는 것은 출처가 셋이 됐다 —
+    부적(차고 있는 동안) · 마법(칸 수) · **시나리오(한 번 배우면 영영)**.
+    `hd_world` 는 플래그를 모르고 몰라야 한다. 합치는 것은 읽는 쪽의 일이다.
 - **전투를 손보려면 `flutter run -t lib/battle_lab_main.dart`** — 전투만 띄우는
   실험실이다(B4-01). 콘솔과 **같은 fixture** 를 읽고, 「한 수 물리기」가 있어
   같은 상황에서 다른 수를 시험할 수 있다. 화면 위젯
@@ -198,16 +224,29 @@ cd hd_battle_console && dart run tool/make_fixtures.dart
 # 인물·파티·장비 model (순수 Dart, W 트랙) — Flutter SDK 없이 돈다
 cd packages/hd_world
 dart pub get
-dart test                                           # 103개
+dart test                                           # 112개
 
-# 장비를 마우스로 갈아 끼워 보기 (실행 안내: hd_world_lab/RUN.md)
+# 실험실 — 장비·전투·플래그를 마우스로 (실행 안내: hd_world_lab/RUN.md)
 cd hd_world_lab
 dart pub get
 dart run bin/serve.dart                             # http://127.0.0.1:5330/
 dart run bin/serve.dart 5331                        # 다른 번호로
+dart test                                           # 65개 (HTTP 47 + 플래그 표 18)
 # 명령으로도 같은 것을 한다 — 거절도 200 이고 이유가 실려 온다
 curl -s localhost:5330/api/state | jq '.members[] | {name, weaponKind}'
 curl -s localhost:5330/api/guide                    # 도메인 안내
+# 누가·무엇을·어디에 = true 또는 거절 이유. 판 전체가 한 번에 온다
+curl -s localhost:5330/api/eligibility | jq '.members.knight["weapon.long_sword"]'
+# 적용하지 않고 차이만 본다
+curl -s -X POST localhost:5330/api/preview -H 'content-type: application/json' \
+  -d '{"command":{"kind":"equip","member":"knight","slot":"rightHand","item":"weapon.long_sword"}}' \
+  | jq '.changes.members[0].changes'
+# 사람이 두는 한 판 — 물음마다 멈춘다. 거리와 사거리 판정이 같이 온다
+curl -s -X POST localhost:5330/api/battle/start -H 'content-type: application/json' \
+  -d '{"enemyKeys":["orc","wolf","dragon"],"enemyRanks":[1,1,3],"initialGap":0,"seed":11}' \
+  | jq '{gap, enemies: [.enemies[] | {name, rank, distance, reachVerdict}]}'
+# 플래그 — 날값과 뜻이 같이 온다. collisions 가 번호 충돌을 찾는다
+curl -s localhost:5330/api/quest | jq '{summary, granted, collisions}'
 # 그 장비로 한 판 싸워 본다 — 사거리가 실제로 값을 내는지 보인다
 curl -s -X POST localhost:5330/api/battle \
   -H 'content-type: application/json' -d '{"seed":7}' | jq '.members'
@@ -319,11 +358,16 @@ Tile actions are the `HDTileAction` enum (`domain/map/tile_properties.dart`), wh
 
 `test/application/map_navigation_test.dart` is the worked example of the headless seam: it binds a fake `AssetSource` serving maps from an in-memory `Map<String, String>` and drives the whole name → `MapInfos.json` → `MapModel` path with no asset bundle and no filesystem. Copy that shape to test `HDMenuFlows` / `HDBattle` / `HDTileEventDispatcher` — bind fakes via `HDHosts().bind(...)`, `HDHosts().reset()` in `tearDown`. cm2 engine has its own tests in `packages/cm2_script/test/` (run with `dart test`). New domain rules should land with a test in the matching subfolder.
 
-`packages/hd_world/` 는 시험 103개를 갖고 `test/flow/purity_test.dart` 가 **독립성**을
+`packages/hd_world/` 는 시험 112개를 갖고 `test/flow/purity_test.dart` 가 **독립성**을
 지킨다 — Flutter · 이 레포의 다른 패키지 · `dart:io` · `DateTime.now` · `print` ·
 시드 없는 `Random` · 한국어 · emoji, 그리고 **파생값을 인물에 저장하는 것**까지 막는다
-(옛 `PartyBuffs` 네 칸 중 셋이 썩은 것이 저장했기 때문이다). `hd_world_lab/test/` 는
-HTTP 표면을 스크립트가 쓰는 방식대로 굴린다(13개).
+(옛 `PartyBuffs` 네 칸 중 셋이 썩은 것이 저장했기 때문이다).
+
+`hd_world_lab/test/` 는 둘이다. `server_test.dart` 가 HTTP 표면을 스크립트가 쓰는
+방식대로 굴리고(47개 — 판정·미리보기·장비 모음·세이브·전투·플래그), 정적 자원이
+다 실리는지와 `[hidden]` 규칙이 살아 있는지까지 본다(그 한 줄이 빠지면 탭 전환이
+**조용히** 죽는다). `quest_registry_test.dart` 는 게임 쪽 `assets/*.cm2` 를 **실제로
+열어** 플래그 표와 맞춘다(18개) — 그 폴더가 없으면 건너뛴다.
 
 ## Deployment
 Web is published to GitHub Pages by `.github/workflows/deploy_web.yml` (manual `workflow_dispatch`). It runs `flutter build web --base-href "/Hadar2026/" --release` in `hadar2026_app/` and pushes `build/web` via `peaceiris/actions-gh-pages@v3`. ## CI

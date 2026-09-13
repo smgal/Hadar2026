@@ -1,6 +1,7 @@
 import 'package:hd_battle/hd_battle.dart' as hb;
 import 'package:hd_bridge/hd_bridge.dart';
 import 'package:hd_world/hd_world.dart' as hw;
+import 'package:hd_world_text/hd_world_text.dart' as wt;
 
 /// Runs one fight to the end, choosing nothing.
 ///
@@ -30,6 +31,7 @@ Map<String, Object?> runBattle(
     enemyKeys: enemyKeys,
     seed: seed,
     initialGap: initialGap,
+    itemName: (ref) => wt.itemName(world.catalog[ref]?.nameKey ?? ''),
   );
   final battle = hb.Battle(setup);
 

@@ -84,6 +84,50 @@ const Map<WeaponKind, String> weaponKindNames = {
   WeaponKind.thrown: '투척',
 };
 
+/// 물건의 갈래 15종. `ITEM_TYPE` 0~12 는 원작 것이고 13·14 는 새것이다.
+///
+/// [skillNames] 와 앞의 다섯이 겹쳐 보이지만 같은 것이 아니다 —
+/// 저쪽은 **사람이 가진 숙련**이고 이쪽은 **물건이 무엇인지**다.
+/// 아이콘을 고르는 것은 이쪽이다.
+const Map<ItemKind, String> itemKindNames = {
+  ItemKind.slashWeapon: '베는 무기',
+  ItemKind.chopWeapon: '찍는 무기',
+  ItemKind.pierceWeapon: '찌르는 무기',
+  ItemKind.bluntWeapon: '타격 무기',
+  ItemKind.missileWeapon: '쏘는 무기',
+  ItemKind.summonSingle: '소환수의 공격',
+  ItemKind.summonMulti: '소환수의 다중 공격',
+  ItemKind.shield: '방패',
+  ItemKind.bodyArmour: '갑옷',
+  ItemKind.helmet: '투구',
+  ItemKind.boots: '신발',
+  ItemKind.commonAmulet: '공통 부적',
+  ItemKind.consumable: '소비품',
+  ItemKind.light: '불',
+  ItemKind.classAmulet: '직업 부적',
+};
+
+/// 무기의 생김새 13종.
+///
+/// 갈래가 **어떻게 닿는지**를 말하고 이것이 **무엇인지**를 말한다.
+/// 둘이 다 있어야 무기 종류를 이름 지을 수 있다 — 양손으로 베는 *날*은
+/// 대검이고 양손으로 치는 *철퇴*는 전투 망치다.
+const Map<WeaponShape, String> weaponShapeNames = {
+  WeaponShape.blade: '날',
+  WeaponShape.axe: '도끼',
+  WeaponShape.mace: '철퇴',
+  WeaponShape.spear: '창',
+  WeaponShape.polearm: '장병기',
+  WeaponShape.lance: '기병창',
+  WeaponShape.staff: '봉',
+  WeaponShape.knuckle: '주먹',
+  WeaponShape.bow: '활',
+  WeaponShape.crossbow: '석궁',
+  WeaponShape.arbalest: '아르발레스트',
+  WeaponShape.thrown: '투척',
+  WeaponShape.blowpipe: '불대롱',
+};
+
 /// 상시 지시 일곱.
 const Map<FightingStyle, String> styleNames = {
   FightingStyle.bulwark: '방벽',
@@ -170,6 +214,8 @@ const Map<String, String> annexNames = {
   'annex.str100': '힘+100',
 };
 
+String itemKindName(ItemKind k) => itemKindNames[k] ?? k.name;
+String weaponShapeName(WeaponShape s) => weaponShapeNames[s] ?? s.name;
 String slotName(EquipSlot slot) => slotNames[slot] ?? slot.name;
 String className(CharacterClass c) => classNames[c] ?? c.name;
 String weaponKindName(WeaponKind k) => weaponKindNames[k] ?? k.name;

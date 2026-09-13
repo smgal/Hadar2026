@@ -2,465 +2,173 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>hd_world 실험실 — 장비</title>
-<style>
-  :root {
-    --bg: #14161a; --panel: #1c1f26; --line: #2b3038; --ink: #dfe3ea;
-    --dim: #8c94a3; --ok: #7fd18b; --no: #e8858a; --hi: #6fa8f5;
-    --warn: #e2b45c;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--ink);
-    font: 14px/1.55 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-  }
-  header {
-    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
-    padding: 12px 18px; border-bottom: 1px solid var(--line);
-  }
-  header h1 { font-size: 15px; margin: 0; font-weight: 600; }
-  header .sub { color: var(--dim); font-size: 12px; }
-  header .grow { flex: 1; }
-  button {
-    font: inherit; color: var(--ink); background: #242832;
-    border: 1px solid var(--line); border-radius: 5px;
-    padding: 4px 10px; cursor: pointer;
-  }
-  button:hover { border-color: var(--hi); }
-  button.on { border-color: var(--hi); color: var(--hi); }
-  main {
-    display: grid; gap: 14px; padding: 14px 18px;
-    grid-template-columns: 210px 1fr 300px;
-    align-items: start;
-  }
-  .panel {
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: 7px; padding: 11px 13px;
-  }
-  .panel h2 {
-    font-size: 12px; letter-spacing: .04em; color: var(--dim);
-    margin: 0 0 9px; font-weight: 600; text-transform: uppercase;
-  }
-  .row {
-    display: flex; justify-content: space-between; gap: 10px;
-    padding: 3px 0;
-  }
-  .row .k { color: var(--dim); }
-  .member {
-    display: block; width: 100%; text-align: left; margin-bottom: 6px;
-    padding: 7px 9px; line-height: 1.35;
-  }
-  .member .who { font-weight: 600; }
-  .member .job { color: var(--dim); font-size: 12px; }
-  .member.sel { border-color: var(--hi); background: #212b3a; }
-  .slots { display: grid; gap: 6px; }
-  .slot {
-    display: grid; grid-template-columns: 92px 1fr auto; gap: 9px;
-    align-items: center; width: 100%; text-align: left; padding: 7px 9px;
-  }
-  .slot .name { color: var(--dim); font-size: 12px; }
-  .slot .what { font-weight: 500; }
-  .slot .what.empty { color: #5c6474; font-weight: 400; }
-  .slot.sel { border-color: var(--hi); background: #212b3a; }
-  .slot.locked { opacity: .5; }
-  .tag {
-    font-size: 11px; border: 1px solid var(--line); border-radius: 4px;
-    padding: 0 5px; color: var(--dim);
-  }
-  .tag.hi { color: var(--hi); border-color: var(--hi); }
-  .tag.warn { color: var(--warn); border-color: var(--warn); }
-  .list { display: grid; gap: 5px; max-height: 340px; overflow: auto; }
-  .item {
-    display: grid; grid-template-columns: 1fr auto; gap: 8px;
-    width: 100%; text-align: left; padding: 6px 9px;
-  }
-  .item .meta { color: var(--dim); font-size: 11px; }
-  .kv { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; }
-  .kv .k { color: var(--dim); }
-  .kv .v { text-align: right; font-variant-numeric: tabular-nums; }
-  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
-  .styles { display: flex; flex-wrap: wrap; gap: 5px; }
-  .styles button { font-size: 12px; padding: 3px 8px; }
-  #log {
-    font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
-    max-height: 190px; overflow: auto; white-space: pre-wrap;
-  }
-  #log .ok { color: var(--ok); }
-  #log .no { color: var(--no); }
-  .empty-note { color: var(--dim); font-size: 12px; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hd_world 실험실</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<!--
+  아이콘은 여기 한 곳에 있다.
+
+  고정 24×24 격자에 선으로만 그린다 — 칠하지 않는 것은 색이 **상태**를
+  말해야 하기 때문이다. 글리프가 "무엇인지" 를 말하고 색이 "지금 어떤지"
+  를 말한다. 둘을 한 요소에 겹쳐 칠하면 둘 다 안 읽힌다.
+
+  무기는 갈래(베다·찍다)가 아니라 **생김새**(날·도끼·활)로 고른다.
+  같은 갈래라도 장검과 활은 손에 쥐는 것이 다르고, 눈은 그 차이를 먼저
+  본다. 갈래는 묶음 머리글과 검색이 말한다.
+-->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="g-blade"><path d="M12 2.5 L13.8 6.5 V14 H10.2 V6.5 Z"/><path d="M8.5 14.5 H15.5"/><path d="M12 14.5 V19"/><path d="M10.2 19.5 H13.8"/></g>
+  <g id="g-axe"><path d="M9 3.5 V20.5"/><path d="M9 5 C14.5 5 17.5 7 17.5 9.5 C17.5 12 14.5 13.5 9 13.5"/></g>
+  <g id="g-mace"><path d="M12 11 V20.5"/><circle cx="12" cy="7" r="4"/><path d="M12 1.7 V3 M12 11 V12.3 M7.7 7 H6.4 M16.3 7 H17.6"/></g>
+  <g id="g-spear"><path d="M12 8.6 V21"/><path d="M12 2.4 L14.6 6.8 L12 9 L9.4 6.8 Z"/></g>
+  <g id="g-polearm"><path d="M12 2 V21"/><path d="M12 5 C15.6 5.5 17.4 7 17.4 9 C17.4 10.6 15.2 11.6 12 11.6"/><path d="M12 5 C8.8 5.4 7.6 6.4 7.6 7.6"/></g>
+  <g id="g-lance"><path d="M2.6 12 H13"/><path d="M13 8.4 V15.6 L17 13.6 V10.4 Z"/><path d="M17 12 H21.4"/></g>
+  <g id="g-staff"><path d="M6.6 21 L16.4 5.4"/><circle cx="17.8" cy="3.4" r="2"/></g>
+  <g id="g-knuckle"><circle cx="6.6" cy="10" r="2"/><circle cx="10.1" cy="9.3" r="2"/><circle cx="13.6" cy="9.3" r="2"/><circle cx="17.1" cy="10" r="2"/><path d="M5.6 12.6 Q12 16.6 18.2 12.6"/></g>
+  <g id="g-bow"><path d="M8 3 C13.8 7 13.8 17 8 21"/><path d="M8 3 V21"/><path d="M8 12 H19.6"/><path d="M16.2 9.4 L19.8 12 L16.2 14.6"/></g>
+  <g id="g-crossbow"><path d="M7 5 C4 8.6 4 15.4 7 19"/><path d="M4.6 12 H19.4"/><path d="M12 12 V18.4"/><path d="M16.4 9.8 L19.6 12 L16.4 14.2"/></g>
+  <g id="g-arbalest"><path d="M7 5 C4 8.6 4 15.4 7 19"/><path d="M4.6 11 H19.4"/><path d="M16.4 8.8 L19.6 11 L16.4 13.2"/><circle cx="15.4" cy="17" r="3"/></g>
+  <g id="g-thrown"><path d="M8.4 16 L16.6 7.4"/><path d="M14.6 5.4 L18.6 9.4"/><path d="M3 10 H7.4"/><path d="M3 14 H6.4"/></g>
+  <g id="g-blowpipe"><path d="M2.8 17.4 L16.4 6.6"/><circle cx="18.8" cy="5" r="1.4"/><circle cx="21.4" cy="2.9" r="0.9"/></g>
+  <g id="g-summon"><path d="M12 2.4 L14.1 9.4 L21 12 L14.1 14.6 L12 21.6 L9.9 14.6 L3 12 L9.9 9.4 Z"/></g>
+
+  <g id="g-shield"><path d="M12 2.4 L19.8 5.4 V11.8 C19.8 16.8 16.2 20.4 12 21.7 C7.8 20.4 4.2 16.8 4.2 11.8 V5.4 Z"/></g>
+  <g id="g-body"><path d="M8.4 2.6 L12 5 L15.6 2.6 L18.8 4.6 L17.8 11.8 C17.8 16.8 15.4 19.8 12 21.4 C8.6 19.8 6.2 16.8 6.2 11.8 L5.2 4.6 Z"/><path d="M12 5 V21.4"/></g>
+  <g id="g-head"><path d="M5.2 11.4 C5.2 6.2 8.2 2.8 12 2.8 C15.8 2.8 18.8 6.2 18.8 11.4 V18 C18.8 20 16.6 21.2 12 21.2 C7.4 21.2 5.2 20 5.2 18 Z"/><path d="M5.4 12.6 H18.6"/><path d="M9 16.2 H10.4 M13.6 16.2 H15"/></g>
+  <g id="g-legs"><path d="M8.8 2.8 V12 C8.8 15 6.8 16.6 4.8 17.6 C3.7 18.2 3.4 19.3 3.4 20.6 H16.8 C18.4 20.6 19 19.6 19 18.2 C19 15.6 16 14.6 14 12.6 V2.8 Z"/><path d="M8.8 8 H14"/></g>
+  <g id="g-amulet"><path d="M6.6 3 C8.8 8.2 15.2 8.2 17.4 3"/><circle cx="12" cy="14.6" r="5.2"/><circle cx="12" cy="14.6" r="1.7"/></g>
+  <g id="g-crest"><path d="M6.6 3 C8.8 7.6 15.2 7.6 17.4 3"/><path d="M12 8.4 L17.2 14.6 L12 20.8 L6.8 14.6 Z"/><path d="M12 12 L14.4 14.6 L12 17.2 L9.6 14.6 Z"/></g>
+  <g id="g-light"><path d="M12 21.2 V14.2"/><path d="M9.4 14.2 H14.6"/><path d="M12 2.4 C15.6 6.2 16.6 8.2 16.6 10.2 C16.6 12.8 14.5 14.2 12 14.2 C9.5 14.2 7.4 12.8 7.4 10.2 C7.4 8.2 8.4 6.2 12 2.4 Z"/></g>
+  <g id="g-flask"><path d="M9.8 2.6 H14.2"/><path d="M11 2.6 V8.2 L7.6 15.6 C6.6 18 8.2 21.2 12 21.2 C15.8 21.2 17.4 18 16.4 15.6 L13 8.2 V2.6"/><path d="M8.3 14.6 H15.7"/></g>
+
+  <!--
+    적 24 모양. 종류가 76 이라 모양만으로는 못 가르고, foes.js 가
+    모양에 **고유한 색**을 짝지어 76 을 만든다. 44 픽셀 칸에서
+    알아볼 수 있는 선화는 이 정도가 한계다.
+  -->
+  <g id="f-humanoid"><circle cx="12" cy="5.6" r="3"/><path d="M12 8.6 V16"/><path d="M7 11 L12 9.6 L17 11"/><path d="M12 16 L8.6 21.4 M12 16 L15.4 21.4"/></g>
+  <g id="f-big"><circle cx="12" cy="5.2" r="3.2"/><path d="M8.6 9.4 H15.4 L16.6 16 H7.4 Z"/><path d="M7.4 10 L4.2 15 M16.6 10 L19.8 15"/><path d="M9.4 16 V21.6 M14.6 16 V21.6"/></g>
+  <g id="f-beast"><path d="M4 15 C4 11.6 7 10 11 10 C15.4 10 19 11.4 19.6 14 L21 12.6"/><path d="M19.6 14 L17 14.8"/><circle cx="18.4" cy="12.6" r="0.9" fill="currentColor" stroke="none"/><path d="M6 15 V20 M10 15.6 V20 M14.6 15.4 V20 M18 15 V19.4"/><path d="M4 15 L1.8 18.4"/></g>
+  <g id="f-serpent"><path d="M3.4 19.6 C7.4 19.6 6.6 14.6 11 14.6 C15.4 14.6 14.6 9 18.6 9"/><circle cx="20" cy="7.2" r="2.6"/><path d="M21.6 5.4 L22.8 3.4"/></g>
+  <g id="f-worm"><path d="M3.4 17 C3.4 13.4 7 13.4 7 17 C7 20.6 10.6 20.6 10.6 17 C10.6 13.4 14.2 13.4 14.2 17 C14.2 20.6 17.8 20.6 17.8 17 C17.8 13 20.6 12.6 21 9.4"/><circle cx="20.6" cy="6.8" r="2.4"/></g>
+  <g id="f-bug"><ellipse cx="12" cy="13.6" rx="4" ry="5.4"/><path d="M8 9 L3.4 5.4 M16 9 L20.6 5.4 M7.4 13.6 H2.6 M16.6 13.6 H21.4 M8 18 L3.8 21.4 M16 18 L20.2 21.4"/><path d="M10.6 8.4 L9.4 4.6 M13.4 8.4 L14.6 4.6"/></g>
+  <g id="f-bat"><circle cx="12" cy="11.6" r="2.8"/><path d="M9.4 10.4 C6 7.4 3.4 7.4 1.8 9.4 C3.8 10.4 3.4 13.4 5 15.4 C6.4 13 8 12.8 9.6 13.4"/><path d="M14.6 10.4 C18 7.4 20.6 7.4 22.2 9.4 C20.2 10.4 20.6 13.4 19 15.4 C17.6 13 16 12.8 14.4 13.4"/><path d="M10.4 8.6 L9.4 6 M13.6 8.6 L14.6 6"/></g>
+  <g id="f-bone"><path d="M12 3.4 C15.4 3.4 17.4 6 17.4 9.4 C17.4 12 16 13 16 14.6 H8 C8 13 6.6 12 6.6 9.4 C6.6 6 8.6 3.4 12 3.4 Z"/><circle cx="9.8" cy="9.2" r="1.3"/><circle cx="14.2" cy="9.2" r="1.3"/><path d="M8.6 17 H15.4 M8.6 19.4 H15.4 M12 14.6 V21.4"/></g>
+  <g id="f-skull"><path d="M12 2.6 C16.6 2.6 19.6 6 19.6 10.4 C19.6 13.6 17.8 15 17.8 17 H6.2 C6.2 15 4.4 13.6 4.4 10.4 C4.4 6 7.4 2.6 12 2.6 Z"/><circle cx="9" cy="10" r="2.2"/><circle cx="15" cy="10" r="2.2"/><path d="M12 13 L10.8 15.4 H13.2 Z"/><path d="M7.4 17 V20.6 M12 17 V21.4 M16.6 17 V20.6"/></g>
+  <g id="f-ghost"><path d="M5 21 V10.6 C5 6.4 8.2 3.4 12 3.4 C15.8 3.4 19 6.4 19 10.6 V21 L16.6 18.6 L14.2 21 L12 18.6 L9.8 21 L7.4 18.6 Z"/><circle cx="9.6" cy="10" r="1.3" fill="currentColor" stroke="none"/><circle cx="14.4" cy="10" r="1.3" fill="currentColor" stroke="none"/></g>
+  <g id="f-wisp"><circle cx="12" cy="10.6" r="4.4"/><circle cx="12" cy="10.6" r="1.6"/><path d="M12 2.6 V5 M12 16.2 V18.6 M4 10.6 H6.4 M17.6 10.6 H20 M6.4 5 L8.2 6.8 M17.6 5 L15.8 6.8 M6.4 16.2 L8.2 14.4 M17.6 16.2 L15.8 14.4"/></g>
+  <g id="f-eye"><path d="M1.8 12 C5 6.6 9 4.6 12 4.6 C15 4.6 19 6.6 22.2 12 C19 17.4 15 19.4 12 19.4 C9 19.4 5 17.4 1.8 12 Z"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></g>
+  <g id="f-slime"><path d="M3.4 20.4 C3.4 13.4 6.6 6.4 12 6.4 C17.4 6.4 20.6 13.4 20.6 20.4 Z"/><circle cx="9.8" cy="14.6" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.2" cy="14.6" r="1.2" fill="currentColor" stroke="none"/><path d="M13.4 4 C13.4 5.4 12.6 6.2 12 6.4"/></g>
+  <g id="f-rock"><path d="M4.6 9.4 L9.4 3.4 H15.4 L19.4 8.6 L17.4 18.6 L11.4 21.4 L5.4 17.4 Z"/><path d="M9.4 3.4 L11.4 10.6 L19.4 8.6 M11.4 10.6 L11.4 21.4 M11.4 10.6 L5.4 17.4"/></g>
+  <g id="f-flame"><path d="M12 1.8 C16.6 6.6 18.6 10 18.6 13.4 C18.6 17.6 15.6 21 12 21 C8.4 21 5.4 17.6 5.4 13.4 C5.4 10 7.4 6.6 12 1.8 Z"/><path d="M12 9.4 C14.2 12.2 15 13.8 15 15.4 C15 17.6 13.6 19 12 19 C10.4 19 9 17.6 9 15.4 C9 13.8 9.8 12.2 12 9.4 Z"/></g>
+  <g id="f-dragon"><path d="M2.6 18.6 C6.6 18.6 8.6 15.4 11.4 13.4 C13.4 12 15.4 11.4 17.4 11.4"/><circle cx="19.4" cy="9.6" r="2.8"/><path d="M21 7.4 L22.6 5"/><path d="M17.4 11.4 C14.6 7.4 9.4 6.6 5.4 9.4 C8.6 9.4 10.6 11.4 11.4 13.4"/><path d="M4.6 18.6 L2.2 21.4 M9 16.4 L7.4 20.6"/></g>
+  <g id="f-wing"><circle cx="12" cy="8.4" r="2.8"/><path d="M12 11.2 V19.4"/><path d="M9.4 12.4 C6 10 3 10 1.4 12 C3.8 12.8 4.4 15.4 6.2 17 C7 14.6 8.2 13.6 9.4 13.6"/><path d="M14.6 12.4 C18 10 21 10 22.6 12 C20.2 12.8 19.6 15.4 17.8 17 C17 14.6 15.8 13.6 14.6 13.6"/><path d="M12 19.4 L10 22 M12 19.4 L14 22"/></g>
+  <g id="f-fairy"><circle cx="12" cy="9.4" r="2.4"/><path d="M12 11.8 V17.4 M9.8 20.4 L12 17.4 L14.2 20.4"/><path d="M9.6 8.4 C6.6 5.4 4.4 6.4 4.4 9 C4.4 11.4 7 12.4 9.6 11"/><path d="M14.4 8.4 C17.4 5.4 19.6 6.4 19.6 9 C19.6 11.4 17 12.4 14.4 11"/></g>
+  <g id="f-knight"><path d="M6.6 8.6 C6.6 5 9 2.6 12 2.6 C15 2.6 17.4 5 17.4 8.6 V13.4 C17.4 15 15.4 16 12 16 C8.6 16 6.6 15 6.6 13.4 Z"/><path d="M6.6 9.4 H17.4 M9.4 12 H10.6 M13.4 12 H14.6"/><path d="M12 2.6 V0.8"/><path d="M6.6 16.4 L4.4 21.6 M17.4 16.4 L19.6 21.6 M9.4 16.6 V21.6 M14.6 16.6 V21.6"/></g>
+  <g id="f-sword"><path d="M12 1.8 L14 6 V15 H10 V6 Z"/><path d="M7 15.6 H17"/><path d="M12 15.6 V20.4"/><path d="M10 21 H14"/><path d="M4.6 8 L2.6 6 M19.4 8 L21.4 6 M4.6 13 L2.6 15 M19.4 13 L21.4 15"/></g>
+  <g id="f-scythe"><path d="M6.6 2.6 L17.4 21.4"/><path d="M6.6 3.4 C12.6 3.4 17.4 6.6 19.4 11.4 C15.4 8.6 10.6 8 7.4 9.4"/></g>
+  <g id="f-mage"><path d="M12 2.2 L17.4 9.4 H6.6 Z"/><path d="M6.6 9.4 C6.6 9.4 5.4 15 5.4 21.4 H18.6 C18.6 15 17.4 9.4 17.4 9.4 Z"/><circle cx="10.2" cy="13.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="13.8" cy="13.4" r="1.1" fill="currentColor" stroke="none"/><path d="M12 16.6 V21.4"/></g>
+  <g id="f-crab"><ellipse cx="12" cy="13" rx="5.4" ry="4"/><path d="M6.6 11 C4 8.4 2.6 6.6 2.6 4.6 M2.6 4.6 L0.8 6.4 M2.6 4.6 L4.4 6"/><path d="M17.4 11 C20 8.4 21.4 6.6 21.4 4.6 M21.4 4.6 L19.6 6.4 M21.4 4.6 L23.2 6"/><path d="M7.4 16.4 L5.4 20.4 M12 17 V21.4 M16.6 16.4 L18.6 20.4"/><circle cx="10" cy="11.4" r="1" fill="currentColor" stroke="none"/><circle cx="14" cy="11.4" r="1" fill="currentColor" stroke="none"/></g>
+  <g id="f-robo"><rect x="5.4" y="4.6" width="13.2" height="10.8" rx="1.6"/><circle cx="9.4" cy="9.4" r="1.6"/><circle cx="14.6" cy="9.4" r="1.6"/><path d="M8.6 12.6 H15.4"/><path d="M12 2.4 V4.6"/><path d="M5.4 8 H2.6 M18.6 8 H21.4"/><path d="M8.6 15.4 V21.4 M15.4 15.4 V21.4"/></g>
+
+  <g id="g-lock"><path d="M8 11 V8.2 C8 5.8 9.8 4.2 12 4.2 C14.2 4.2 16 5.8 16 8.2 V11"/><rect x="5.8" y="11" width="12.4" height="9.2" rx="1.6"/></g>
+  <g id="g-void"><circle cx="12" cy="12" r="7.2" stroke-dasharray="2.6 2.8"/></g>
+  <g id="g-swap"><path d="M4.4 8.6 H16.4"/><path d="M13.4 5.4 L16.8 8.6 L13.4 11.8"/><path d="M19.6 15.4 H7.6"/><path d="M10.6 12.2 L7.2 15.4 L10.6 18.6"/></g>
+</defs></svg>
+
 <header>
-  <h1>hd_world 실험실</h1>
-  <span class="sub">장비를 마우스로 갈아 끼우고 무엇이 바뀌는지 본다</span>
-  <span class="grow"></span>
-  <button id="magic">마법의 횃불 끄기/켜기</button>
-  <button id="fight">한 판 싸워 본다</button>
-  <button id="reset">처음으로</button>
-  <a class="sub" href="/api/guide" target="_blank">API 안내</a>
-  <a class="sub" href="/openapi.yaml" target="_blank">OpenAPI</a>
+  <div class="brand">
+    <svg class="ico" viewBox="0 0 24 24"><use href="#g-blade"/></svg>
+    <b>hd_world</b><span class="muted">실험실</span>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="gear" class="on">장비</button>
+    <button data-tab="pack">가방</button>
+    <button data-tab="fight">전투</button>
+    <button data-tab="flags">플래그</button>
+    <button data-tab="record">기록</button>
+  </nav>
+
+  <label class="search">
+    <svg class="ico sm" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.4"/><path d="M15.2 15.2 L20.4 20.4"/></svg>
+    <input id="q" type="search" spellcheck="false"
+           placeholder="이름/갈래, is:착용 is:겹침 kind:slash slot:leftHand -is:양손">
+    <button id="qClear" class="ghost" title="지우기">✕</button>
+  </label>
+
+  <div class="grow"></div>
+
+  <!-- 마법의 횃불은 여기 없다. 그것이 바꾸는 것(시야·횃불·달빛)이
+       아래 요약 줄에 있으므로 단추도 그 옆에 있다. -->
+  <button id="save" class="ghost" title="지금 세계를 파일로 받는다">내려받기</button>
+  <button id="loadBtn" class="ghost" title="세이브 파일을 올려 이 세계를 바꾼다">불러오기</button>
+  <input id="loadFile" type="file" accept="application/json" hidden>
+  <button id="reset" class="ghost">처음으로</button>
 </header>
 
+<div id="bar" class="bar"></div>
+
 <main>
-  <div>
-    <div class="panel">
-      <h2>일행</h2>
-      <div id="party"></div>
-    </div>
-    <div class="panel" style="margin-top:14px">
-      <h2>파티</h2>
-      <div id="partyInfo" class="kv"></div>
-      <div class="chips" id="caps" style="margin-top:8px"></div>
-    </div>
-  </div>
+  <section id="tab-gear" class="tab">
+    <div id="party" class="party"></div>
+  </section>
 
-  <div>
-    <div class="panel">
-      <h2>부위 여덟</h2>
-      <div class="slots" id="slots"></div>
-    </div>
-    <div class="panel" style="margin-top:14px">
-      <h2>상시 지시</h2>
-      <div class="styles" id="styles"></div>
-      <div class="row" style="margin-top:6px">
-        <span class="k">절약 — 마법 지수가 절반 아래면 기술을 쓰지 않는다</span>
-        <button id="thrift">끄기/켜기</button>
-      </div>
-    </div>
-    <div class="panel" style="margin-top:14px">
-      <h2>일어난 일</h2>
-      <div id="log"></div>
-    </div>
-  </div>
+  <section id="tab-pack" class="tab" hidden>
+    <div id="packFull"></div>
+  </section>
 
-  <div>
-    <div class="panel">
-      <h2 id="candTitle">채울 수 있는 것</h2>
-      <div class="list" id="cands"></div>
-    </div>
-    <div class="panel" style="margin-top:14px">
-      <h2>더한 값</h2>
-      <div class="kv" id="stats"></div>
-      <div class="chips" id="marks" style="margin-top:8px"></div>
-    </div>
-    <div class="panel" style="margin-top:14px">
-      <h2>가방</h2>
-      <div class="list" id="pack"></div>
-    </div>
-  </div>
+  <!--
+    격자 하나가 B5 의 규칙을 그대로 그린다.
+
+        거리(a, e) = gap + (a.rank - 1) + (e.rank - 1)
+
+    y 축이 거리다. 위가 적, 아래가 아군, 가운데 빈 줄이 `gap`. 아군
+    한 줄에서 적 한 줄까지 **줄을 세면** 그것이 곧 거리다 — 식을 읽지
+    않아도 보인다.
+  -->
+  <section id="tab-fight" class="tab" hidden>
+    <div id="fightBoard"></div>
+  </section>
+
+  <section id="tab-flags" class="tab" hidden>
+    <div id="flags"></div>
+  </section>
+
+  <section id="tab-record" class="tab" hidden>
+    <div id="record"></div>
+  </section>
 </main>
 
-<script>
-const $ = (id) => document.getElementById(id);
-let TEXT = null, CATALOG = null, STATE = null;
-let who = null, slot = null;
+<!--
+  오른쪽 기둥은 **지금 탭이 쓰는 것만** 보인다.
 
-const nameOf = (ref) => (TEXT && TEXT.item[ref]) || ref || '';
-const t = (table, key) => (TEXT && TEXT[table] && TEXT[table][key]) || key;
+  물건 자세히와 「바꾸면 뭐가 달라지나」는 장비·가방에서만 뜻이 있고,
+  플래그 탭에서 물건 설명이 열려 있으면 무엇을 보고 있는 화면인지가
+  흐려진다. `data-for` 가 어느 탭의 것인지를 말하고, 없으면 늘 보인다.
+-->
+<aside id="side">
+  <div id="detail" class="card" data-for="gear pack"></div>
+  <div id="diff" class="card" data-for="gear pack" hidden></div>
+  <div class="card" data-for="gear pack">
+    <h3>장비 모음</h3>
+    <div id="loadouts" class="loadouts"></div>
+  </div>
+  <div class="card">
+    <h3>일어난 일</h3>
+    <div id="log"></div>
+  </div>
+  <div class="card" data-for="gear pack flags">
+    <h3 id="legendTitle">색이 말하는 것</h3>
+    <div id="legend" class="legend"></div>
+  </div>
+</aside>
 
-async function get(path) {
-  const r = await fetch(path);
-  if (!r.ok) throw new Error(path + ' → ' + r.status);
-  return r.json();
-}
-async function post(path, body) {
-  const r = await fetch(path, {
-    method: 'POST',
-    headers: {'content-type': 'application/json'},
-    body: JSON.stringify(body || {}),
-  });
-  return r.json();
-}
-
-function log(line, cls) {
-  const el = document.createElement('div');
-  if (cls) el.className = cls;
-  el.textContent = line;
-  $('log').prepend(el);
-}
-
-function describeEvent(e) {
-  const w = e.member ? memberName(e.member) : '';
-  switch (e.kind) {
-    case 'equipped':   return `${w} ${t('slot', e.slot)}에 ${nameOf(e.item)}을 채웠다.`;
-    case 'unequipped': return `${w} ${t('slot', e.slot)}의 ${nameOf(e.item)}을 벗었다.`;
-    case 'offHandCleared': return `${w} 양손 무기라 왼손의 ${nameOf(e.item)}이 가방으로 돌아갔다.`;
-    case 'handsSwapped': return `${w} 두 손을 바꿔 들었다.`;
-    case 'styleSet':   return `${w} 지시를 ${t('style', e.style)}로 두었다${e.thrift ? ' (절약)' : ''}.`;
-    case 'gained':     return `${nameOf(e.item)} ${e.count}개를 얻었다.`;
-    case 'lost':       return `${nameOf(e.item)} ${e.count}개를 잃었다.`;
-    case 'reordered':  return `대열을 바꿨다.`;
-    case 'refused':    return `거절 — ${t('refusal', e.reason)}`;
-    default:           return e.kind;
-  }
-}
-
-function memberName(ref) {
-  const m = STATE && STATE.members.find((m) => m.ref === ref);
-  return m ? m.name : ref;
-}
-
-function selected() {
-  return STATE && STATE.members.find((m) => m.ref === who);
-}
-
-async function apply(command) {
-  const out = await post('/api/command', {command});
-  if (out.error) { log('요청이 잘못됐다 — ' + out.error, 'no'); return; }
-  for (const e of out.events) {
-    log(describeEvent(e), e.kind === 'refused' ? 'no' : 'ok');
-  }
-  STATE = out.state;
-  render();
-}
-
-function renderParty() {
-  const box = $('party');
-  box.innerHTML = '';
-  for (const m of STATE.members) {
-    const b = document.createElement('button');
-    b.className = 'member panel' + (m.ref === who ? ' sel' : '');
-    b.innerHTML =
-      `<div class="who">${m.name}</div>` +
-      `<div class="job">${t('class', m.class)} · ${t('weaponKind', m.weaponKind)}</div>`;
-    b.onclick = () => { who = m.ref; slot = null; render(); };
-    box.append(b);
-  }
-}
-
-function renderSlots() {
-  const m = selected();
-  const box = $('slots');
-  box.innerHTML = '';
-  if (!m) { box.innerHTML = '<div class="empty-note">사람을 고르시오.</div>'; return; }
-  for (const s of m.slots) {
-    const b = document.createElement('button');
-    b.className = 'slot panel' + (s.slot === slot ? ' sel' : '') +
-                  (s.locked ? ' locked' : '');
-    const what = s.item
-      ? `<span class="what">${nameOf(s.item)}</span>`
-      : `<span class="what empty">(비어 있음)</span>`;
-    const tag = s.locked
-      ? '<span class="tag warn">양손 무기라 잠김</span>'
-      : (s.item ? '<span class="tag">벗기려면 눌러 고르시오</span>' : '');
-    b.innerHTML = `<span class="name">${t('slot', s.slot)}</span>${what}${tag}`;
-    b.onclick = () => { slot = s.slot; render(); };
-    box.append(b);
-  }
-}
-
-function modifierLine(item) {
-  const parts = [];
-  for (const mod of item.modifiers || []) {
-    const sign = mod.value >= 0 ? '+' : '';
-    parts.push(`${t('stat', mod.stat)} ${sign}${mod.value}${mod.op === 'percent' ? '%' : ''}`);
-  }
-  for (const a of item.immunities || []) parts.push(`${t('ailment', a)} 면역`);
-  for (const c of item.grants || []) parts.push(t('capability', c));
-  if (item.annexKey) parts.push(t('annex', item.annexKey));
-  if (item.attackPower > 1) {
-    parts.unshift(`공격력 ${item.attackPower}` +
-      (item.hands === 2 ? ' · 양손' : ' · 한손'));
-  }
-  return parts.join(' · ');
-}
-
-async function renderCandidates() {
-  const box = $('cands');
-  box.innerHTML = '';
-  const m = selected();
-  if (!m || !slot) {
-    $('candTitle').textContent = '채울 수 있는 것';
-    box.innerHTML = '<div class="empty-note">부위를 고르시오.</div>';
-    return;
-  }
-  $('candTitle').textContent = `${t('slot', slot)}에 채울 수 있는 것`;
-  const current = m.slots.find((s) => s.slot === slot);
-
-  if (current && current.item) {
-    const def = CATALOG.items.find((i) => i.ref === current.item);
-    const b = document.createElement('button');
-    b.className = 'item panel';
-    b.innerHTML = `<span>(비운다) — ${nameOf(current.item)}</span>` +
-      (def && !def.removable ? '<span class="meta">벗을 수 없다</span>' : '');
-    b.onclick = () => apply({kind: 'unequip', member: who, slot});
-    box.append(b);
-  }
-
-  const out = await get(`/api/candidates?member=${who}&slot=${slot}`);
-  if (out.items.length === 0) {
-    const note = document.createElement('div');
-    note.className = 'empty-note';
-    note.textContent = current && current.locked
-      ? '오른손이 양손 무기라 이 칸은 잠겨 있다.'
-      : '가방에 채울 것이 없다.';
-    box.append(note);
-  }
-  for (const ref of out.items) {
-    const def = CATALOG.items.find((i) => i.ref === ref);
-    const b = document.createElement('button');
-    b.className = 'item panel';
-    b.innerHTML = `<span>${nameOf(ref)}<div class="meta">${def ? modifierLine(def) : ''}</div></span>` +
-      `<span class="meta">${STATE.pack.find((p) => p.item === ref)?.count ?? ''}</span>`;
-    b.onclick = () => apply({kind: 'equip', member: who, slot, item: ref});
-    box.append(b);
-  }
-
-  if (slot === 'rightHand' || slot === 'leftHand') {
-    const b = document.createElement('button');
-    b.className = 'item panel';
-    b.innerHTML = '<span>두 손을 바꿔 든다</span>';
-    b.onclick = () => apply({kind: 'swapHands', member: who});
-    box.append(b);
-  }
-}
-
-function renderStats() {
-  const m = selected();
-  const box = $('stats');
-  const marks = $('marks');
-  box.innerHTML = '';
-  marks.innerHTML = '';
-  if (!m) return;
-  const show = [
-    ['maxHitPoints', m.vitals.maxHitPoints],
-    ['maxSpellPoints', m.vitals.maxSpellPoints],
-    ['maxEspPoints', m.vitals.maxEspPoints],
-    ['defence', m.stats.defence],
-    ['shieldBlock', m.stats.shieldBlock],
-    ['evasion', m.stats.evasion],
-    ['accuracyPhysical', m.stats.accuracyPhysical],
-    ['coatingSlots', m.stats.coatingSlots],
-  ];
-  for (const [key, value] of show) {
-    box.insertAdjacentHTML('beforeend',
-      `<div class="k">${t('stat', key)}</div><div class="v">${value}</div>`);
-  }
-  box.insertAdjacentHTML('beforeend',
-    `<div class="k">무기 종류</div><div class="v">${t('weaponKind', m.weaponKind)}</div>`);
-  box.insertAdjacentHTML('beforeend',
-    `<div class="k">공격력</div><div class="v">${m.attackPower}</div>`);
-  for (const a of m.immunities) {
-    marks.insertAdjacentHTML('beforeend',
-      `<span class="tag hi">${t('ailment', a)} 면역</span>`);
-  }
-  for (const c of m.grants) {
-    marks.insertAdjacentHTML('beforeend',
-      `<span class="tag hi">${t('capability', c)}</span>`);
-  }
-  if (m.offHandLocked) {
-    marks.insertAdjacentHTML('beforeend',
-      '<span class="tag warn">왼손 잠김</span>');
-  }
-}
-
-function renderStyles() {
-  const m = selected();
-  const box = $('styles');
-  box.innerHTML = '';
-  if (!m) return;
-  for (const s of CATALOG.styles) {
-    const allowed = m.allowedStyles.includes(s.style);
-    const b = document.createElement('button');
-    b.className = m.style === s.style ? 'on' : '';
-    b.textContent = s.name;
-    b.title = s.hint + (allowed ? '' : ' — 이 직업에는 없다');
-    b.disabled = !allowed;
-    if (!allowed) b.style.opacity = .35;
-    b.onclick = () => apply({kind: 'setStyle', member: who, style: s.style});
-    box.append(b);
-  }
-  $('thrift').className = m.thrift ? 'on' : '';
-  $('thrift').onclick = () =>
-    apply({kind: 'setStyle', member: who, style: m.style, thrift: !m.thrift});
-}
-
-function renderPartyInfo() {
-  const p = STATE.party;
-  $('partyInfo').innerHTML =
-    `<div class="k">어둠 속 시야</div><div class="v">${p.sightInDarkness}</div>` +
-    `<div class="k">횃불 든 사람</div><div class="v">${p.lightBearers}</div>` +
-    `<div class="k">달빛</div><div class="v">${p.moonlight ? '있음' : '없음'}</div>` +
-    `<div class="k">마법의 횃불</div><div class="v">${p.magicLight ? '켜짐' : '꺼짐'}</div>`;
-  const caps = $('caps');
-  caps.innerHTML = '';
-  if (p.capabilities.length === 0) {
-    caps.innerHTML = '<span class="empty-note">지형을 여는 것이 없다.</span>';
-  }
-  for (const c of p.capabilities) {
-    caps.insertAdjacentHTML('beforeend',
-      `<span class="tag hi">${t('capability', c)}</span>`);
-  }
-  $('magic').className = p.magicLight ? 'on' : '';
-}
-
-function renderPack() {
-  const box = $('pack');
-  box.innerHTML = '';
-  const rows = [...STATE.pack].sort((a, b) =>
-    nameOf(a.item).localeCompare(nameOf(b.item), 'ko'));
-  for (const row of rows) {
-    const def = CATALOG.items.find((i) => i.ref === row.item);
-    box.insertAdjacentHTML('beforeend',
-      `<div class="item panel"><span>${nameOf(row.item)}` +
-      `<div class="meta">${def ? modifierLine(def) : ''}</div></span>` +
-      `<span class="meta">${row.count}</span></div>`);
-  }
-}
-
-function render() {
-  renderParty();
-  renderSlots();
-  renderStats();
-  renderStyles();
-  renderPartyInfo();
-  renderPack();
-  renderCandidates();
-}
-
-$('fight').onclick = async () => {
-  const out = await post('/api/battle', {enemyKeys: ['orc','orc','wolf'], seed: Date.now() % 1000});
-  if (out.error) { log('전투가 끝나지 않았다 — ' + out.error, 'no'); return; }
-  const label = {win: '이겼다', lose: '전멸했다', escape: '도망쳤다'}[out.result] || out.result;
-  log(`${out.result === 'win' ? '' : ''}${out.rounds}라운드, ${label}. (오크 둘 + 늑대, 간격 ${out.openingGap ?? '자동'})`,
-      out.result === 'win' ? 'ok' : 'no');
-  for (const m of out.members) {
-    const d = m.hitPointsBefore - m.hitPointsAfter;
-    log(`  ${m.name} ${t('weaponKind', m.weaponKind)}(사거리 ${m.reach}) ` +
-        `체력 ${m.hitPointsBefore}→${m.hitPointsAfter}` +
-        (d > 0 ? ` (−${d})` : '') +
-        (m.experience ? ` · 경험치 +${m.experience}` : ''));
-  }
-  for (const [k, v] of Object.entries(out.spent || {})) {
-    log(`  ${nameOf('consumable.' + k)} ${v}개를 썼다.`);
-  }
-  STATE = out.state;
-  render();
-};
-
-$('reset').onclick = async () => {
-  const out = await post('/api/reset');
-  STATE = out.state;
-  log('처음 상태로 되돌렸다.', 'ok');
-  render();
-};
-$('magic').onclick = async () => {
-  const out = await post('/api/magicLight', {on: !STATE.party.magicLight});
-  STATE = out.state;
-  log('마법의 횃불을 ' + (out.magicLight ? '켰다' : '껐다') + '.', 'ok');
-  render();
-};
-
-(async () => {
-  [TEXT, CATALOG, STATE] = await Promise.all([
-    get('/api/text'), get('/api/catalog'), get('/api/state'),
-  ]);
-  who = STATE.members[0]?.ref ?? null;
-  slot = 'rightHand';
-  render();
-  log('불러왔다. 사람과 부위를 고르고 오른쪽에서 채우시오.', 'ok');
-})();
-</script>
+<script src="icons.js"></script>
+<script src="foes.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
