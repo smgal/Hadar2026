@@ -1,0 +1,106 @@
+{
+  "대화 칸 처리 블록": {
+    "prefix": ["on", "handler"],
+    "body": [
+      "if (On(${1:x}, ${2:y}))",
+      "\tEvent::Override()",
+      "\tTalk(\"${3:대사}\")$0"
+    ],
+    "description": "if (On(x,y)) 로 한 칸을 고르고 Event::Override() 로 맵 JSON 대사를 막는다"
+  },
+  "선택지 블록": {
+    "prefix": ["select", "choice"],
+    "body": [
+      "Select::Init()",
+      "Select::Add(\"${1:질문}\")",
+      "Select::Add(\"${2:첫 번째 대답}\")",
+      "Select::Add(\"${3:두 번째 대답}\")",
+      "Select::Run()",
+      "${4:temp}.assign(Select::Result())",
+      "if (Equal(${4:temp}, 1))",
+      "\t$0",
+      "else",
+      "\t"
+    ],
+    "description": "첫 Add 는 질문, 그다음부터 대답. Select::Result() 는 대답 번호(1부터)"
+  },
+  "플래그 분기": {
+    "prefix": ["flag", "ifflag"],
+    "body": [
+      "if (Not(Flag::IsSet(${1:GFD0_FLAG_NAME})))",
+      "\t$0",
+      "\tFlag::Set(${1:GFD0_FLAG_NAME})",
+      "else",
+      "\tTalk(\"${2:이미 한 뒤의 대사}\")"
+    ],
+    "description": "처음 한 번만 실행하고 플래그를 켠다. 번호 대신 flag4ep1.cm2 의 이름을 쓴다"
+  },
+  "전투": {
+    "prefix": ["battle"],
+    "body": [
+      "Battle::Init()",
+      "Battle::RegisterEnemy(${1:26})",
+      "Battle::ShowEnemy()",
+      "Battle::Start(${2:0})",
+      "${3:temp}.assign(Battle::Result())",
+      "if (Equal(${3:temp}, BATTLERESULT_WIN))",
+      "\t$0",
+      "else",
+      "\t"
+    ],
+    "description": "적을 등록해 싸우고 결과(BATTLERESULT_WIN/LOSE/EVADE)를 반드시 읽는다"
+  },
+  "변수 선언과 초기값": {
+    "prefix": ["variable", "var"],
+    "body": [
+      "variable(${1:NAME})",
+      "${1:NAME}.assign(${2:0})"
+    ],
+    "description": "선언과 대입의 이름이 같아야 한다. 다르면 조용히 0 이 된다"
+  },
+  "상호작용 종류 분기": {
+    "prefix": ["mode", "scriptmode"],
+    "body": [
+      "if (Equal(ScriptMode(), ${1|FLAG_TALK,FLAG_SIGN,FLAG_EVENT,FLAG_ENTER,FLAG_MAP|}))",
+      "\t$0"
+    ],
+    "description": "말 걸기·푯말·밟기·들어가기·맵 로드 중 어느 상호작용인지 고른다"
+  },
+  "맵 스크립트 뼈대": {
+    "prefix": ["mapscript", "skeleton"],
+    "body": [
+      "include(\"const.cm2\")",
+      "include(\"flag4ep1.cm2\")",
+      "",
+      "variable(temp)",
+      "",
+      "if (Equal(ScriptMode(), FLAG_MAP))",
+      "\tMap::SetType(${1|MAPTYPE_TOWN,MAPTYPE_KEEP,MAPTYPE_GROUND,MAPTYPE_DEN|})",
+      "\tMap::SetStartPos(${2:x}, ${3:y})",
+      "",
+      "if (Equal(ScriptMode(), FLAG_TALK))",
+      "\tif (On(${4:x}, ${5:y}))",
+      "\t\tEvent::Override()",
+      "\t\tTalk(\"${6:대사}\")$0",
+      "",
+      "if (Equal(ScriptMode(), FLAG_ENTER))",
+      "\tif (On(${7:x}, ${8:y}))",
+      "\t\tLoadScript(\"${9:Map002.cm2}\")"
+    ],
+    "description": "새 맵 cm2 의 기본 구조. 상태는 Flag::Set 으로만 남긴다(최상위 .assign 은 상호작용마다 되돌아간다)"
+  },
+  "다른 맵으로": {
+    "prefix": ["loadscript", "warp"],
+    "body": [
+      "LoadScript(\"${1:Map002.cm2}\", ${2:x}, ${3:y})"
+    ],
+    "description": "좌표를 생략하면 그 맵의 Map::SetStartPos 나 가운데에 선다. 이 줄 뒤는 실행되지 않는다"
+  },
+  "색 강조 문자열": {
+    "prefix": ["talkb", "emph"],
+    "body": [
+      "Talk(\"${1:앞부분}@B${2:강조}@@${3:뒷부분}\")"
+    ],
+    "description": "@B…@@ 파란 강조. 한 줄에 두 구간까지"
+  }
+}

@@ -1,0 +1,23 @@
+name: cm2_lsp
+description: >-
+  cm2 스크립트 언어 서버. packages/cm2_script 의 파서를 그대로 쓰고,
+  동사 표는 lib/data/cm2_symbols.json 에서 읽는다 (앱의 시험이 그 표가
+  실제 등록과 같은지 확인한다).
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  lsp_server: ^0.4.0
+  path: ^1.9.0
+  cm2_script:
+    path: ../../../packages/cm2_script
+  # 속성 이름의 정본 — Player::(Get|Change)Attribute 의 두 번째 인자를 여기에 묻는다.
+  hd_world_legacy:
+    path: ../../../packages/hd_world_legacy
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0

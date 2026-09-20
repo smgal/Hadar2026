@@ -138,6 +138,14 @@ Flutter/Dart remake of the classic Korean RPG "또 다른 지식의 성전 (Hada
   `checkLevelUp()` 호출처가 죽은 `application/battle.dart` 하나뿐이라
   **레벨이 전혀 오르지 않았다**(B3-05 에서 `battle_bridge/level_up.dart` 로 해소).
   전투 밖 효과 13종(B3-04)이 같은 종류로 남아 있다.
+- **cm2 를 쓸 때는 VS Code 확장을 켠다** — `tools/vscode-cm2/`. 문법 강조·스니펫과
+  Dart 언어 서버(빨간 줄·완성·도움말·정의로 이동). 파서는 `packages/cm2_script` **그대로**이고
+  동사 표는 `tools/vscode-cm2/server/lib/data/cm2_symbols.json` 한 곳이다.
+  **동사를 등록·삭제하면 그 JSON 도 고친다** — `test/application/scripting/cm2_symbols_snapshot_test.dart`
+  가 두 목록이 어긋나면 이름으로 말한다. 진단은 CI 감사와 같은 것(모르는 이름·속성·플래그 충돌·
+  `variable`/`.assign` 불일치·`Battle::Result` 미읽기)을 편집 중에 보여 준다.
+  cm2→Lua 전환은 2026-09-20 에 검토 후 접었다 — 순수 Dart Lua VM 이 「스크립트가 UI 를
+  기다리는」 구조를 감당하지 못한다(coroutine 결함, 직접 돌려 확인).
 - **cm2 는 검증된 적 없는 코드다.** `test/application/scripting/cm2_assets_audit_test.dart`
   가 출하 `assets/*.cm2` 전량을 훑는다 — 모르는 명령·함수, 없는 속성 이름,
   값을 못 받은 `variable`, 결과를 안 읽는 `Battle::Start`. cm2 를 고치면 이것도 돈다.
@@ -256,6 +264,15 @@ cd packages/hd_world_legacy && dart pub get && dart test
 cd ../hd_bridge && dart pub get && dart test
 # cm2 아이템 상수를 다시 만든다 (카탈로그가 바뀌면)
 cd packages/hd_world_legacy && dart run tool/make_item_constants.dart
+
+# cm2 편집기 지원 — VS Code 확장 + 언어 서버 (설치 안내: tools/vscode-cm2/README.md)
+cd tools/vscode-cm2
+pnpm install && pnpm run build && pnpm run server:get
+ln -s "$PWD" ~/.vscode/extensions/hadar2026.cm2-script-0.1.0   # 개발용 설치
+pnpm run server:build            # server/build/cm2_lsp — 있으면 dart run 대신 쓴다
+# 같은 진단을 편집기 없이 (AI 가 만든 cm2 를 실행 전에 훑을 때, CI 도 이것을 돈다)
+cd server && dart run bin/cm2_lsp.dart --check --assets ../../../hadar2026_app/assets ../../../hadar2026_app/assets/*.cm2
+dart test                        # 진단 28 + stdio 왕복 7
 
 # Map editor (web UI for assets/maps/*.json)
 cd tools/mapEditor

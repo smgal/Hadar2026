@@ -1,0 +1,115 @@
+{
+  "name": "cm2-script",
+  "displayName": "CM2 Script (Hadar 2026)",
+  "description": "또 다른 지식의 성전 cm2 스크립트 — 문법 강조 · 스니펫 · 언어 서버(진단 · 자동 완성 · 도움말 · 정의로 이동)",
+  "version": "0.1.0",
+  "publisher": "hadar2026",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SMG/hadar2026"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Snippets"
+  ],
+  "activationEvents": [
+    "onLanguage:cm2"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "cm2",
+        "aliases": [
+          "CM2 Script",
+          "cm2"
+        ],
+        "extensions": [
+          ".cm2"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "cm2",
+        "scopeName": "source.cm2",
+        "path": "./syntaxes/cm2.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "cm2",
+        "path": "./snippets/cm2.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "cm2.restartServer",
+        "title": "CM2: 언어 서버 다시 시작"
+      }
+    ],
+    "configurationDefaults": {
+      "[cm2]": {
+        "editor.insertSpaces": false,
+        "editor.detectIndentation": false,
+        "editor.tabSize": 4,
+        "editor.renderWhitespace": "boundary",
+        "editor.wordBasedSuggestions": "off"
+      }
+    },
+    "configuration": {
+      "title": "CM2 Script",
+      "properties": {
+        "cm2.server.dartPath": {
+          "type": "string",
+          "default": "dart",
+          "description": "언어 서버를 `dart run` 으로 띄울 때 쓸 dart 실행 파일. PATH 에 있으면 그대로 둔다."
+        },
+        "cm2.server.executable": {
+          "type": "string",
+          "default": "",
+          "description": "`dart compile exe` 로 만든 언어 서버 실행 파일 경로. 비워 두면 server/build/cm2_lsp 가 있으면 그것을, 없으면 `dart run` 을 쓴다."
+        },
+        "cm2.assetsDir": {
+          "type": "string",
+          "default": "",
+          "description": "include(\"...\") 를 찾을 폴더. 비워 두면 문서가 있는 폴더에서 먼저 찾고, 그다음 작업 영역의 hadar2026_app/assets 를 본다."
+        },
+        "cm2.diagnostics.eventOverrideHint": {
+          "type": "boolean",
+          "default": true,
+          "description": "On(x,y) 처리 블록에 Event::Override() 가 없으면 흐린 표시로 알린다."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "compile": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --sourcemap",
+    "watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --sourcemap --watch",
+    "build": "tsc --noEmit -p . && esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --sourcemap",
+    "server:get": "cd server && dart pub get",
+    "server:build": "node -e \"const fs=require('fs'); fs.mkdirSync('server/build', {recursive:true})\" && cd server && dart compile exe bin/cm2_lsp.dart -o build/cm2_lsp",
+    "server:test": "cd server && dart test",
+    "link": "node scripts/link.js all",
+    "link:vscode": "node scripts/link.js vscode",
+    "link:antigravity": "node scripts/link.js antigravity",
+    "package": "tsc --noEmit -p . && esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --sourcemap && cd server && dart compile exe bin/cm2_lsp.dart -o build/cm2_lsp && cd .. && vsce package --no-dependencies --skip-license"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  }
+}

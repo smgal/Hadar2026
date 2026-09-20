@@ -1,0 +1,10 @@
+.vscode/**
+src/**
+node_modules/**
+tsconfig.json
+pnpm-lock.yaml
+*.vsix
+dist/*.map
+server/.dart_tool/**
+server/test/**
+server/build/**/*.dill

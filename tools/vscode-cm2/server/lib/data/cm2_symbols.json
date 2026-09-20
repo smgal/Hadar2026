@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "maxFlags": 256,
+  "source": "hadar2026_app/lib/application/scripting/script_engine_adapter.dart (등록 동사) + packages/cm2_script/lib/src/cm2_script.dart (내장). hadar2026_app/test/application/scripting/cm2_symbols_snapshot_test.dart 가 이름 목록이 실제 등록과 같은지 확인한다.",
+  "params_notation": "이름 뒤 ? 는 생략 가능, ... 은 개수 제한 없음",
+  "memberForms": [
+    {
+      "suffix": "assign",
+      "signature": "이름.assign(값)",
+      "doc": "변수에 값을 넣는다. 최상위에 두면 상호작용마다 다시 실행되어 상태를 지우니, 남길 상태는 Flag::Set 으로 기록한다."
+    },
+    {
+      "suffix": "add",
+      "signature": "이름.add(더할 값)",
+      "doc": "변수에 수를 더한다. 변수가 수가 아니면 0 으로 보고 더한다."
+    },
+    {
+      "suffix": "Equal",
+      "signature": "이름.Equal(값)",
+      "doc": "변수가 값과 같으면 1. 문자열로 비교한다. Equal(이름, 값) 과 같다."
+    }
+  ],
+  "symbols": [
+    { "name": "variable", "kind": "command", "builtin": true, "params": ["이름"], "doc": "변수를 선언하고 0 으로 둔다. 파일을 읽을 때 한 번만 실행되고 run 때는 건너뛴다. 선언한 이름과 .assign 의 이름이 같아야 한다." },
+    { "name": "include", "kind": "command", "builtin": true, "params": ["\"파일.cm2\""], "doc": "다른 cm2 파일의 문장을 이 자리에서 실행한다. 최상위에 있으면 읽을 때 한 번, if 블록 안에 있으면 run 마다 다시 실행된다." },
+    { "name": "halt", "kind": "command", "builtin": true, "params": [], "doc": "이번 run 을 여기서 끝낸다. 다음 상호작용에서는 처음부터 다시 돈다." },
+    { "name": "Event::Override", "kind": "command", "builtin": true, "params": [], "doc": "이 스크립트가 이 칸을 처리했다고 알린다. 없으면 맵 JSON 에 적힌 정적 대사가 이어서 나온다. 처리 블록 맨 앞에 둔다." },
+    { "name": "Context::SetCurrent", "kind": "command", "builtin": true, "params": ["\"이름\""], "doc": "이름 붙은 키-값 저장소를 만들거나 고른다. 이후 Context::Set / Context::Get 이 이 저장소를 본다." },
+    { "name": "Context::Delete", "kind": "command", "builtin": true, "params": ["\"이름\""], "doc": "그 이름의 저장소를 지운다." },
+    { "name": "Context::Set", "kind": "command", "builtin": true, "params": ["\"키\"", "값"], "doc": "현재 저장소에 값을 넣는다. 맵을 옮기면 사라진다." },
+
+    { "name": "Not", "kind": "function", "builtin": true, "params": ["값"], "doc": "값이 거짓(0 · 빈 문자열 · \"false\")이면 1, 아니면 0." },
+    { "name": "Or", "kind": "function", "builtin": true, "params": ["값", "..."], "doc": "하나라도 참이면 1." },
+    { "name": "And", "kind": "function", "builtin": true, "params": ["값", "..."], "doc": "전부 참이면 1." },
+    { "name": "Equal", "kind": "function", "builtin": true, "params": ["a", "b"], "doc": "둘을 문자열로 바꿔 비교한다. 같으면 1. 수와 수도 이 방식이다 (1 과 \"1\" 은 같다)." },
+    { "name": "Less", "kind": "function", "builtin": true, "params": ["a", "b"], "doc": "a < b 이면 1. 둘 다 수여야 하고 아니면 0." },
+    { "name": "Add", "kind": "function", "builtin": true, "params": ["수", "..."], "doc": "수를 전부 더한 값. 수가 아닌 인자는 무시한다. cm2 의 유일한 산술이다." },
+    { "name": "Random", "kind": "function", "builtin": true, "params": ["최대"], "doc": "0 이상 최대 미만의 정수 하나. 최대가 0 이하면 0." },
+    { "name": "ScriptMode", "kind": "function", "builtin": true, "params": [], "doc": "지금 어떤 상호작용으로 불렸는지. const.cm2 의 FLAG_MAP(0) · FLAG_TALK(1) · FLAG_SIGN(2) · FLAG_EVENT(3) · FLAG_ENTER(4) 와 비교한다." },
+    { "name": "JoinString", "kind": "function", "builtin": true, "params": ["값", "..."], "doc": "인자를 전부 문자열로 이어 붙인다." },
+    { "name": "Context::Get", "kind": "function", "builtin": true, "params": ["\"키\""], "doc": "현재 저장소의 값. 없으면 null." },
+    { "name": "Context::GetCurrent", "kind": "function", "builtin": true, "params": [], "doc": "현재 저장소의 이름. 없으면 빈 문자열." },
+
+    { "name": "Talk", "kind": "command", "params": ["\"대사\""], "doc": "대화 창에 한 줄을 낸다. 문자열 안에서 @B…@@ 로 색을 바꾼다(B 파랑 · G 초록 · 7 회색 지문). 출력이 끝날 때까지 기다린다.", "example": "Talk(\"여기는 여행자들을 위한 여관입니다.\")" },
+    { "name": "Log", "kind": "command", "params": ["\"설명\""], "doc": "대사가 아닌 상황 설명을 낸다. 오른쪽 아래 설명 칸에 들어간다.", "example": "Log(\"일행은 용암 지대로 들어섰다 !!!\")" },
+    { "name": "SetHeader", "kind": "command", "params": ["\"제목\""], "doc": "대화 창 맨 위 제목 줄. 파란색과 끝의 콜론이 자동으로 붙는다. 빈 문자열이면 지운다.", "example": "SetHeader(\"경비병과 대화\")" },
+    { "name": "Answer", "kind": "command", "params": ["\"대답\""], "doc": "일행 쪽 대답. 초록색으로 낸다." },
+    { "name": "PressAnyKey", "kind": "command", "params": [], "doc": "아무 키를 누를 때까지 기다린 뒤 대화 창을 비운다. 긴 대화를 끊어 읽게 할 때 쓴다." },
+
+    { "name": "Map::Init", "kind": "command", "params": ["가로", "세로"], "doc": "빈 지도를 새로 만든다. 이어서 Map::SetTile 로 글자에 타일을 붙이고 Map::SetRow 로 한 행씩 칠한다." },
+    { "name": "Map::SetTile", "kind": "command", "params": ["\"글자\"", "타일 번호"], "doc": "Map::SetRow 에서 쓸 글자 하나에 타일 번호를 붙인다." },
+    { "name": "Map::SetRow", "kind": "command", "params": ["\"글자들\""], "doc": "글자 한 줄을 타일 한 행으로 칠한다. 부를 때마다 다음 행으로 내려간다. Map::Init 이 행을 0 으로 되돌린다." },
+    { "name": "Map::LoadFromFile", "kind": "command", "params": ["\"지도 파일\""], "doc": "지도만 바꾼다. 스크립트는 그대로다. 맵을 통째로 옮기려면 LoadScript." },
+    { "name": "Map::SetStartPos", "kind": "command", "params": ["x", "y"], "doc": "FLAG_MAP 단계에서 부른다. LoadScript 가 좌표 없이 들어왔을 때 일행이 설 자리." },
+    { "name": "Map::ChangeTile", "kind": "command", "params": ["x", "y", "타일 번호"], "doc": "지도 한 칸의 타일을 바꾼다. 문을 여는 데 쓴다. 세이브에 남는다.", "example": "Map::ChangeTile(18, 36, 30)" },
+    { "name": "Map::SetType", "kind": "command", "params": ["종류"], "doc": "지도 종류. const.cm2 의 MAPTYPE_TOWN · MAPTYPE_KEEP · MAPTYPE_GROUND · MAPTYPE_DEN. 타일 덮어쓰기가 함께 지워진다." },
+    { "name": "Map::SetEncounter", "kind": "command", "params": ["조우 번호", "확률"], "doc": "아직 구현이 없다. 로그만 남긴다." },
+    { "name": "Map::SetLightArea", "kind": "command", "params": ["x1", "y1", "x2", "y2"], "doc": "그 사각형을 밝힌다. 좌표는 0 이상." },
+    { "name": "Map::ResetLightArea", "kind": "command", "params": ["x1", "y1", "x2", "y2"], "doc": "Map::SetLightArea 로 밝힌 사각형을 되돌린다. 같은 좌표여야 한다." },
+
+    { "name": "Select::Init", "kind": "command", "params": [], "doc": "선택지 목록을 비운다. Select::Add 앞에 부른다." },
+    { "name": "Select::Add", "kind": "command", "params": ["\"글\""], "doc": "선택지 한 줄을 더한다. 첫 줄은 질문으로, 그다음부터 대답으로 쓰는 것이 관례다." },
+    { "name": "Select::Run", "kind": "command", "params": [], "doc": "선택 창을 띄우고 고를 때까지 기다린다. 결과는 Select::Result() 로 읽는다. 첫 대답이 1." },
+
+    { "name": "LoadScript", "kind": "command", "params": ["\"맵 cm2\"", "x?", "y?"], "doc": "다른 맵으로 옮긴다. 좌표를 주면 그 칸에, 없으면 그 맵의 Map::SetStartPos 나 가운데에 선다. 이 줄 뒤의 문장은 실행되지 않는다.", "example": "LoadScript(\"Map002.cm2\", 10, 7)" },
+    { "name": "WarpPrevPos", "kind": "command", "params": [], "doc": "일행을 직전 위치로 되돌린다. 문 앞에서 밀어내는 데 쓴다." },
+    { "name": "GameOver", "kind": "command", "params": [], "doc": "게임을 강제로 끝낸다." },
+
+    { "name": "Battle::Init", "kind": "command", "params": [], "doc": "전투 준비. 등록한 적 목록을 비운다." },
+    { "name": "Battle::RegisterEnemy", "kind": "command", "params": ["적 번호"], "doc": "적 표 번호로 적 하나를 넣는다. 같은 번호를 여러 번 넣으면 여럿이 나온다. 번호는 C++ 표 기준이고 Unity 포트의 번호와 하나 어긋난다." },
+    { "name": "Battle::ShowEnemy", "kind": "command", "params": [], "doc": "등록한 적을 화면에 보인다." },
+    { "name": "Battle::Start", "kind": "command", "params": ["방식"], "doc": "전투를 시작하고 끝날 때까지 기다린다. 결과는 반드시 Battle::Result() 로 읽는다. 읽지 않으면 이겨도 스크립트가 몰라 같은 싸움이 되풀이된다." },
+
+    { "name": "Flag::Set", "kind": "command", "params": ["플래그"], "doc": "플래그를 켠다. 0~{{maxFlag}} 칸이고 세이브에 남는다. 번호 대신 flag4ep1.cm2 의 이름을 쓴다. 범위 밖은 무시된다." },
+    { "name": "Flag::Reset", "kind": "command", "params": ["플래그"], "doc": "플래그를 끈다." },
+    { "name": "Variable::Set", "kind": "command", "params": ["칸 번호", "값"], "doc": "게임 변수 칸에 정수를 넣는다. 세이브에 남는다. 단계가 있는 진행(1·2 끝나고 3 하는 중)을 적을 때 쓴다." },
+    { "name": "Variable::Add", "kind": "command", "params": ["칸 번호", "더할 값?"], "doc": "게임 변수 칸에 더한다. 생략하면 1." },
+
+    { "name": "Player::ApplyAttribute", "kind": "command", "params": ["인물"], "doc": "체력·마력·초능력을 최대치로 채운다. 인물은 자리 번호이고 1 부터." },
+    { "name": "Player::ReviseAttribute", "kind": "command", "params": ["인물"], "doc": "최대치를 넘은 체력·마력·초능력을 최대치로 깎는다." },
+    { "name": "Player::ChangeAttribute", "kind": "command", "params": ["인물", "\"속성\"", "값"], "doc": "인물의 속성을 바꾼다. 속성 이름은 정해진 목록만 된다(max_hp · hp · str · class · name …). 모르는 이름은 무시되고 로그만 남는다.", "example": "Player::ChangeAttribute(6, \"name\", \"Mad Joe\")" },
+    { "name": "Player::AssignFromEnemyData", "kind": "command", "params": ["인물", "적 번호"], "doc": "적 표의 능력치를 인물에게 씌운다. 합류 이벤트에 쓴다." },
+    { "name": "Enemy::ChangeAttribute", "kind": "command", "params": ["적 순번", "\"속성\"", "값"], "doc": "등록한 적의 속성을 전투 시작 전에 바꾼다. 지금 전투 model 에는 적별 덮어쓰기가 없어 무시된다(B3-01 규격 변경 대기)." },
+
+    { "name": "Party::PosX", "kind": "command", "params": [], "doc": "명령으로 쓰면 아무 일도 하지 않는다. 함수 Party::PosX() 로 값을 읽는다." },
+    { "name": "Party::PosY", "kind": "command", "params": [], "doc": "명령으로 쓰면 아무 일도 하지 않는다. 함수 Party::PosY() 로 값을 읽는다." },
+    { "name": "Party::PlusGold", "kind": "command", "params": ["금화"], "doc": "금화를 더한다. 음수면 뺀다.", "example": "Party::PlusGold(-50)" },
+    { "name": "Party::Move", "kind": "command", "params": ["dx", "dy"], "doc": "일행을 상대 좌표로 걷게 한다. 걷는 동안 기다린다." },
+
+    { "name": "DisplayMap", "kind": "command", "params": [], "doc": "화면을 다시 그린다. Map::ChangeTile 뒤에 부르면 바뀐 타일이 바로 보인다." },
+    { "name": "DisplayStatus", "kind": "command", "params": [], "doc": "화면을 다시 그린다. DisplayMap 과 같다." },
+    { "name": "Wait", "kind": "command", "params": ["밀리초"], "doc": "그 시간만큼 기다린다." },
+    { "name": "TextAlign", "kind": "command", "params": ["정렬"], "doc": "const.cm2 의 ALIGN_LEFT · ALIGN_CENTER · ALIGN_RIGHT. 아직 구현이 없다." },
+
+    { "name": "Tile::CopyTile", "kind": "command", "params": ["원본 타일", "대상 타일"], "doc": "대상 타일을 원본 타일의 그림으로 보이게 한다(덮어쓰기). 세이브에 남지 않는다." },
+    { "name": "Tile::CopyToDefaultTile", "kind": "command", "params": ["종류"], "doc": "타일 덮어쓰기를 전부 지운다. 인자는 아직 쓰이지 않는다." },
+    { "name": "Tile::CopyToDefaultSprite", "kind": "command", "params": ["종류"], "doc": "타일 덮어쓰기를 전부 지운다. 인자는 아직 쓰이지 않는다." },
+
+    { "name": "Item::Give", "kind": "command", "params": ["아이템"], "doc": "가방에 아이템을 넣는다. item4ep1.cm2 의 상수를 쓴다. 가방이 가득이면 넣지 않고 로그만 남긴다." },
+    { "name": "Item::Take", "kind": "command", "params": ["아이템"], "doc": "가방에서 아이템을 뺀다. 없으면 로그만 남긴다." },
+
+    { "name": "Flag::IsSet", "kind": "function", "params": ["플래그"], "doc": "켜져 있으면 1, 아니면 0. 범위 밖 번호도 0.", "example": "if (Not(Flag::IsSet(GFD0_RENT_ROOM)))" },
+    { "name": "Variable::Get", "kind": "function", "params": ["칸 번호"], "doc": "게임 변수 칸의 값." },
+    { "name": "Item::Has", "kind": "function", "params": ["아이템"], "doc": "가방에 그 아이템이 있으면 1." },
+    { "name": "Party::CheckIf", "kind": "function", "params": ["능력"], "doc": "const.cm2 의 CHECKIF_MAGICTORCH · LEVITATION · WALKONWATER · WALKONSWAMP · MINDCONTROL. 그 능력이 켜져 있으면 1." },
+    { "name": "On", "kind": "function", "params": ["x", "y"], "doc": "지금 상호작용한 칸이 (x, y) 이면 1. 말을 건 상대나 밟은 칸의 좌표다. 대상 칸이 없으면 일행 위치로 본다.", "example": "if (On(14, 30))" },
+    { "name": "OnArea", "kind": "function", "params": ["x1", "y1", "x2", "y2"], "doc": "상호작용한 칸이 그 사각형 안이면 1." },
+    { "name": "Battle::Result", "kind": "function", "params": [], "doc": "마지막 전투 결과. const.cm2 의 BATTLERESULT_EVADE(0) · WIN(1) · LOSE(2)." },
+    { "name": "Select::Result", "kind": "function", "params": [], "doc": "마지막 선택의 번호. 첫 줄(질문)이 0, 첫 대답이 1." },
+    { "name": "Party::PosX", "kind": "function", "params": [], "doc": "일행의 x 좌표." },
+    { "name": "Party::PosY", "kind": "function", "params": [], "doc": "일행의 y 좌표." },
+    { "name": "Player::GetName", "kind": "function", "params": ["인물"], "doc": "인물의 표시 이름. 자리가 비어 있으면 \"Unknown\"." },
+    { "name": "Player::GetGenderName", "kind": "function", "params": ["인물"], "doc": "인물의 성별 호칭." },
+    { "name": "Player::GetAttribute", "kind": "function", "params": ["인물", "\"속성\""], "doc": "인물의 속성 값. 모르는 속성 이름은 0 을 돌려주고 로그만 남기므로 조건이 조용히 반대로 갈 수 있다.", "example": "Equal(Player::GetAttribute(6, \"name\"), \"Mad Joe\")" },
+    { "name": "Player::IsAvailable", "kind": "function", "params": ["인물"], "doc": "그 자리에 인물이 있고 합류한 상태면 1." }
+  ]
+}

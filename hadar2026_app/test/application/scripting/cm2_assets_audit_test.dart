@@ -6,13 +6,11 @@ import 'dart:io';
 import 'package:cm2_script/cm2_script.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hadar2026_app/application/ports/asset_source.dart';
 import 'package:hadar2026_app/application/ports/host_binding.dart';
-import 'package:hadar2026_app/application/ports/movement_host.dart';
-import 'package:hadar2026_app/application/ports/ui_host.dart';
-import 'package:hadar2026_app/application/scripting/script_engine_adapter.dart';
 import 'package:hd_world/hd_world.dart';
 import 'package:hd_world_legacy/hd_world_legacy.dart' as legacy;
+
+import 'known_verbs.dart';
 
 /// 출하되는 `assets/*.cm2` 전체를 훑는 감사.
 ///
@@ -24,11 +22,6 @@ import 'package:hd_world_legacy/hd_world_legacy.dart' as legacy;
 /// 실제로 이 감사가 잡은 것: `town2.cm2` 가 `"name"` 을 `"_name"` 으로
 /// 쓰고 있어서 `Equal(Player::GetAttribute(6, "_name"), "Mad Joe")` 가
 /// 영원히 거짓이었다.
-
-class _Silent implements UiHost, PartyMovementHost, AssetSource {
-  @override
-  dynamic noSuchMethod(Invocation invocation) => null;
-}
 
 /// 한 파일이 쓰는 모든 명령·함수 이름.
 class _Symbols {
@@ -91,10 +84,7 @@ void main() {
           .toList()
         ..sort((a, b) => a.path.compareTo(b.path));
 
-  setUp(() {
-    final silent = _Silent();
-    HDHosts().bind(ui: silent, movement: silent, assets: silent);
-  });
+  setUp(bindSilentHosts);
   tearDown(HDHosts().reset);
 
   test('훑을 파일이 있다', () {
@@ -102,15 +92,8 @@ void main() {
   });
 
   test('모르는 명령·함수가 하나도 없다', () {
-    final engine = HDScriptEngine();
-    final knownCommands = {
-      ...engine.registeredCommands,
-      ...ScriptEngine.builtinCommands,
-    };
-    final knownFunctions = {
-      ...engine.registeredFunctions,
-      ...ScriptEngine.builtinFunctions,
-    };
+    final knownCommands = knownCm2Commands();
+    final knownFunctions = knownCm2Functions();
 
     // 변수는 파일 경계를 넘는다 — `include("const.cm2")` 로 들어온
     // 이름을 그 파일 안에서만 찾으면 안 된다.

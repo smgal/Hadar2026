@@ -263,3 +263,36 @@ jobs:
       # 규격이 파싱되지 않으면 클라이언트가 조용히 틀린 요청을 만든다.
       - name: Check the OpenAPI document parses 📄
         run: python3 -c "import yaml,sys; d=yaml.safe_load(open('hd_world_lab/web/openapi.yaml')); assert d['paths'] and d['components']['schemas']; print('ok:', len(d['paths']), 'paths')"
+
+  cm2_lsp:
+    name: tools/vscode-cm2/server (cm2 언어 서버 — analyze + test + 출하 cm2 검사)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/vscode-cm2/server
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Dart 🎯
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install Dependencies 📦
+        run: dart pub get
+
+      - name: Analyze 🔍
+        run: dart analyze --fatal-infos
+
+      # analyzer_test 는 진단 하나하나를, server_test 는 stdio 로 실제 서버를
+      # 띄워 LSP 왕복을 본다. 출하 assets/*.cm2 에 오류 등급이 없어야 한다는
+      # 판정은 앱 쪽 cm2_assets_audit_test 와 같은 것을 이쪽 파서로 다시 본다.
+      - name: Test 🧪
+        run: dart test
+
+      # 편집기 없이 같은 검사 — AI 가 만든 스크립트를 실행 전에 훑는 길이다.
+      - name: Check shipped cm2 ✅
+        run: dart run bin/cm2_lsp.dart --check --assets ../../../hadar2026_app/assets ../../../hadar2026_app/assets/*.cm2

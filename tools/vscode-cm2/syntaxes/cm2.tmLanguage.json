@@ -1,0 +1,121 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "CM2 Script",
+  "scopeName": "source.cm2",
+  "fileTypes": ["cm2"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#control" },
+    { "include": "#declaration" },
+    { "include": "#member-call" },
+    { "include": "#namespaced-call" },
+    { "include": "#builtin-function" },
+    { "include": "#plain-call" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#constant" },
+    { "include": "#identifier" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.number-sign.cm2",
+      "match": "#.*$"
+    },
+    "control": {
+      "patterns": [
+        {
+          "name": "keyword.control.conditional.cm2",
+          "match": "^\\s*\\b(if)\\b"
+        },
+        {
+          "name": "keyword.control.conditional.cm2",
+          "match": "^\\s*\\b(else)\\b\\s*(?=#|$)"
+        }
+      ]
+    },
+    "declaration": {
+      "patterns": [
+        {
+          "match": "^\\s*\\b(variable)\\s*\\(\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\)",
+          "captures": {
+            "1": { "name": "storage.type.cm2" },
+            "2": { "name": "variable.other.declaration.cm2" }
+          }
+        },
+        {
+          "name": "keyword.control.import.cm2",
+          "match": "^\\s*\\b(include)\\b(?=\\s*\\()"
+        },
+        {
+          "name": "keyword.control.flow.cm2",
+          "match": "^\\s*\\b(halt)\\b"
+        },
+        {
+          "name": "keyword.other.override.cm2",
+          "match": "\\b(Event)::(Override)\\b(?=\\s*\\()"
+        }
+      ]
+    },
+    "member-call": {
+      "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\.(assign|add|Equal)\\b(?=\\s*\\()",
+      "captures": {
+        "1": { "name": "variable.other.cm2" },
+        "2": { "name": "keyword.operator.assignment.cm2" }
+      }
+    },
+    "namespaced-call": {
+      "match": "\\b([A-Z][A-Za-z0-9]*)(::)([A-Z][A-Za-z0-9]*)\\b(?=\\s*\\()",
+      "captures": {
+        "1": { "name": "entity.name.namespace.cm2" },
+        "2": { "name": "punctuation.accessor.cm2" },
+        "3": { "name": "entity.name.function.cm2" }
+      }
+    },
+    "builtin-function": {
+      "name": "support.function.builtin.cm2",
+      "match": "\\b(Not|Or|And|Equal|Less|Add|Random|ScriptMode|JoinString)\\b(?=\\s*\\()"
+    },
+    "plain-call": {
+      "name": "entity.name.function.cm2",
+      "match": "\\b(Talk|Log|SetHeader|Answer|PressAnyKey|LoadScript|WarpPrevPos|GameOver|DisplayMap|DisplayStatus|Wait|TextAlign|On|OnArea)\\b(?=\\s*\\()"
+    },
+    "string": {
+      "name": "string.quoted.double.cm2",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.color-reset.cm2",
+          "match": "@@"
+        },
+        {
+          "name": "markup.other.placeholder.cm2",
+          "match": "@A\\[[^\\]\"]*\\]|@D<[^>\"]*>"
+        },
+        {
+          "name": "constant.character.escape.color.cm2",
+          "match": "@[0-9A-Za-z]"
+        }
+      ]
+    },
+    "number": {
+      "name": "constant.numeric.integer.cm2",
+      "match": "(?<![A-Za-z0-9_])-?\\d+\\b"
+    },
+    "constant": {
+      "name": "constant.other.symbol.cm2",
+      "match": "\\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\\b"
+    },
+    "identifier": {
+      "name": "variable.other.cm2",
+      "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+    },
+    "punctuation": {
+      "patterns": [
+        { "name": "punctuation.section.parens.cm2", "match": "[()]" },
+        { "name": "punctuation.separator.comma.cm2", "match": "," }
+      ]
+    }
+  }
+}

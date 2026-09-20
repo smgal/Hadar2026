@@ -25,15 +25,20 @@ int _parseBlock(
     int indent = _countIndent(line);
     if (indent < parentIndent) return i;
 
-    String trimmed = line.trim();
+    String trimmed = stripComment(line).trim();
 
     if (trimmed.startsWith("if ") ||
         (trimmed.startsWith("if") && trimmed.contains("("))) {
+      final ifLine = i;
+      var elseLine = -1;
       int startParen = trimmed.indexOf('(');
-      String conditionContent = trimmed.substring(
-        startParen + 1,
-        trimmed.lastIndexOf(')'),
-      );
+      int endParen = trimmed.lastIndexOf(')');
+      // A half-typed `if (On(1` has no closing paren yet. Take what is
+      // there instead of throwing: an editor parses on every keystroke,
+      // and the engine reads an empty condition as false.
+      String conditionContent = endParen > startParen
+          ? trimmed.substring(startParen + 1, endParen)
+          : trimmed.substring(startParen + 1);
       var parsedCond = _parseCommand(conditionContent);
 
       List<ScriptStatement> ifBody = [];
@@ -66,9 +71,10 @@ int _parseBlock(
         }
 
         if (elseLineIdx < lines.length) {
-          String nextLine = lines[elseLineIdx].trim();
+          String nextLine = stripComment(lines[elseLineIdx]).trim();
           int elseLineIndent = _countIndent(lines[elseLineIdx]);
           if (nextLine == 'else' && elseLineIndent == indent) {
+            elseLine = elseLineIdx;
             int elseBodyIdx = elseLineIdx + 1;
             int elseIndent = -1;
 
@@ -92,11 +98,13 @@ int _parseBlock(
       }
 
       targetList.add(
-        IfStatement(parsedCond.command, parsedCond.args, ifBody, elseBody),
+        IfStatement(parsedCond.command, parsedCond.args, ifBody, elseBody)
+          ..line = ifLine
+          ..elseLine = elseLine,
       );
       continue;
     } else {
-      targetList.add(_parseCommand(trimmed));
+      targetList.add(_parseCommand(trimmed)..line = i);
       i++;
     }
   }
@@ -105,6 +113,25 @@ int _parseBlock(
 
 /// Parses a single command line into [CommandStatement] (used by parser and expression evaluator).
 CommandStatement parseCommand(String line) => _parseCommand(line);
+
+/// Drops a trailing `# comment`, leaving a `#` inside "quotes" alone.
+///
+/// A comment after the closing paren used to fall outside `lastIndexOf(')')`
+/// by luck, until the comment itself held a `)`: `Flag::Set(10) # 문(door)`
+/// handed the engine the argument `10) # 문(door`, and `else # 참고` was an
+/// unknown command whose indented block then ran unconditionally.
+String stripComment(String line) {
+  var inString = false;
+  for (var i = 0; i < line.length; i++) {
+    final ch = line[i];
+    if (ch == '"') {
+      inString = !inString;
+    } else if (ch == '#' && !inString) {
+      return line.substring(0, i);
+    }
+  }
+  return line;
+}
 
 CommandStatement _parseCommand(String line) {
   line = line.trim();
