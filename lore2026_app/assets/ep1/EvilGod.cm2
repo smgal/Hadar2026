@@ -1,0 +1,114 @@
+####### 제1부 이블 갓 (E1_EvilGod) — 50×50 동굴 ########
+# 근거: 1st/05 §5.2 M5 · §5.4(일곱 갈래 길) · 1st/06 §6.12 · 1st/07 §7.4(늪 속 레버) · 1st/08 §8.1~8.3 · 1st/10 §8.1 · §11 ·
+#       1st/12 부록 B · 공략집 Walkthrough/1st/src/maps/EvilGod.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥이 늪(49)이라 숨은 칸이 늪으로 보인다. 숨은 칸: 서쪽 레버 (11,40), 일곱 갈래 길의 병사 칸
+# (x,12)·(x,10)·(x,8)과 끝 칸 (x,6) — x=14·18·22·26·30·34·38 (서쪽부터 1~7번). 출구 줄 (25~27,46)은 밟는 칸(52).
+# EVILGOD_SEAL: 0 레버 전 · 짝수 두 번째 레버를 당김(÷2 = 봉인 길 1~7) · 홀수 봉인 해제. 한 번 정한 길은 바꾸지 않는다.
+# 들어오면 (25,45), 나가면 늪의 대륙 (48,58).
+
+include("common/const.cm2")
+variable(seal)
+variable(px)
+variable(py)
+variable(road)
+variable(n)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 38~41: 그레이트 리치·램페이저·뮤턴트·로튼 콥스 (레벨 10~11)
+	Encounter::Clear()
+	Encounter::Add(38, 41)
+	Encounter::Enable(1)
+	seal.assign(Variable::Get("EVILGOD_SEAL"))
+	# 당긴 레버는 그대로 둔다 (부록 B.3 — 원작은 나가면 원래대로 돌아가고 봉인 길도 새로 정했다, 부록 A #26)
+	if (Flag::IsSet("EVILGOD_LEVER_W"))
+		Map::ChangeTile(11, 40, 49)
+		if (Equal(seal, 0))
+			Map::ChangeTile(41, 39, 0)
+	if (And(Greater(seal, 0), Equal(Mod(seal, 2), 0)))
+		Map::ChangeTileArea(25, 27, 27, 37, 44)
+
+####### 푯말 ########
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+	Talk("이 길을 통과하고자 하는 사람은")
+	Talk("양측의 늪 속에 있는 레버를 당기시오")
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	seal.assign(Variable::Get("EVILGOD_SEAL"))
+	px.assign(Party::PosX())
+	py.assign(Party::PosY())
+
+	# ---- 출구 줄 (25~27,46) ----
+	if (OnArea(25, 46, 27, 46))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Swamp", 48, 58)
+		else
+			WarpPrevPos()
+		halt
+
+	# ---- 늪 속의 레버 — 서쪽 (11,40)을 먼저. 늪 위를 걷는 마법이 걸려 있으면 당길 수 없다 (1st/07 §7.4) ----
+	if (Or(On(11, 40), On(41, 39)))
+		if (Equal(Party::CheckIf(CHECKIF_WALKONSWAMP), 1))
+			Talk("늪 아래를 보니 무언가 반짝이는 물체가 있었다. 하지만 늪 위를 걷는 마법 때문에 늪 속으로 들어갈 수가 없다.")
+			halt
+		if (On(11, 40))
+			Talk("일행은 독을 무릅쓰고 늪 속에 빠져 있는 레버를 당겼다. 순간 동굴 중심부에서 굉음이 들렸다.")
+			Flag::Set("EVILGOD_LEVER_W")
+			Map::ChangeTile(11, 40, 49)
+			Map::ChangeTile(41, 39, 0)
+			halt
+		# 동쪽 레버 — 가운데 통로가 열리고 봉인 길(1~7)이 정해진다
+		Talk("일행은 독을 무릅쓰고 늪 속에 빠져 있는 레버를 당겼다. 순간 동굴 중심부에서 조금 전보다 더 큰 굉음이 들렸다.")
+		Map::ChangeTile(41, 39, 49)
+		if (Equal(seal, 0))
+			Variable::Set("EVILGOD_SEAL", Mul(Add(Random(7), 1), 2))
+			Map::ChangeTileArea(25, 27, 27, 37, 44)
+			Screen::Flash()
+			DisplayMap()
+		halt
+
+	# ---- 일곱 갈래 길 — 봉인을 풀었거나 두 번째 레버 전이면 아무 일도 없다 ----
+	if (Or(Equal(seal, 0), Equal(Mod(seal, 2), 1)))
+		halt
+	road.assign(Div(Sub(px, 10), 4))
+
+	# 끝 칸 (x,6) — 먼저 바로 위 벽 (x,5)가 늪이 된다
+	if (Equal(py, 6))
+		Map::ChangeTile(px, 5, 49)
+		if (Not(Equal(Mul(road, 2), seal)))
+			Talk("여기에는 봉인이 발견되지 않았다.")
+			Map::ChangeTile(px, 6, 49)
+			DisplayMap()
+			halt
+		Say("크랩 갓의 왕", "나는 EVIL GOD의 봉인을 지키고 있는 CRAB GOD의 왕이다. CRAB GOD 족의 명예를 걸고 절대로 너희 같은 자들에게 봉인을 넘겨주지 않겠다!!")
+		Battle::Init()
+		Battle::RegisterEnemy(59, 3)
+		Battle::RegisterVariant("crab_god_soldier", 4)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Talk("당신은 이 동굴에 보관되어 있는 봉인을 발견했다. 그리고는 봉쇄되었던 봉인을 풀어 버렸다.")
+			Variable::Add("EVILGOD_SEAL")
+			Map::ChangeTile(px, 6, 49)
+			DisplayMap()
+		else
+			# 도망치면 남쪽으로 한 칸
+			Party::Warp(px, 7)
+		halt
+
+	# 병사 칸 (x,8)·(x,10)·(x,12) — 크랩 갓 병사 3~5, 일행 선공. 이기면 칸이 늪이 된다
+	# 의도: 이겼을 때만 늪이 된다 (원작은 도망쳐도 늪이 되었다 — 부록 A #27)
+	n.assign(Add(3, Random(3)))
+	Battle::Init()
+	Battle::RegisterVariant("crab_god_soldier", n)
+	Battle::Start(BATTLE_NO_PRELUDE)
+	if (Equal(Battle::Result(), BATTLERESULT_WIN))
+		Map::ChangeTile(px, py, 49)
+		DisplayMap()
+	else
+		WarpPrevPos()

@@ -1,0 +1,281 @@
+####### 하데스 게이트 (E3_HdsGate) — 50×50 · 동굴형 ########
+# 로어 대륙 지하, 여섯 번째 테라(하데스 테라)로 가는 문이 있는 동굴.
+# 근거: 기획서 제5장 5.5(X1·X2) · 제6장 6.25 · 제11장 11.3 · 제14장 12 · 부록 A(D3 · #9 · #48)
+#       공략 3rd/src/maps/HdsGate.md
+#
+# 들어오는 길 — 어느 쪽이든 (25,10) 에 선다
+#   · 반역 루트: 에인션트 이블의 급보(episode.cm2 의 예약 1) → LoadScript("E3_HdsGate", 25, 10)
+#   · 로어 대륙 (84,86) 입구 (699년까지, 루트와 무관하게 열려 있다)
+# 나가는 길
+#   · (21,33) 입구 → 하데스 테라 (31,21) — 반역 루트일 때만
+#   · 로어 대륙으로 돌아가는 출구는 없다 — 원작도 맵 머리의 출구가 빈 값(Genius, 255,255)이다. 반역 루트에서는
+#     급보(episode.cm2 예약 1)가 이곳에 내려놓고, 하데스 테라 → 빛의 지붕의 이벤트로 나간다 (2026-11-16 원작자 확인)
+#
+# 이 맵이 쓰는 기록
+#   ALLEGIANCE (변수, 부록 B)        2 = 반역
+#   HDSGATE_LEVER_1 ~ 5 (변수)        레버 ①~⑤ — 0 왼쪽(처음 상태), 1 오른쪽
+#
+# 물길: 이 맵의 물은 진짜 물 칸이 아니라 기본 타일(물 그림)로 그려진 숨은 이벤트 칸이다.
+# 「항상 밝음」 표시가 붙은 63칸만 안전하고 나머지는 밟으면 전멸한다. 밝음 표시는 맵
+# 데이터에 들어 있어 그림은 엔진이 맡고, 스크립트는 그 63칸의 좌표를 그대로 적어 가린다.
+
+include("common/const.cm2")
+
+variable(done)		# 이번에 밟은 이벤트 칸을 누가 맡았는가
+variable(safe)		# 밟은 물길 칸이 빛나는 칸인가
+variable(tileA)		# 레버가 A 조에 놓을 타일 (40 기둥 · 41 바닥)
+variable(tileB)		# 레버가 B 조에 놓을 타일
+
+# ───────────────────────────── 맵에 들어온 직후 ─────────────────────────────
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")			# 동굴형 공통 곡
+	# 무작위 조우 없음
+	Encounter::Clear()
+	Encounter::Enable(0)
+	# 맵별 마법 제한 (제6장 6.1) — 지형 변화 · 대지형 변화 · 기화 이동 · 공간 이동(이동 구슬) 불가.
+	# 주시자의 눈 · 투시는 쓸 수 있다.
+	Map::SetHandicap(HANDICAP_TILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_BIGTILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_ETHEREAL, 1)
+	Map::SetHandicap(HANDICAP_TELEPORT, 1)
+	# 레버 — 맵은 들어올 때마다 원본에서 새로 시작하므로 다섯 개 모두 처음 상태(왼쪽)다.
+	Variable::Set("HDSGATE_LEVER_1", 0)
+	Variable::Set("HDSGATE_LEVER_2", 0)
+	Variable::Set("HDSGATE_LEVER_3", 0)
+	Variable::Set("HDSGATE_LEVER_4", 0)
+	Variable::Set("HDSGATE_LEVER_5", 0)
+	DisplayMap()
+	# 도착 (25,10) — 반역 루트인데 크로매틱 크리스탈이 아직 없으면 에인션트 이블이 준다.
+	# 지금은 episode.cm2 의 예약 1(급보)이 옮기기 직전에 크리스탈을 주고 이 말을 Arrival::Say 로 쌓아 두므로
+	# 이 블록은 돌지 않는다 (크리스탈은 써도 없어지지 않는다).
+	if (And(Equal(Variable::Get("ALLEGIANCE"), 2), Equal(Item::Count("crystal.chromatic"), 0)))
+		Say("에인션트 이블", "지금 당신이 서 있는 곳은 '하데스 게이트'라는 곳입니다. 이곳은 로어 세계의 6번째 테라인 하데스 테라로 이동하는 문이 있는 곳이기도 합니다. 하데스 테라는 로어 대륙의 지하에 있으며 로드안과 나의 투시 능력이 전혀 통하지 못하는 곳입니다. 당신은 이곳을 통해 하데스 테라로 간 후 배리언트 피플즈의 주민들이 안전하게 살 수 있는 곳을 찾아내면 되는 것입니다. 아마 당신의 투시 능력이 큰 도움을 줄 것입니다. 제가 당신에게 @B크로매틱 크리스탈@@을 드리겠습니다. 당신이 가장 좋은 장소를 찾았을 때 이 크리스탈을 사용하십시오. 그러면 저의 투시력과 그 크리스탈이 서로 교감하여 나의 투시력이 그곳으로 작용할 것입니다.")
+		Item::Give("crystal.chromatic")
+		Say("에인션트 이블", "당신의 성공을 빌겠습니다.")
+		PressAnyKey()
+
+# ───────────────────────────────── 푯말 ─────────────────────────────────
+if (Equal(ScriptMode(), FLAG_SIGN))
+	# (13,22) 물가의 푯말 — 불빛을 끄면 빛나는 길만 보인다는 힌트
+	if (On(13, 22))
+		Talk("진정한 길은 마음으로 보아야 한다")
+		Talk("당신 주위에 있는")
+		Talk("인위적인 시각 요소를 배제하라")
+		Talk("그리고 다시 눈을 떴을 때")
+		Talk("이미 길은 당신 앞에")
+		Talk("펼쳐져 있을 것이다")
+
+# ───────────────────────────────── 입구 ─────────────────────────────────
+if (Equal(ScriptMode(), FLAG_ENTER))
+	# (21,33) 한가운데 섬의 문 — 하데스 테라 (31,21). 반역 루트일 때만 열린다.
+	if (On(21, 33))
+		if (Equal(Variable::Get("ALLEGIANCE"), 2))
+			Ask("하데스 테라에 들어가기를 원합니까?")
+			if (Equal(Select::Result(), 1))
+				LoadScript("E3_UnderGrd", 31, 21)
+		else
+			Talk("지하 세계의 입구에서 무언가 강한 힘이 뿜어져 나와 당신을 밀쳐내 버렸다.")
+
+# ─────────────────────────── 이벤트 칸을 밟았다 ───────────────────────────
+# 순서는 원작과 같다: 먼저 레버 칸인지 보고, 아니면 빛나는 칸인지 본다.
+if (Equal(ScriptMode(), FLAG_EVENT))
+	done.assign(0)
+
+	# ── 레버 다섯 개 ──
+	# 당길 때마다 방향이 바뀐다. 「오른쪽」이면 A 조가 바닥(41) · B 조가 기둥(40),
+	# 「왼쪽」이면 그 반대다. 처음은 모두 왼쪽이라 첫 문구는 늘 「오른쪽」이다.
+	# 조끼리 겹치는 칸은 없다 (제6장 6.25 의 표).
+
+	# 레버 ① (25,30) — 빛나는 길 서쪽 갈래 끝의 작은 뭍
+	# (19,34) 는 원작이 맵 밖 좌표로 잘못 적어 바뀌지 않던 칸 — 의도대로 넣었다 (부록 A #9)
+	if (On(25, 30))
+		done.assign(1)
+		if (Equal(Variable::Get("HDSGATE_LEVER_1"), 0))
+			Variable::Set("HDSGATE_LEVER_1", 1)
+			Talk("당신은 레버를 오른쪽으로 당겼다.")
+			tileA.assign(41)
+			tileB.assign(40)
+		else
+			Variable::Set("HDSGATE_LEVER_1", 0)
+			Talk("당신은 레버를 왼쪽으로 당겼다.")
+			tileA.assign(40)
+			tileB.assign(41)
+		# A 조
+		Map::ChangeTile(21, 29, tileA)
+		Map::ChangeTile(23, 31, tileA)
+		Map::ChangeTile(15, 32, tileA)
+		Map::ChangeTile(17, 35, tileA)
+		Map::ChangeTile(28, 33, tileA)
+		Map::ChangeTile(27, 35, tileA)
+		Map::ChangeTile(22, 36, tileA)
+		Map::ChangeTile(23, 39, tileA)
+		# B 조
+		Map::ChangeTile(20, 27, tileB)
+		Map::ChangeTile(22, 28, tileB)
+		Map::ChangeTile(16, 33, tileB)
+		Map::ChangeTile(19, 34, tileB)
+		Map::ChangeTile(24, 33, tileB)
+		Map::ChangeTile(25, 35, tileB)
+		DisplayMap()			# 당기는 즉시 다시 그린다 (부록 A #48)
+
+	# 레버 ② (23,15) — 레버 방 북서쪽
+	if (On(23, 15))
+		done.assign(1)
+		if (Equal(Variable::Get("HDSGATE_LEVER_2"), 0))
+			Variable::Set("HDSGATE_LEVER_2", 1)
+			Talk("당신은 레버를 오른쪽으로 당겼다.")
+			tileA.assign(41)
+			tileB.assign(40)
+		else
+			Variable::Set("HDSGATE_LEVER_2", 0)
+			Talk("당신은 레버를 왼쪽으로 당겼다.")
+			tileA.assign(40)
+			tileB.assign(41)
+		# A 조
+		Map::ChangeTile(21, 27, tileA)
+		Map::ChangeTile(20, 30, tileA)
+		Map::ChangeTile(19, 32, tileA)
+		Map::ChangeTile(17, 33, tileA)
+		Map::ChangeTile(28, 32, tileA)
+		# B 조
+		Map::ChangeTile(23, 28, tileB)
+		Map::ChangeTile(22, 30, tileB)
+		Map::ChangeTile(18, 34, tileB)
+		Map::ChangeTile(16, 35, tileB)
+		Map::ChangeTile(26, 32, tileB)
+		Map::ChangeTile(25, 34, tileB)
+		Map::ChangeTile(27, 34, tileB)
+		Map::ChangeTile(23, 38, tileB)
+		Map::ChangeTile(21, 39, tileB)
+		DisplayMap()			# 당기는 즉시 다시 그린다 (부록 A #48)
+
+	# 레버 ③ (23,19) — 레버 방 남서쪽
+	if (On(23, 19))
+		done.assign(1)
+		if (Equal(Variable::Get("HDSGATE_LEVER_3"), 0))
+			Variable::Set("HDSGATE_LEVER_3", 1)
+			Talk("당신은 레버를 오른쪽으로 당겼다.")
+			tileA.assign(41)
+			tileB.assign(40)
+		else
+			Variable::Set("HDSGATE_LEVER_3", 0)
+			Talk("당신은 레버를 왼쪽으로 당겼다.")
+			tileA.assign(40)
+			tileB.assign(41)
+		# A 조
+		Map::ChangeTile(23, 27, tileA)
+		Map::ChangeTile(21, 31, tileA)
+		Map::ChangeTile(16, 32, tileA)
+		Map::ChangeTile(18, 33, tileA)
+		Map::ChangeTile(19, 35, tileA)
+		Map::ChangeTile(24, 34, tileA)
+		Map::ChangeTile(26, 34, tileA)
+		Map::ChangeTile(22, 37, tileA)
+		Map::ChangeTile(20, 38, tileA)
+		# B 조
+		Map::ChangeTile(20, 29, tileB)
+		Map::ChangeTile(22, 29, tileB)
+		Map::ChangeTile(16, 34, tileB)
+		Map::ChangeTile(25, 32, tileB)
+		Map::ChangeTile(27, 33, tileB)
+		DisplayMap()			# 당기는 즉시 다시 그린다 (부록 A #48)
+
+	# 레버 ④ (27,15) — 레버 방 북동쪽
+	if (On(27, 15))
+		done.assign(1)
+		if (Equal(Variable::Get("HDSGATE_LEVER_4"), 0))
+			Variable::Set("HDSGATE_LEVER_4", 1)
+			Talk("당신은 레버를 오른쪽으로 당겼다.")
+			tileA.assign(41)
+			tileB.assign(40)
+		else
+			Variable::Set("HDSGATE_LEVER_4", 0)
+			Talk("당신은 레버를 왼쪽으로 당겼다.")
+			tileA.assign(40)
+			tileB.assign(41)
+		# A 조
+		Map::ChangeTile(22, 27, tileA)
+		Map::ChangeTile(23, 29, tileA)
+		Map::ChangeTile(18, 32, tileA)
+		Map::ChangeTile(15, 35, tileA)
+		Map::ChangeTile(26, 33, tileA)
+		Map::ChangeTile(28, 35, tileA)
+		Map::ChangeTile(23, 37, tileA)
+		Map::ChangeTile(21, 40, tileA)
+		# B 조
+		Map::ChangeTile(21, 28, tileB)
+		Map::ChangeTile(20, 31, tileB)
+		Map::ChangeTile(19, 33, tileB)
+		Map::ChangeTile(17, 34, tileB)
+		Map::ChangeTile(24, 32, tileB)
+		Map::ChangeTile(27, 32, tileB)
+		Map::ChangeTile(24, 35, tileB)
+		DisplayMap()			# 당기는 즉시 다시 그린다 (부록 A #48)
+
+	# 레버 ⑤ (27,19) — 레버 방 남동쪽
+	# (25,31) 은 처음에 벽(39)이다 — 오른쪽으로 당기면 레버 ① 뭍에서 동쪽 다리방으로 내려가는 틈이 된다
+	if (On(27, 19))
+		done.assign(1)
+		if (Equal(Variable::Get("HDSGATE_LEVER_5"), 0))
+			Variable::Set("HDSGATE_LEVER_5", 1)
+			Talk("당신은 레버를 오른쪽으로 당겼다.")
+			tileA.assign(41)
+			tileB.assign(40)
+		else
+			Variable::Set("HDSGATE_LEVER_5", 0)
+			Talk("당신은 레버를 왼쪽으로 당겼다.")
+			tileA.assign(40)
+			tileB.assign(41)
+		# A 조
+		Map::ChangeTile(22, 31, tileA)
+		Map::ChangeTile(17, 32, tileA)
+		Map::ChangeTile(15, 33, tileA)
+		Map::ChangeTile(25, 31, tileA)
+		Map::ChangeTile(28, 34, tileA)
+		# B 조
+		Map::ChangeTile(20, 28, tileB)
+		Map::ChangeTile(21, 30, tileB)
+		Map::ChangeTile(23, 30, tileB)
+		Map::ChangeTile(15, 34, tileB)
+		Map::ChangeTile(18, 35, tileB)
+		Map::ChangeTile(26, 35, tileB)
+		Map::ChangeTile(21, 38, tileB)
+		Map::ChangeTile(22, 39, tileB)
+		DisplayMap()			# 당기는 즉시 다시 그린다 (부록 A #48)
+
+	# ── 물길 ──
+	# 빛나는 63칸: 입구 (40,25) → 갈림목 (37,31) → 서쪽 갈래 끝 (28,29) / 남쪽 갈래 끝 (21,41).
+	# 빛나는 칸을 밟아도 아무 일이 없다. 물 위를 걷는 마법 · 공중 부상은 소용없다.
+	if (Not(done))
+		safe.assign(0)
+		# 입구에서 갈림목까지
+		if (Or(OnArea(40, 25, 40, 29), OnArea(38, 29, 39, 29), OnArea(37, 30, 38, 30), OnArea(35, 31, 37, 31)))
+			safe.assign(1)
+		# 서쪽 갈래 — 레버 ① 뭍 (27,29) 앞까지
+		if (Or(OnArea(32, 30, 35, 30), OnArea(28, 29, 32, 29)))
+			safe.assign(1)
+		# 남쪽 갈래 — 동쪽으로 돌아 내려가는 부분
+		if (Or(OnArea(37, 32, 37, 33), OnArea(38, 33, 38, 35), OnArea(39, 35, 40, 35), OnArea(40, 36, 40, 37), OnArea(41, 37, 41, 41), OnArea(40, 41, 40, 42)))
+			safe.assign(1)
+		# 남쪽 갈래 — 서쪽으로 가는 부분
+		if (Or(OnArea(37, 42, 39, 42), OnArea(35, 43, 37, 43), OnArea(33, 44, 35, 44), OnArea(26, 45, 33, 45)))
+			safe.assign(1)
+		# 남쪽 갈래 — 남쪽 다리방 아래 (21,41) 까지
+		if (Or(OnArea(22, 44, 26, 44), OnArea(22, 42, 22, 43), OnArea(21, 41, 21, 42)))
+			safe.assign(1)
+		# 빛나지 않는 물길 — 일행 전원이 불타 죽는다
+		if (Not(safe))
+			Talk("당신이 물속으로 발을 디디자 순식간에 온몸이 타 버렸다.")
+			PressAnyKey()
+			Game::Over()
+			halt
+
+# ─────────────────────────── 이야기용 물건을 썼다 ───────────────────────────
+if (Equal(ScriptMode(), FLAG_ITEM))
+	# 크로매틱 크리스탈은 하데스 테라 (46,48) 에서만 반응한다 (제9장 9.8)
+	if (Equal(Item::Used(), "crystal.chromatic"))
+		Talk("크리스탈에는 아무런 반응이 없었다.")
+
+# (원작 확인) 나가는 출구는 없다 — 맵 머리의 출구가 빈 값(Genius, 255,255)이고 MYSTSPEC.PAS 의 HdsGate 사건에도 나가는
+#   처리가 없다. 정상 흐름은 급보가 내려놓고(MYSTTIME.PAS 사건 0) 하데스 테라 입구 (21,33)(반역 루트만, MYSTENT.PAS:465~476)로
+#   나간다. 부록 A D3 의 「입구 쪽에 출구 추가」는 넣지 않는다 (2026-11-16 원작자 확인).

@@ -1,0 +1,298 @@
+####### 가이아 테라성 (Gaea) ########
+# 근거: 기획서 05 §5.3 M3·M7 · §5.7 · 06 §6.12 · 10 §10.7·§10.9 · 14 §6.3 · 15 부록 A #30 · 16 부록 B.3,
+#       공략 원고 Gaea.md/json
+# 시작 (26,44) · 이쉬도 테라에서 돌아오면 (26,7) · 마을형 · 기본 바닥 44 · 무작위 조우 없음 · 마법 제한 없음
+# 시설: 식료품점 · 무기상점 · 병원 · 훈련소·마법 학교 · 경험치 훈련장 (약초 가게 없음)
+
+include("common/const.cm2")
+variable(gold)
+variable(year)
+variable(month)
+variable(day)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("town")
+	# 부록 B.3 — 가입한 동료의 자리는 빈 바닥
+	if (Flag::IsSet("JOINED_DENEBOLA"))
+		Map::ChangeTile(25, 9, 44)
+	if (Flag::IsSet("JOINED_CAPELLA"))
+		Map::ChangeTile(11, 36, 44)
+
+####### 사람 ########
+
+if (Equal(ScriptMode(), FLAG_TALK))
+
+	# ---- 성주의 방 ----
+
+	# (42,25) 성주 — 오크 정벌 의뢰 GAEA_QUEST (0 미수락 · 1 수락 · 2 오크킹 처치 · 3 보물창고 개방)
+	if (On(42, 25))
+		# 오크킹을 처치하고 아직 보고하지 않았으면 보고가 먼저다. 트롤킹까지 처치한 뒤라도 그렇다
+		# (원작은 두 왕이 죽으면 게이트 안내만 해서 보물창고가 영영 닫혔다 — 부록 A #30).
+		if (Equal(Variable::Get("GAEA_QUEST"), 2))
+			Say("가이아 테라 성주", "당신이라면 해낼 줄 알았소. 그 답례로 보물창고를 당신에게 개방하겠소. 거기서 마음껏 필요한 것을 가져가도록 하시오.")
+			Variable::Set("GAEA_QUEST", 3)
+			halt
+		# 오크킹·트롤킹 처치 후 — 북쪽 게이트 안내. 뒷말은 코볼트 정벌 전에만
+		if (And(Flag::IsSet("ORC_KING_DEAD"), Flag::IsSet("TROLL_KING_DEAD")))
+			Say("가이아 테라 성주", "당신이 원한다면 우리 성의 북쪽에 있는 이쉬도 테라로 가는 게이트 입구를 열어 주겠소.")
+			if (Not(Flag::IsSet("KOBOLD_SEALED")))
+				Say("가이아 테라 성주", "거기에는 코볼트족만이 살고 있으니 조심하시오.")
+			halt
+		# 의뢰 0단계 — 오크 정벌 의뢰 (묻지 않고 받은 것으로 한다)
+		if (Equal(Variable::Get("GAEA_QUEST"), 0))
+			Say("가이아 테라 성주", "역시 와 주었군요, {주인공}.")
+			Say("가이아 테라 성주", "당신이 지금 베스퍼성에 원정을 가고 있는 중이란 건 알고 있소. 하지만 나의 부탁을 하나 들어주지 않겠소?")
+			Say("가이아 테라 성주", "지금 우리가 있는 가이아 테라에는 인류와 오크족이 공존하고 있소. 오크족들은 우리 대륙을 횡단하는 여행자들에게 약간의 피해를 주기는 했지만 그리 문제 될 것까지는 없었소. 하지만 베스퍼성의 참사를 듣고 나니 우리 성도 오크족에 대해서는 예외가 아니란 걸 알았소. 우리 성에서도 몇 번은 그들을 정벌하자는 의견이 나왔지만 그들의 해악성이 별로 크지 않은 데다가 그들의 전염병이 우리에게 옮을 수 있다는 생각에서 모두들 기피해 왔던 게 사실이오. 하지만 사태가 사태이니만큼 한시바삐 그들을 정벌해야만 우리가 편안히 지낼 수 있겠소.")
+			Say("가이아 테라 성주", "오크족을 정벌해 주지 않겠소? 만약 당신이 허락한다면 당신에게 이 성의 보물창고를 개방하리다. 이곳 주민을 대표하여 당신에게 부탁하겠소.")
+			Variable::Set("GAEA_QUEST", 1)
+			halt
+		# 의뢰 1단계
+		if (Equal(Variable::Get("GAEA_QUEST"), 1))
+			Say("가이아 테라 성주", "오크족의 오크킹만 제거한다면 그들의 사회는 붕괴될 거요. 그리고 오크족의 마을은 이 성의 동쪽 멀리에 있소. 그럼 부탁하오.")
+			halt
+		# 의뢰 3단계 — 보물창고를 연 뒤
+		Say("가이아 테라 성주", "베스퍼성이 있는 아프로디테 테라로 가는 게이트가 대륙의 북동쪽 산악 지역에 있소. 부디 당신이 성공하기를 바라오.")
+
+	# (37,24) 정보원
+	if (On(37, 24))
+		Say("정보원", "저는 오크족에 대해 수년 동안 정보 수집을 했었습니다. 제가 알게 된 바로는, 오크의 보스는 오크킹이며 그 밑에 오크 아키몽크와 오크 아키메이지가 있습니다. 또 아키메이지 밑에는 그의 마법 제자인 오크 매직유저가 7명 있으며 아키몽크 밑에는 4명의 오크 전사와 수십 또는 수백 명의 오크 병사가 있습니다.")
+
+	# (40,24)·(40,27) 주민
+	if (Or(On(40, 24), On(40, 27)))
+		Say("주민", "오크들은 정말 추하고 더럽고 비위생적인 종족입니다.")
+
+	# (37,27) 주민
+	if (On(37, 27))
+		Say("주민", "오크족은 강한 자가 왕이 되는 전통을 가지고 있습니다.")
+
+	# ---- 북쪽 대기실 (결계 안쪽) ----
+
+	# (25,9) 데네볼라 — 동료 (전투승, 레벨 10)
+	if (On(25, 9))
+		Say("데네볼라", "당신이 {주인공:이라는/라는} 사람이오?")
+		Say("데네볼라", "만나서 정말 반갑소. 나는 이곳의 전투승인 데네볼라라고 하오. 사자를 뜻하는 나의 이름에서 알 수 있듯이 나는 맨손 전투에서만은 어느 누구에게도 지지 않소. 나는 이곳에서 이쉬도 테라의 코볼트족을 정벌하고 신대륙을 개척할 일행을 찾고 있었소. 내가 당신의 일행에 참가하려는데 어떻게 생각하오?")
+		Select::Init()
+		Select::Add("")
+		Select::Add("쾌히 승낙하겠소")
+		Select::Add("하지만 전투승은 필요 없소")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			# 인자 없는 함수는 if 에 혼자 쓰면 불리지 않고 늘 참이 된다 — Equal 로 감싼다
+			if (Equal(Party::HasFreeSeat(), 1))
+				Party::Join("denebola")
+				if (Equal(Party::Joined(), 1))
+					Flag::Set("JOINED_DENEBOLA")
+					Map::ChangeTile(25, 9, 44)
+					DisplayMap()
+			else
+				Say("데네볼라", "벌써 사람이 모두 채워져 있군요. 다음 기회를 기다리지요.")
+
+	# ---- 북서: 훈련 시설 ----
+
+	# (12,11) 경험치 훈련장
+	if (On(12, 11))
+		Shop::ExpTraining()
+
+	# (15,12)·(12,15) 훈련소·마법 학교
+	if (Or(On(15, 12), On(12, 15)))
+		Shop::Training()
+
+	# ---- 북동: 무기상점 ----
+
+	# (37,10)·(40,12)·(41,15) 무기상점
+	if (Or(On(37, 10), On(40, 12), On(41, 15)))
+		Shop::Weapon()
+
+	# (38,14) 주민
+	if (On(38, 14))
+		Say("주민", "오크족에서 제대로 마법을 행하는 자는 오크킹의 왼팔 격인 아키메이지뿐입니다.")
+
+	# ---- 대로 ----
+
+	# (27,15) 주민 — 코볼트 정벌 전/후
+	if (On(27, 15))
+		if (Flag::IsSet("KOBOLD_SEALED"))
+			Say("주민", "이제는 신세계 개척에 힘써야 할 때입니다.")
+		else
+			Say("주민", "코볼트족의 배타성 때문에 인류의 신세계 개척이 늦어지고 있습니다. 그들을 굴복시켜 한시바삐 새 시대를 열어야 합니다.")
+
+	# (24,29) 학자 — 독심 중이고 오크 글을 아직 모르면 금화 2000 에 오크 글을 가르친다
+	if (On(24, 29))
+		if (And(Party::CheckIf(CHECKIF_MINDCONTROL), Not(Flag::IsSet("ORC_SCRIPT"))))
+			Say("학자", "만약 당신이 나에게 금을 2000개 준다면 기꺼이 일주일 만에 오크의 글을 가르쳐 주리다.")
+			Select::Init()
+			Select::Add("")
+			Select::Add("그렇게 합시다")
+			Select::Add("배울 필요는 없을 것 같소")
+			Select::Run()
+			if (Equal(Select::Result(), 1))
+				if (Less(Party::Gold(), 2000))
+					Say("학자", "하지만 당신에게는 충분한 금이 없군요.")
+				else
+					Party::PlusGold(-2000)
+					# 화면이 어두워졌다가 7일 뒤 11:00 (한 달 30일 · 한 해 12달)
+					Screen::FadeOut(300)
+					year.assign(Time::Year())
+					month.assign(Time::Month())
+					day.assign(Add(Time::Day(), 7))
+					if (Greater(day, 30))
+						day.assign(Sub(day, 30))
+						month.add(1)
+					if (Greater(month, 12))
+						month.assign(1)
+						year.add(1)
+					Time::Set(year, month, day, 11, 0)
+					Screen::FadeIn(300)
+					Talk("일주일이 경과했다.")
+					PressAnyKey()
+					Flag::Set("ORC_SCRIPT")
+					Say("학자", "당신은 이제 오크족의 글을 읽을 수가 있소. 만약 당신이 오크족의 말도 배우고 싶다면 이 대륙의 남동쪽 섬으로 가시오.")
+					Say("학자", "그리고, 다른 세 종족의 말과 글을 배울 수 있는 길이 반드시 있을 거요.")
+		else
+			Say("학자", "당신이 오크의 말과 글을 배운다면 그들과 대화가 이루어질 거요.")
+
+	# ---- 남서: 병원 ----
+
+	# (11,36) 카펠라 — 동료 (메이지, 레벨 2, 여성)
+	if (On(11, 36))
+		Say("카펠라", "저는 이곳에서 초급 마법을 배우는 카펠라라고 합니다. 사실 메이지로서의 제 능력은 아직 많이 부족합니다. 그래서 당신들과 함께 실전에서 많은 것들을 배우고 싶습니다. 제가 일행에 끼어도 되겠습니까?")
+		Select::Init()
+		Select::Add("")
+		Select::Add("그렇다면 한번 동행해 보겠소")
+		Select::Add("당신은 아직 미숙하니 곤란하오")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			if (Equal(Party::HasFreeSeat(), 1))
+				Party::Join("capella")
+				if (Equal(Party::Joined(), 1))
+					Flag::Set("JOINED_CAPELLA")
+					Map::ChangeTile(11, 36, 44)
+					DisplayMap()
+			else
+				Say("카펠라", "벌써 사람이 모두 채워져 있군요. 다음 기회를 기다리지요.")
+		else
+			# 거절했을 때
+			Say("카펠라", "그렇다면 할 수 없군요. 제 스승인 안타레스 Jr.님께서 로어성에 가신 후 좋은 스승을 못 찾았기에 당신에게 부탁드렸던 건데...")
+
+	# (14,38) 탈출자
+	if (On(14, 38))
+		Say("탈출자", "저는 코볼트족이 지배하는 이쉬도 테라에 갔다가 겨우 도망쳐 나왔습니다. 그들은 외부 종족이 그들의 영역 내에 들어오는 것을 매우 싫어하더군요. 그들의 무장은 다른 종족보다 강하여 도저히 당해내기 힘들었습니다.")
+
+	# (9,39)·(12,41) 병원
+	if (Or(On(9, 39), On(12, 41)))
+		Shop::Hospital()
+
+	# ---- 남동: 식료품점 ----
+
+	# (42,34) 주민
+	if (On(42, 34))
+		Say("주민", "드라코니안족은 인간과 드래곤의 튀기라더군요. 인간처럼 두 팔과 두 다리가 있으나 머리는 드래곤의 머리이며 날개와 꼬리가 있고 지능 또한 상당히 높다고 하더군요.")
+
+	# (37,39)·(40,37)·(41,41) 식료품점
+	if (Or(On(37, 39), On(40, 37), On(41, 41)))
+		Shop::Grocery()
+
+####### 푯말 ########
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+
+	# (24,26) 보물창고
+	if (On(24, 26))
+		Talk("가이아 테라성의 보물창고")
+		Talk("훔쳐 가면 죽어 ~~~")
+
+	# (29,26) 성 입구
+	if (On(29, 26))
+		Talk("가이아 테라성에 오신 것을 환영합니다")
+		Talk("이곳은 쓰레기 종량제 시범 성입니다")
+		Talk("여러분을 환영합니다.")
+		Talk("이곳의 성주로부터")
+
+####### 이벤트 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 출구 ----
+
+	# (25~28,45) 남쪽 출구 줄 → 가이아 테라 (32,82)
+	if (OnArea(25, 45, 28, 45))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E3_Ground2", 32, 82)
+		else
+			WarpPrevPos()
+
+	# ---- 북쪽: 결계와 이쉬도 게이트 ----
+
+	# (26,10)·(27,10) 결계 — 오크킹·트롤킹을 모두 처치하기 전에는 한 칸 남쪽 (y=11) 으로 밀려난다
+	if (OnArea(26, 10, 27, 10))
+		if (Not(And(Flag::IsSet("ORC_KING_DEAD"), Flag::IsSet("TROLL_KING_DEAD"))))
+			Talk("원인을 알 수 없는 힘이 당신을 거부했다.")
+			Party::Warp(Party::PosX(), 11)
+
+	# (25~28,6) 이쉬도 게이트 — 두 왕 처치 후 이쉬도 테라 (48,36)
+	if (OnArea(25, 6, 28, 6))
+		if (And(Flag::IsSet("ORC_KING_DEAD"), Flag::IsSet("TROLL_KING_DEAD")))
+			# 화면이 어두워지며 이쉬도 테라로 — 0.3초 페이드 아웃 (부록 D). 막은 맵을 옮긴 뒤 엔진이 걷는다
+			Screen::FadeOut(300)
+			LoadScript("E3_Ground4", 48, 36)
+		else
+			Talk("게이트는 전혀 작동하지 않았다.")
+			Party::Warp(Party::PosX(), 7)
+
+	# ---- 보물창고 (x 8~20, y 22~28) ----
+
+	# (23,25) 창고 들어가기 · (21,25) 창고 나가기 — 성주가 개방한 뒤에만 벽 (22,25) 을 지난다
+	if (On(23, 25))
+		if (Equal(Variable::Get("GAEA_QUEST"), 3))
+			Party::Warp(20, 25)
+	if (On(21, 25))
+		if (Equal(Variable::Get("GAEA_QUEST"), 3))
+			Party::Warp(24, 25)
+
+	# (18,27) 금화 5000
+	if (On(18, 27))
+		if (Not(Flag::IsSet("GAEA_TREASURE_1")))
+			Flag::Set("GAEA_TREASURE_1")
+			Party::PlusGold(5000)
+			Talk("당신은 금화 5000개를 발견했다.")
+
+	# (16,23) 금화 10000
+	if (On(16, 23))
+		if (Not(Flag::IsSet("GAEA_TREASURE_2")))
+			Flag::Set("GAEA_TREASURE_2")
+			Party::PlusGold(10000)
+			Talk("당신은 금화 10000개를 발견했다.")
+
+	# (15,25) 금화 1000~9000 (1000 단위 무작위)
+	if (On(15, 25))
+		if (Not(Flag::IsSet("GAEA_TREASURE_3")))
+			Flag::Set("GAEA_TREASURE_3")
+			gold.assign(Mul(Add(Random(9), 1), 1000))
+			Party::PlusGold(gold)
+			Talk("당신은 금화 {$gold}개를 발견했다.")
+
+	# (12,26) 금화 1000~9000 (1000 단위 무작위)
+	if (On(12, 26))
+		if (Not(Flag::IsSet("GAEA_TREASURE_4")))
+			Flag::Set("GAEA_TREASURE_4")
+			gold.assign(Mul(Add(Random(9), 1), 1000))
+			Party::PlusGold(gold)
+			Talk("당신은 금화 {$gold}개를 발견했다.")
+
+	# (10,24) 화염의 크리스탈 — 정식 개방 뒤에만. 그 전에 마법으로 들어와 밟으면 금화 1000~9000 으로 끝난다
+	if (On(10, 24))
+		if (Not(Flag::IsSet("GAEA_TREASURE_5")))
+			Flag::Set("GAEA_TREASURE_5")
+			if (Equal(Variable::Get("GAEA_QUEST"), 3))
+				Item::Give("crystal.flame", 1)
+				Talk("당신은 화염의 크리스탈을 발견했다.")
+			else
+				gold.assign(Mul(Add(Random(9), 1), 1000))
+				Party::PlusGold(gold)
+				Talk("당신은 금화 {$gold}개를 발견했다.")
+
+# (해결된 NEED) 게이트 전환 — 「화면이 어두워지며 이쉬도 테라 (48,36)」은 Screen::FadeOut(300) 뒤 LoadScript.
+#       맵을 옮긴 뒤 엔진이 막을 걷는다 (부록 D).

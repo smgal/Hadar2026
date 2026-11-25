@@ -1,0 +1,110 @@
+####### 제1부 피라미드 (E1_Pyramid) — 50×50 동굴 ########
+# 근거: 1st/05 §5.2 M2 · §5.3 S7 · 1st/06 §6.10 · 1st/08 §8.1(이름을 바꿔 쓰는 적) · §8.2 · §8.3 · 1st/10 §5.3 ·
+#       1st/12 부록 B · 공략집 Walkthrough/1st/src/maps/Pyramid.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥 44. 숨은 칸(0): 창의 문턱 (25,44)·(26,44), 미이라의 방 (25,24)·(26,24), 금화 일곱, 출구 줄 (25~26,46).
+# 들어오면 (25,45), 나가면 라스트디치성 앞뜰 (38,7).
+
+include("common/const.cm2")
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 6~15: 자이언트·팬텀·울프·임프·고블린·파이톤·인섹트·자이언트 스파이더·그렘린·버즈 버그 (레벨 2~4)
+	Encounter::Clear()
+	Encounter::Add(6, 15)
+	Encounter::Enable(1)
+	# 메이저 미라를 처치했고 창을 받았으면 입구 안쪽 두 칸이 용암이 된다 (부록 B.3).
+	# 원작은 창을 받지 않았어도 바꿔서 창을 영영 놓칠 수 있었다(부록 A #14) — 그 버그는 옮기지 않는다.
+	if (And(GreaterEqual(Variable::Get("LASTDITCH_QUEST"), 2), Flag::IsSet("OEDIPUS_SPEAR")))
+		Map::ChangeTile(25, 44, 50)
+		Map::ChangeTile(26, 44, 50)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 오이디푸스의 창 (25,44)·(26,44) — 안으로 들어가는 유일한 두 칸 (S7) ----
+	# 원작은 전투승이 아닌 한 명을 골라 곧장 장착시켰다. 리메이크는 배낭에 넣는다 — 원작 「미늘창」은
+	# 제3부의 단창에 대응한다 (1st/07 §7.6).
+	if (Or(On(25, 44), On(26, 44)))
+		if (Flag::IsSet("OEDIPUS_SPEAR"))
+			halt
+		Flag::Set("OEDIPUS_SPEAR")
+		Talk("당신은 어떤 창을 발견했다.")
+		Talk("그 창의 손잡이에 쓰인 문구를 따르면..")
+		Notice("이것은 오이디푸스의 창")
+		Notice("이것으로 전에 Sphinx를 무찌르다")
+		Item::Give("weapon.short_spear", 1)
+		Notice("오이디푸스의 창(단창)을 배낭에 넣었다")
+		halt
+
+	# ---- 미이라의 방 (25,24)·(26,24) — 라스트디치 의뢰 단계 1 (M2) ----
+	# 스핑크스 2 + 메이저 미라, 적 선공. 도망치면 그 칸에 서고 다시 밟으면 다시 싸운다.
+	if (Or(On(25, 24), On(26, 24)))
+		if (Not(Equal(Variable::Get("LASTDITCH_QUEST"), 1)))
+			halt
+		Notice("당신은 미이라의 방을 발견했다.")
+		Battle::Init()
+		Battle::RegisterVariant("sphinx", 2)
+		Battle::RegisterVariant("major_mummy", 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		# 메이저 미라(등록 3번째)만 쓰러뜨려도 성공 — 도망쳤어도 (1st/08 §8.2)
+		if (Or(Equal(Battle::Result(), BATTLERESULT_WIN), Equal(Battle::EnemyDown(3), 1)))
+			Talk("당신들은 Major Mummy를 물리쳤다.")
+			Notice("그리고 당신은 이 임무에 성공했다.")
+			Variable::Set("LASTDITCH_QUEST", 2)
+		halt
+
+	# ---- 금화 일곱 곳 — 모두 바깥 벽에 틈이 없는 미로 구역 안 (기화 이동·지형 변화) ----
+	if (On(20, 30))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_1")))
+			Flag::Set("PYRAMID_GOLD_1")
+			Party::PlusGold(5000)
+			Notice("황금 + 5000")
+		halt
+	if (On(18, 36))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_2")))
+			Flag::Set("PYRAMID_GOLD_2")
+			Party::PlusGold(5000)
+			Notice("황금 + 5000")
+		halt
+	if (On(35, 32))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_3")))
+			Flag::Set("PYRAMID_GOLD_3")
+			Party::PlusGold(5000)
+			Notice("황금 + 5000")
+		halt
+	if (On(33, 36))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_4")))
+			Flag::Set("PYRAMID_GOLD_4")
+			Party::PlusGold(5000)
+			Notice("황금 + 5000")
+		halt
+	if (On(35, 14))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_5")))
+			Flag::Set("PYRAMID_GOLD_5")
+			Party::PlusGold(5000)
+			Notice("황금 + 5000")
+		halt
+	if (On(14, 16))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_6")))
+			Flag::Set("PYRAMID_GOLD_6")
+			Party::PlusGold(5000)
+			Notice("황금 + 5000")
+		halt
+	if (On(37, 12))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_7")))
+			Flag::Set("PYRAMID_GOLD_7")
+			Party::PlusGold(5000)
+			Notice("황금 + 5000")
+		halt
+
+	# ---- 출구 줄 (25~26,46) ----
+	if (OnArea(25, 46, 26, 46))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_LastDitch", 38, 7)
+		else
+			WarpPrevPos()
+

@@ -1,0 +1,57 @@
+####### 제2부 흉성의 증거 (E2_Evidence) — 50×50 동굴 (피라미드 안) ########
+# 근거: 2nd/05 §5.2(피라미드와 두 동굴) · 2nd/06 §6.9 · 2nd/08 §8.3 · 2nd/10 §7.2 · 2nd/12 부록 B ·
+#       공략집 Walkthrough/2nd/src/maps/Evidence.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥 41. 세 겹의 둘레 길과 가운데 돌방. 숨은 칸: 석판 (25,26)·(26,26), 돌방 문 (25,31)·(26,31).
+# 들어오면 (25,44), 나가면 피라미드 (16,17).
+
+include("common/const.cm2")
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 15~29 (레벨 4~8)
+	Encounter::Clear()
+	Encounter::Add(15, 29)
+	Encounter::Enable(1)
+
+####### 무너진 입구 (25~26,7) — 2번 대원이 있으면 분석 (1회) ########
+
+if (Or(Equal(ScriptMode(), FLAG_ENTER), Equal(ScriptMode(), FLAG_EVENT)))
+	if (OnArea(25, 7, 26, 7))
+		Talk("당신이 입구에 들어가려 했지만 이미 입구는 함몰되어 들어갈 수가 없었다.")
+		if (And(Equal(Player::IsAvailable(2), 1), Not(Flag::IsSet("EVIDENCE_ENTRANCE_NOTE"))))
+			Flag::Set("EVIDENCE_ENTRANCE_NOTE")
+			Talk("{2:은/는} 동굴의 입구를 조사하더니 당신에게 말했다.")
+			Say("{2}", "잠깐 여기를 보게. 이 입구에 떨어져 있는 흙은 다른 곳의 흙과는 다르다네. 이걸 보게나. 모래가 거의 유리처럼 변해 있지 않은가. 이건 분명히 핵폭발이 여기에서 일어났었다는 증거일세. 이 동굴의 입구가 함몰된 이유는 바로 핵무기나 아니면 거기에 필적하는 초자연적인 마법에 의해서인 것 같네. 그렇다면 이 동굴 안의 세계에 존재하는 인물 중에서 이 정도의 고수준 마법을 사용하는 사람이 있다는 셈이라네.")
+		if (Equal(ScriptMode(), FLAG_EVENT))
+			WarpPrevPos()
+		halt
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	if (OnArea(25, 45, 26, 45))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E2_Pyramid", 16, 17)
+		else
+			WarpPrevPos()
+		halt
+	# ---- 석판 (25~26,26) ----
+	if (OnArea(25, 26, 26, 26))
+		if (Flag::IsSet("TABLET_EVIDENCE"))
+			halt
+		Flag::Set("TABLET_EVIDENCE")
+		Talk("당신은 이곳에 놓여 있는 어떤 석판을 발견했다. 하지만 알 수 없는 고대어로 쓰여 있어서 도저히 읽을 수 없었다. 하지만 일행은 그것을 가져가기로 했다.")
+		halt
+	# ---- 돌방 문 (25~26,31) — 석판을 얻은 뒤 3번 대원의 말 (1회, 3번 대원이 있을 때만 — 부록 A #25) ----
+	if (OnArea(25, 31, 26, 31))
+		if (Or(Not(Flag::IsSet("TABLET_EVIDENCE")), Flag::IsSet("TABLET_EVIDENCE_NOTE")))
+			halt
+		if (Not(Equal(Player::IsAvailable(3), 1)))
+			halt
+		Flag::Set("TABLET_EVIDENCE_NOTE")
+		Talk("{3:은/는} 한동안 생각하더니 말을 꺼냈다.")
+		Say("{3}", "잠깐, 그 고대어를 예전에 보았던 곳을 방금 생각해 냈다네. 내가 1년 전에 로드안님의 일을 도와주고 있었을 때 로드안께서 이런 글이 적혀 있는 고서를 읽곤 했었다네. 분명히 이것을 로드안님께 가져가면 분명히 해독이 될 걸세.")
+		halt

@@ -1,0 +1,14 @@
+name: lore_world
+description: >-
+  Character, party, item, equipment, time and field rules for the Lore
+  trilogy remake (Part 3 game system for all three parts). Pure Dart:
+  no Flutter, no dart:io, no display text. Call a command, read the
+  outcome it returns.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dev_dependencies:
+  test: ^1.24.0

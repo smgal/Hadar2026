@@ -93,7 +93,8 @@ grep -rn "package:flutter/material\|package:bonfire\|package:flame" lib/applicat
 - `isInteractive` = talk|sign|enter (마주보고 확인, 동시에 이동 차단)
 - `isStepOn` = event|enter
 - `HDTileProperties.getUnitAction(unit)`: `unit.ixEvent & 0x00FF0000` 우선(0x1=event,0x2=talk,0x3=sign,0x4=enter)
-  → 없으면 `ixObj1` 의 오브젝트 규칙 → 없으면 `ixTile` 규칙(<56 move, <60 water, <62 swamp, <64 lava, <70 enter, <72 cliff, <128 none, else move).
+  → 없으면 `ixObj1`(z3) → `ixObj0`(z2) 의 오브젝트 규칙(MOVE 대역이거나 비면 아래 층으로) → 없으면 `ixTile` 규칙(<56 move, <60 water, <62 swamp, <64 lava, <70 enter, <72 cliff, <128 none, else move).
+  `ixDecor`(z1 바닥 장식)는 보지 않는다. 2026-11-09 다섯 층 배치(BP-36 R-36-57)부터 — 그 전에는 `ixObj1` 만 봤고 z1 은 읽지도 않았다.
 - `mapType`: TYPE_TOWN 0, TYPE_KEEP 1, TYPE_GROUND 2, TYPE_DEN 3.
 
 ## 6. 맵 데이터 실측
@@ -194,6 +195,8 @@ dev 서버 `http://localhost:5310` (`pnpm dev`), `GET /api/ai` 가 AI_GUIDE.md �
 
 레이어 규약: ground(z0, `1536+A5index`), ground2(z1 미사용), objLower(z2 장식), objUpper(z3 **통행 판정**),
 shadow(z4 사분면 비트 0~15, 0=항상 밝음/15=야간 완전 어둠), region(z5, 게임이 ixEvent 로 읽음).
+(2026-11-09) **게임과 출하 맵은 다섯 층 배치로 바뀌었다** — z1 바닥 장식(통행 안 봄), z2 L3 오브젝트(막음), z3 L4 위 오브젝트(막음). 부록 J-3.
+이 저장소의 `tools/mapEditor` 는 바뀌지 않아 통행 판정(`rules.ts` `unitAction`)이 아직 z3 만 본다 — 다섯 층 배치는 독립 프로젝트 mv-map-editor 쪽에 있다(BP-36 §11.4).
 A5 인덱스: 0~55 MOVE, 56~59 WATER, 60~61 SWAMP, 62~63 LAVA, 64~69 ENTER, 70~71 CLIFF, 72~127 BLOCK.
 B 타일: 1~63 BLOCK, 64~87 MOVE, 88~95 MOVE(애니), 96~111 BLOCK, 112~123 SIGN, 124~127 ENTER, 128~143 TALK, 144~239 MOVE, 240~255 예약.
 
@@ -375,8 +378,9 @@ Map<String, dynamic> toJson() {
 
 ## C-3 맵 스냅샷 세이브가 웹 저장 한계에 근접한다
 `hadar2026_app/lib/domain/map/map_unit.dart` 의 `toJson()` 은 칸마다
-`{"ixTile":N,"ixObj0":N,"ixObj1":N,"shadow":N,"ixEvent":N}` 을 만든다 — 최소 **~57바이트/칸**.
-100×100 맵 = 10,000칸 → **약 570KB**(값이 커지면 더 큼). 슬롯 4개면 2MB 이상.
+`{"ixTile":N,"ixDecor":N,"ixObj0":N,"ixObj1":N,"shadow":N,"ixEvent":N}` 을 만든다 — 최소 **~69바이트/칸**
+(2026-11-09 `ixDecor` 추가 전에는 ~57바이트).
+100×100 맵 = 10,000칸 → **약 690KB**(값이 커지면 더 큼). 슬롯 4개면 2.7MB 이상.
 브라우저 `localStorage` 는 통상 5MB 이고 UTF-16 저장이라 실질 여유는 그 절반이다.
 → 맵 전체 스냅샷 대신 **원본 대비 델타(`mapDelta`)만 저장**하는 방식이 선택이 아니라 필수.
 
@@ -731,10 +735,16 @@ region 값은 **0~255, 즉 비트 0~7** 에 들어간다. 마스크는 **비트 
 
 ## J-3 타일 액션의 실제 출처는 3개뿐이다
 1. 맵 JSON `events[]` 의 이름 접두사 → `ixEvent` 상위 바이트 (TALK/SIGN/EVENT/ENTER)
-2. `ixObj1`(objUpper) 의 B 타일 id 대역 → `_getObjectAction`
+2. `ixObj1`(z3 L4 위 오브젝트) → `ixObj0`(z2 L3 오브젝트) 의 B 타일 id 대역 → `_getObjectAction`.
+   z3 이 비었거나 MOVE 대역이면 z2 를 본다
 3. `ixTile`(ground) 의 A5 인덱스 대역 → `_getTileAction`
 
-region(z5)·objLower(z2)·shadow(z4)·ground2(z1) 는 **타일 액션에 관여하지 않는다.**
+region(z5)·shadow(z4)·바닥 장식(z1, `ixDecor`) 은 **타일 액션에 관여하지 않는다.**
+
+(2026-11-09 다섯 층 배치, BP-36 R-36-57) 그 전에는 2번이 `ixObj1` 하나였고 z2 도 관여하지 않았다.
+바꾸기 전 맵 13개(71,977칸)에 새 판정을 돌려도, 변환한 맵에 새 판정을 돌려도 옛 판정과 다른 칸이 0칸이다
+(`HDMapLoader` + `getUnitAction` 으로 칸마다 비교, 통행 가능 여부는 물 위 걷기 0·1 둘 다).
+시험: `test/domain/map/tile_action_test.dart` 「five layers」, `test/application/map_loader_test.dart`.
 
 # 부록 K — 타일 이벤트 진입점 3개의 게이트 비대칭 (2026-08-30 메인 검증 완료)
 

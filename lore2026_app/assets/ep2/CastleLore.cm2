@@ -1,0 +1,664 @@
+####### 제2부 로어성 (E2_CastleLore) — 100×100 마을 ########
+# 근거: 2nd/04 · 2nd/05 §5.2·§5.3 · 2nd/06 §6.4 · 2nd/07 §7.2 · 2nd/10 §3 · §11(로어성 푯말) · 2nd/12 부록 B ·
+#       공략집 Walkthrough/2nd/src/maps/CastleLore.md · 원작 칸 번호(maps.json)
+# 마을형 · 기본 바닥 44. 숨은 칸: 집 문 줄 (19,48~51), 무기고 입구 (41,79), 감옥 문 (51~52,12), 열쇠 (86,48),
+# 금고 (89,52)·(91,52) 등, 출구 줄 (49~53,95). 은행 금고 (90,40~44)는 밟는 칸(19). 안쪽 성문 (49~53,88)은 칸 5.
+# 월식: 로드안이 ECLIPSE_DAY(날 번호)와 ECLIPSE_YEAR/MONTH/DATE(글에 낼 날짜)를 적어 둔다 — 그 날이 지난 뒤 말을 걸면 다음 원정.
+# 도착 자리: 새 게임 (10,48) · 로어 대륙에서 (51,94)
+
+include("common/const.cm2")
+variable(stage)
+variable(y)
+variable(m)
+variable(d)
+variable(px)
+variable(mins)
+
+####### 맵에 들어올 때 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("town")
+	if (Flag::IsSet("INTRO_DONE"))
+		Map::ChangeTileArea(19, 48, 19, 51, 44)
+	if (Flag::IsSet("INNER_GATE_OPEN"))
+		Map::ChangeTileArea(49, 88, 53, 88, 44)
+	# 합류한 옛 동료의 자리를 비운다 (부록 B.3 — 원작은 미친 조·머큐리 자리를 비우지 않았다, 부록 A #10)
+	if (Flag::IsSet("JOINED_HERCULES"))
+		Map::ChangeTile(89, 23, 44)
+	if (Flag::IsSet("JOINED_TITAN"))
+		Map::ChangeTile(21, 33, 44)
+	if (Flag::IsSet("JOINED_MERLIN"))
+		Map::ChangeTile(9, 64, 44)
+	if (Flag::IsSet("JOINED_BETELGEUSE"))
+		Map::ChangeTile(88, 38, 44)
+	if (Flag::IsSet("JOINED_MERCURY"))
+		Map::ChangeTile(63, 10, 47)
+	if (Flag::IsSet("JOINED_MADJOE"))
+		Map::ChangeTile(40, 15, 47)
+	if (Flag::IsSet("BANK_KEY"))
+		Map::ChangeTile(87, 48, 47)
+	# 메너스 사건 뒤 처음 들어올 때 — 환영 서술 한 번 (부록 A #21)
+	if (And(Equal(Variable::Get("LORD_STAGE"), 4), Not(Flag::IsSet("CASTLE_WELCOME_SHOWN"))))
+		Flag::Set("CASTLE_WELCOME_SHOWN")
+		Talk("당신이 로어성에 들어오자 주민들의 열렬한 환영을 받았다. 하지만 주민들은 당신이 메너스에서 레드 안타레스가 악마 사냥꾼에게 거의 패배했던 당신을 도와준 사실을 알 턱이 없었다. 메너스의 살인 원인을 제거하는 데 당신이 한 일은 사실 아무것도 없다는 점에 당신은 씁쓸한 웃음을 지을 수밖에 없었다.")
+
+####### 사람 ########
+
+if (Equal(ScriptMode(), FLAG_TALK))
+	y.assign(Variable::Get("ECLIPSE_YEAR"))
+	m.assign(Variable::Get("ECLIPSE_MONTH"))
+	d.assign(Variable::Get("ECLIPSE_DATE"))
+
+	# ---- 로드안 (51,28) — 2nd/05 §5.2 ----
+	if (On(51, 28))
+		stage.assign(Variable::Get("LORD_STAGE"))
+		if (Equal(stage, 0))
+			Say("로드안", "{주인공}.")
+			Say("로드안", "네크로만서를 물리친 후 잘 쉬었는가? 또 자네를 부를 일이 있다는 그 자체는 그만큼 세상이 혼란스러워졌다는 증거일세. 그럼 말을 계속해 보도록 하겠네.")
+			Say("로드안", "또 자네의 힘을 빌릴 때가 온 것 같네. 새로운 마력이 온통 이 세계를 휘감고 있다네. 그것을 내가 깨달았을 때는 이미 그 새로운 존재가 민심을 선동하고 있었다네. 주민들은 다크 메이지가 있어서 곧 여기를 침공할 거라고 하며 나에게 방어를 요청했다네. 하지만 다크 메이지란 존재는 내가 알기로도 존재하지 않으며 나와 연대 관계에 있는 에인션트 이블도 역시 그런 존재를 모르고 있었다네. 하지만 주민들은 어떻게 알았는지 그 존재를 말하고 있다네. 그럼 이번에 해야 할 임무를 말해 주겠네.")
+			Say("로드안", "자네는 메너스란 동굴을 기억할 걸세. 그곳은 네크로만서가 사라진 후 파괴되었고 지금은 다시 원래대로 광산이 되었다네. 하지만 언제부턴가 그곳은 잇따른 의문의 살인 때문에 지금은 거의 폐광이 되다시피 한 곳이라네. 주민들은 그 살인이 모두 다크 메이지의 짓이라고들 하고 있네. 나도 다크 메이지의 존재를 믿고 싶지는 않지만 일이 이렇게 되었으니 어쩔 수 없다네.")
+			Say("로드안", "지금 즉시 메너스로 가서 진상을 밝혀 주게. 그리고 다크 메이지에 대한 정보도 알아 오도록 하게. 무기는 무기고에서 가져가도록 허락하지. 부탁하네.")
+			# 경험치는 주인공에게만 (2nd/07 §7.2)
+			Player::ChangeAttribute(1, "exp", Add(Player::GetAttribute(1, "exp"), 10000))
+			Party::PlusGold(1000)
+			Notice("경험치 + 10000   황금 + 1000")
+			Variable::Set("LORD_STAGE", 1)
+			halt
+		if (Equal(stage, 1))
+			Say("로드안", "메너스에서 일어난 의문의 살인에 대한 원인과 다크 메이지의 정보도 알아 오게. 자네만 믿겠네.")
+			halt
+		if (Equal(stage, 2))
+			Say("로드안", "돌아왔군, {주인공}.")
+			Say("로드안", "메너스에서 알아낸 것이 없다고? 이거 큰일이네. 자네가 이곳으로 돌아오던 시간에 또 한 명이 메너스에서 살해당했다네. 그리고 주민들의 여론은 더욱 악화되었다는 것은 자명한 사실이네. 다시 자네에게 부탁하겠네. 다시 그곳으로 가서 살인에 대한 단서를 찾아오게.")
+			Say("로드안", "꼭 부탁하네.")
+			Variable::Set("LORD_STAGE", 3)
+			halt
+		if (Equal(stage, 3))
+			Say("로드안", "다시 메너스로 가서 살인에 대한 단서를 찾아오도록 하게. 부탁하네.")
+			halt
+		if (Equal(stage, 4))
+			Say("로드안", "정말 잘해냈군, {주인공}.")
+			Say("로드안", "역시 과거의 영웅은 현재의 영웅이군. 미궁에 빠졌던 살인 사건의 원인을 알아내고 그들을 제거해 내다니. 당신에게 그 대가로 약간의 상금을 주도록 하겠네.")
+			Party::PlusGold(5000)
+			Notice("황금 + 5000")
+			Say("로드안", "그리고 내가 다크 메이지의 기원을 여러 방면으로 알아보던 중에 이 책을 찾아내었네.")
+			Say("로드안", "이 책은 당신도 알다시피 알비레오라고 하는 타임워커가 이 대륙에 남기고 간 예언서이지. 중요한 부분만 해석하면 다음과 같네.")
+			Talk("@F첫 번째 흉성이 나타나는 날, 평화는 로어의 신과 함께 대지로 추락할 것이며 공간이 어긋나고 대륙이 진동하며 새로운 존재가 나타난다.@@")
+			Say("로드안", "이 글은 저번에 네크로만서가 나타날 때의 그 광경을 묘사한 구절이란 것을 금방 알 수 있네.")
+			Talk("@F두 번째 흉성이 나타나는 날, 그는 용암의 대륙으로부터 세상을 뒤흔들게 되며 그는 네크로만서라 불리어진다.@@")
+			Say("로드안", "이 글 또한 몇 년 전의 일과 일치하네.")
+			Talk("@F세 번째 흉성이 나타나는 날, 네크로만서를 이기는 자는 아무도 없게 된다.@@")
+			Say("로드안", "하지만 이 글은 사실과 다르다네. 자네가 네크로만서를 물리쳤기 때문에 말일세.")
+			Talk("@F네 번째 흉성이 나타나는 날, 메너스의 달이 붉게 물들 때 어둠의 영혼이 나타나 세계의 종말을 예고한다.@@")
+			Say("로드안", "이 글이 가장 중요한 요지라네. '메너스의 달이 붉게 물들 때'란 메너스에서 일어난 지금까지의 살인 사건을 말하는 것이고, '영혼'이란 예부터 전승되는 구전에 의하면 영혼의 힘을 이용할 수 있는 사람, 즉 마법사를 지칭하는 말이 된다네. 그러므로 '어둠의 영혼'은 바로 어둠의 마법사를 뜻하는 말이 되네. 다시 풀이하면 그 뜻은 '메너스에서 살인 사건이 일어날 때 다크 메이지가 세계의 종말을 예고한다'라는 말이 된다네.")
+			Talk("@F다섯 번째 흉성이 나타나는 날, 내가 본 다섯 번의 흉성 중에 하나가 나타나지 않았음을 알아낸다.@@")
+			Say("로드안", "위에서의 예언을 보면 하나가 틀려 있지. 바로 세 번째 흉성이 떨어질 때의 일 말일세. 그것이 틀렸다는 그 말일세. 알비레오 그 자신도 자네가 네크로만서를 물리치리라고는 생각하지 못했는데 자네가 해내었기 때문에 이런 말을 적었던 것 같네.")
+			Say("로드안", "이 예언에 의하면 반드시 다크 메이지가 세상을 멸망시키게 된다네. 알비레오 그 자신도 그것을 알려 주려 했던 것이고. 그렇다면 우리는 이번에도 저번의 네크로만서 때처럼 스스로의 운명을 바꾸기 위해 도전해 보아야 한다는 결론을 얻을 수 있게 되네.")
+			Say("로드안", "그럼 자네에게 또 하나의 할 일을 주겠네. 자네는 지금 즉시 라스트디치성에 가도록 하게. 그곳에서도 우리와 같은 위기를 느끼고 있을 것이고 이보다 더 많은 정보가 있을 수도 있을 테니 한시바삐 그곳으로 가 보도록 하게.")
+			Variable::Set("LORD_STAGE", 5)
+			halt
+		if (Equal(stage, 5))
+			Say("로드안", "자네는 라스트디치성에서의 일을 모두 끝내고 다시 돌아오도록 하게.")
+			halt
+		if (Equal(stage, 6))
+			Say("로드안", "라스트디치에서의 임무를 잘 수행했다고 들었네. 어디, 자네가 지금 들고 있는 석판을 좀 볼까? 음.......")
+			Say("로드안", "그러면 흉성의 증거에서 가져온 것부터 해독해 보도록 하지.")
+			Say("로드안", "이 석판의 내용을 읽어 보겠네.")
+			Talk("@F어둠은 달이며 달은 여성이라. 이 세계가 아르테미스를 3번 범할 때 어둠은 깨어나고 다크 메이지는 실리안 카미너스(Cyllian Cominus)라고 불린다. 그리고 그녀는 누구도 당해 낼 수 없는 마력으로 세계를 종말로 이끄노니....@@")
+			Say("로드안", "이 글의 해석은 다음과 같다네.")
+			Say("로드안", "'어둠의 마법사'는 여자 마법사를 뜻하며, '세계가 아르테미스를 범한다'라는 구절은 지구가 달(아르테미스)을 가리는 현상, 즉 월식을 말하는 것이며 그 월식이 3번 일어난 후 '어둠이 깨어난다' 즉 실리안 카미너스라는 존재가 생겨난다는 것이네. 그리고는 그녀가 이 세계를 멸망시킨다는 것이네.")
+			Say("로드안", "이 글이 정말이라면 알비레오의 예언은 실현되고 반드시 세계는 멸망하게 될 걸세. 하지만 자네는 언제나 운명에 대항해 왔으니 이런 운명적인 것에는 익숙하겠지? 네크로만서와 싸울 때도 그랬으니까.")
+			Say("로드안", "그리고 흉성의 단서에서 가져온 이 석판은 도저히 나의 힘으로는 해독이 안 되는군. 이 세계의 운명이 달린 일이니 지금 당장 에인션트 이블과 함께 상의해 봐야겠네.")
+			Say("로드안", "그럼 내일 아침에 보도록 하세.")
+			# 성에서 하룻밤 — 주인공의 집 침대에서 다음 날 아침 9시까지 (원작 계산: 9시 전이면 그날 9시, 아니면 다음 날 9시)
+			Talk("당신은 다음 날 아침까지 여기서 자기로 했다.")
+			Screen::FadeOut()
+			mins.assign(Sub(Mul(Sub(33, Time::Hour()), 60), Time::Minute()))
+			if (Less(Time::Hour(), 9))
+				mins.assign(Sub(Mul(Sub(9, Time::Hour()), 60), Time::Minute()))
+			Time::Pass(0, mins)
+			Party::HealAll()
+			Party::SetTorch(0)
+			Party::Warp(12, 49)
+			Screen::FadeIn()
+			Talk("아침이 밝았다.")
+			Variable::Set("LORD_STAGE", 7)
+			halt
+		if (Equal(stage, 7))
+			Variable::Set("ECLIPSE_DAY", Add(Time::DayNumber(), 20))
+			Variable::Set("ECLIPSE_YEAR", Time::YearAfter(20))
+			Variable::Set("ECLIPSE_MONTH", Time::MonthAfter(20))
+			Variable::Set("ECLIPSE_DATE", Time::DayAfter(20))
+			y.assign(Variable::Get("ECLIPSE_YEAR"))
+			m.assign(Variable::Get("ECLIPSE_MONTH"))
+			d.assign(Variable::Get("ECLIPSE_DATE"))
+			Say("로드안", "어서 오게, {주인공}.")
+			Say("로드안", "어제 해독하지 못했던 석판에서 아주 중요한 것을 알아내었다네. 에인션트 이블이 물론 해독해 주었다네.")
+			Say("로드안", "이 석판은 어제 해독한 실리안 카미너스란 존재가 나타나 있는 석판의 내용을 더욱 보강해 주더군. 그리고 새로운 사실을 알았다네. 바로 지하 세계와 지상 세계가 연결되는 시기를 알려 주더군. 그것은 바로 월식이 일어나는 시기를 알면 된다네. 석판의 고대어에 의하면 월식이 일어난 후 위협의 동굴에 지하 세계와의 통로가 생기게 된다네. 여기서 '위협의 동굴'이란 바로 메너스(MENACE)를 뜻하는 말이 된다네. 그리고 점성가를 통해서 다음 월식이 일어날 때를 알아보니 바로 20일 후인 {$y}년 {$m}월 {$d}일이 될 거라고 하더군. 그때 메너스에 가 보게. 그리고 조심하게. 아직 남은 20일 동안 체력도 보강시키도록 하게. 그럼 행운을 빌겠네.")
+			Party::PlusGold(100000)
+			Notice("황금 + 100000")
+			Variable::Set("LORD_STAGE", 8)
+			halt
+		# 8 · 11 · 14 — 월식을 기다린다. 그 날이 지나면 9 · 12 · 15 로
+		if (Or(Equal(stage, 8), Or(Equal(stage, 11), Equal(stage, 14))))
+			if (Greater(Time::DayNumber(), Variable::Get("ECLIPSE_DAY")))
+				stage.add(1)
+				Variable::Set("LORD_STAGE", stage)
+			else
+				if (Equal(stage, 8))
+					Say("로드안", "메너스에 지하 세계로의 통로가 열리게 되는 첫 번째 월식 때까지 기다리게.")
+					Say("로드안", "날짜는 전에도 말했듯이 {$y}년 {$m}월 {$d}일 밤일세. 그때를 위해 열심히 훈련하도록 하게나.")
+				if (Equal(stage, 11))
+					Say("로드안", "메너스에 지하 세계로의 통로가 열리게 되는 두 번째 월식 때까지 기다리게.")
+					Say("로드안", "날짜는 전에도 말했듯이 {$y}년 {$m}월 {$d}일 밤일세. 이번에는 치열한 전투도 각오해야 할 걸세. 열심히 단련하게나.")
+				if (Equal(stage, 14))
+					Say("로드안", "운명의 세 번째 월식이 바로 {$y}년 {$m}월 {$d}일 밤에 일어나게 된다네. 아마 자네의 마지막 결전이 될 걸세. 각오를 단단히 하게. 운명의 시간은 점점 우리에게 다가오고 있다네.")
+				halt
+		if (Equal(stage, 9))
+			Say("로드안", "드디어 우리가 기다리던 월식은 일어났네. 자네는 한시바삐 메너스를 통해 지하 세계로 가도록 하게. 이제 이 세계의 운명은 자네의 두 손에 달려 있다네.")
+			halt
+		if (Equal(stage, 10))
+			Say("로드안", "자네 드디어 돌아왔군. 그래, 지하 세계에 대해서 좀 말해 주게나.")
+			Party::GiveExp(500000)
+			Party::PlusGold(100000)
+			Notice("경험치 + 500000   황금 + 100000")
+			Talk("한참 후...")
+			Variable::Set("ECLIPSE_DAY", Add(Time::DayNumber(), 15))
+			Variable::Set("ECLIPSE_YEAR", Time::YearAfter(15))
+			Variable::Set("ECLIPSE_MONTH", Time::MonthAfter(15))
+			Variable::Set("ECLIPSE_DATE", Time::DayAfter(15))
+			y.assign(Variable::Get("ECLIPSE_YEAR"))
+			m.assign(Variable::Get("ECLIPSE_MONTH"))
+			d.assign(Variable::Get("ECLIPSE_DATE"))
+			Say("로드안", "자네 말을 들어 보니 정말 큰일이군. 이러다간 정말 알비레오의 예언처럼 되어 버리겠는데. 자네가 지하 세계에 내려간 후 이곳에도 많은 변화가 있었네. 갑자기 달의 운행이 빨라졌다네. 원래는 월식이 일어날 수 있는 보름달이 29.5일에 한 번이었는데 이제는 훨씬 더 빨라졌다네. 달의 운행이 빨라져서 달은 원심력이 증가했고 달을 붙잡아 두기 위해서 지구의 중력장이 증가했다네. 지금은 거의 문제가 안 될 정도이지만 이 상황이 점점 악화된다면 지구는 백색 왜성이나 블랙홀처럼 스스로의 중력에 의해 파괴될지도 모른다네.")
+			Say("로드안", "그리고 다음 월식이 일어날 날짜가 계산되었다네. 날짜는 15일 뒤인 {$y}년 {$m}월 {$d}일로 예정되어 있다네. 그때까지 스스로를 단련시키게. 그때 역시 잘 부탁하네.")
+			Variable::Set("LORD_STAGE", 11)
+			halt
+		if (Equal(stage, 12))
+			Say("로드안", "드디어 우리가 기다리던 월식은 일어났네. 자네는 한시바삐 메너스를 통해 지하 세계로 가도록 하게. 이제 이 세계의 운명은 자네의 두 손에 달려 있다네. 언제나 자네에게 이런 일을 시켜서 미안하게 됐네. 자네 앞에 언제나 행운이 따르기를 빌어 주겠네.")
+			halt
+		if (Equal(stage, 13))
+			Say("로드안", "돌아왔군. 정말 수고했네. 그동안 있었던 일을 나에게 모두 이야기해 주게.")
+			Party::GiveExp(1000000)
+			Party::PlusGold(500000)
+			Notice("경험치 + 1000000   황금 + 500000")
+			Talk("한참 후...")
+			Variable::Set("ECLIPSE_DAY", Add(Time::DayNumber(), 5))
+			Variable::Set("ECLIPSE_YEAR", Time::YearAfter(5))
+			Variable::Set("ECLIPSE_MONTH", Time::MonthAfter(5))
+			Variable::Set("ECLIPSE_DATE", Time::DayAfter(5))
+			y.assign(Variable::Get("ECLIPSE_YEAR"))
+			m.assign(Variable::Get("ECLIPSE_MONTH"))
+			d.assign(Variable::Get("ECLIPSE_DATE"))
+			Say("로드안", "음... 자네 말을 들어 보니 정말 고생이 많았었군. 그리고 악의 추종자 두 명을 처단한 일도 정말 수고했네. 하지만 벌써 마지막 세 번째 월식 날짜가 임박했네. 사실 걱정은 바로 이것이네. 알비레오의 예언에 나오는 다크 메이지 실리안 카미너스가 부활하게 되는 시간은 바로 이번 월식이 일어나는 때라네. 아마 이번이 마지막 파견인 것 같군. 그럼 날짜를 알려 주지.")
+			Say("로드안", "마지막 세 번째 월식은 바로 5일 뒤인 {$y}년 {$m}월 {$d}일이라네. 자네가 만약 성공한다면 다시 로어의 세계는 평화가 올 것이지만 만약 실패한다면 우리가 이렇게 만나는 것도 마지막이 된다네.")
+			# 원정 기록을 지운다 (부록 B.1)
+			Flag::Reset("TRIP_ARRIVED")
+			Flag::Reset("TRIP_BELIAL")
+			Flag::Reset("TRIP_MOLOCH")
+			Variable::Set("LORD_STAGE", 14)
+			halt
+		if (Equal(stage, 15))
+			Say("로드안", "드디어 우리가 기다리던 마지막 세 번째 월식이 일어났네. 정말 이번에는 단단한 각오를 해야 할 걸세. 월식이 일어나던 밤에 메너스 쪽에서 큰 지진이 있었다네. 아마 이건 다크 메이지가 부활이 거의 다 끝나 간다는 것을 말해 주고 있는 것 같네.")
+			halt
+		halt
+
+	# ---- 알현실 경비 (47~55,30~38 안에서) ----
+	if (Or(OnArea(48, 31, 48, 37), OnArea(54, 31, 54, 37)))
+		if (Equal(Variable::Get("LORD_STAGE"), 0))
+			Say("경비", "성주님께서 당신을 찾으십니다.")
+		else
+			Say("경비", "이번의 모험도 역시 성공하기를 빕니다.")
+		halt
+
+	# ---- 안쪽 문 경비 (51,87) ----
+	if (On(51, 87))
+		if (Flag::IsSet("INNER_GATE_OPEN"))
+			Say("경비", "힘내시오, {주인공}.")
+		else
+			Say("경비", "난 당신을 믿소, {주인공}.")
+			Flag::Set("INNER_GATE_OPEN")
+			Map::ChangeTileArea(49, 88, 53, 88, 44)
+			DisplayMap()
+		halt
+
+	# ---- 무기고 경비 (42,78)·(42,80) ----
+	if (Or(On(42, 78), On(42, 80)))
+		if (Flag::IsSet("ARMORY_USED"))
+			Say("무기고 경비", "여기서 가져가신 무기를 잘 사용하셔서 임무를 수행하는 데 잘 활용하십시오.")
+		else
+			Say("무기고 경비", "로드안님의 명령에 의해서 당신들에게 한 가지의 무기를 드리겠습니다. 들어가셔서 무기를 선택해 주십시오.")
+		halt
+
+	# ---- 시설 ----
+	if (Or(On(21, 12), On(25, 13)))
+		Shop::Training()
+		halt
+	if (Or(On(86, 12), On(87, 14)))
+		Shop::Hospital()
+		halt
+	if (Or(On(14, 73), Or(On(8, 71), On(14, 69))))
+		Shop::Weapon()
+		halt
+	if (Or(On(87, 73), Or(On(91, 65), On(94, 68))))
+		Shop::Grocery()
+		halt
+
+	# ---- 옛 동료들 — 빈자리가 있으면 합류 (2nd/05 §5.3) ----
+	if (On(89, 23))
+		Say("헤라클레스", "오, {주인공}!")
+		Say("헤라클레스", "자네는 날 기억하겠지. 나는 헤라클레스일세. 자네와 네크로만서를 물리치던 때가 생각나는군. 그래, 이번에도 중대한 일이 발생했다고들 하던데 그게 사실인가? 사실이라면 이번에도 나를 모험에 참가시켜 주게.")
+		Select::Init()
+		Select::Add("어떻게 하겠습니까?")
+		Select::Add("나 역시 자네의 도움이 필요했다네")
+		Select::Add("자네까지 나설 정도로 심각한 일은 아니네")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			if (Not(Equal(Party::HasFreeSeat(), 1)))
+				Say("헤라클레스", "나도 당신의 일행에 참가하고 싶지만 벌써 사람이 모두 채워져 있군. 미안하게 됐네.")
+				halt
+			Party::Join("hercules")
+			Flag::Set("JOINED_HERCULES")
+			Map::ChangeTile(89, 23, 44)
+			DisplayMap()
+		halt
+	if (On(21, 33))
+		Say("타이탄", "안녕하신가? {주인공}.")
+		Say("타이탄", "설마 날 잊었다고는 하지 않겠지. 지금은 사건이 없어서 한가하게 이런 일을 하고 있지만 간혹 여기를 들르는 사람 중에는 이 타이탄님을 기억하는 사람이 있다네. 요새는 세상이 너무 조용해서 이런 일은 나하고는 정말 안 어울린다네. 자네 모습을 보니 모험을 떠나려는 것 같은데 나도 끼면 안 되겠나?")
+		Select::Init()
+		Select::Add("어떻게 하겠습니까?")
+		Select::Add("물론 나는 환영하지")
+		Select::Add("별일 아니라서 자네는 재미없을 걸세")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			if (Not(Equal(Party::HasFreeSeat(), 1)))
+				Say("타이탄", "나도 당신의 일행에 참가하고 싶지만 벌써 사람이 모두 채워져 있군. 미안하게 됐네.")
+				halt
+			Party::Join("titan")
+			Flag::Set("JOINED_TITAN")
+			Map::ChangeTile(21, 33, 44)
+			DisplayMap()
+		halt
+	if (On(9, 64))
+		Say("머린", "오래간만이군, {주인공}.")
+		Say("머린", "2~3년 전에 자네와 함께 모험을 떠났던 것이 엊그제 같은데 벌써 세월은 이렇게 지났군. 그간 생활이 어떠했나? 그건 그렇고, 또 이곳에 무슨 일이 생겼다지? 이번에도 자네에게 나의 마법의 힘을 빌려 주고 싶은데 자네는 어떻게 생각하나?")
+		Select::Init()
+		Select::Add("어떻게 하겠습니까?")
+		Select::Add("머린, 자네의 힘이 필요하네")
+		Select::Add("글쎄.. 꼭 그럴 것까지는 없지")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			if (Not(Equal(Party::HasFreeSeat(), 1)))
+				Say("머린", "나도 당신의 일행에 참가하고 싶지만 벌써 사람이 모두 채워져 있군. 미안하게 됐네.")
+				halt
+			Party::Join("merlin")
+			Flag::Set("JOINED_MERLIN")
+			Map::ChangeTile(9, 64, 44)
+			DisplayMap()
+		halt
+	if (On(88, 38))
+		Say("베텔규스", "요새는 좀처럼 볼 기회가 없군요, {주인공}.")
+		Say("베텔규스", "나는 네크로만서와의 결전이 끝난 후에 컨저러의 수업을 쌓고 있었죠. 지금은 초보적인 수준밖에는 안 되지만. 당신이 또 새로운 임무를 받았다고들 하던데 사실인가요? 그렇다면 저도 그 임무에 빠질 수가 없지요. 몇 년 전 그때처럼 당신과 함께 싸우고 싶군요.")
+		Select::Init()
+		Select::Add("어떻게 하겠습니까?")
+		Select::Add("베텔규스, 자네라면 환영하지")
+		Select::Add("글쎄.. 임무가 하찮은 거라서..")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			if (Not(Equal(Party::HasFreeSeat(), 1)))
+				Say("베텔규스", "나도 당신의 일행에 참가하고 싶지만 벌써 사람이 모두 채워져 있군요. 미안하게 됐어요.")
+				halt
+			Party::Join("betelgeuse")
+			Flag::Set("JOINED_BETELGEUSE")
+			Map::ChangeTile(88, 38, 44)
+			DisplayMap()
+		halt
+
+	# ---- 로어 주점 ----
+	if (Or(On(13, 27), On(18, 27)))
+		Say("주점 주인", "어서 오십시오. 여기는 로어 주점입니다.")
+		if (Equal(Random(2), 0))
+			if (Equal(Player::GetAttribute(1, "gender"), 1))
+				Say("주점 주인", "거기 여성분, 어서 오십시오.")
+			else
+				Say("주점 주인", "거기 남성분, 어서 오십시오.")
+		else
+			Say("주점 주인", "위스키에서 칵테일까지 마음껏 선택하십시오.")
+		halt
+	if (On(21, 36))
+		Say("손님", "으~~~ 취한다.")
+		halt
+	if (On(18, 38))
+		Say("손님", "예언서? 뭐가 예언서야! 그런 걸 믿다니 우리가 무슨 어린애인가.")
+		halt
+	if (On(15, 35))
+		Say("손님", "큰일 났군. 벌써 내 친구도 두 명이나 메너스에서 희생되었는데...")
+		halt
+	if (On(13, 32))
+		Say("손님", "타임워커인 알비레오를 전에 한번 본 적이 있지. 그는 예언서 하나만 남겨 놓고는 다시 시간 속으로 여행을 떠났다네. 아무도 그가 어느 시대의 사람인지 아니면 이 차원의 사람인지도 모른다네. 나도 그가 예언서를 전해 주기 위해 로어 대륙에 왔을 때 잠시 본 적이 있었는데 정말 대단한 분이셨지. 아마도 고대의 마법사 레드 안타레스에 필적하는 실력이더군.")
+		halt
+	if (On(18, 33))
+		Say("손님", "흑흑흑~~~ 저의 오빠가 메너스에서 죽었어요. 하지만 아무도 원인조차 알 수 없다고 하더군요.")
+		halt
+	if (On(10, 30))
+		Say("손님", "당신께서 또 새로운 모험을 하신다고 들었는데 옛날의 동료들은 모두 흩어져 있어서 다시 모으셔야 되겠군요.")
+		halt
+
+	# ---- 묘지 ----
+	if (On(72, 78))
+		Say("관리인", "과거의 영웅이었던 {주인공}님.")
+		Say("관리인", "오늘도 역시 베라트릭스님의 무덤에 오셨군요. 아참! 전에 어떤 전사분께서 베라트릭스님의 무덤에 들르고는 거기에 메모를 남겨 두었더군요. 이름은 지니어스 기라고 하던데, 옛날에 들어 본 이름 같기도 하고...")
+		halt
+	if (On(67, 76))
+		Talk("묘비에 쓰여 있기를...")
+		Notice("여기는 베라트릭스의 묘")
+		Talk("772년 11월 27일 여기에 잠들다.")
+		Talk("자세히 살펴보니 묘비 밑에 어떤 쪽지가 있었다.")
+		PressAnyKey()
+		Talk("{주인공}에게.")
+		Talk("자네라면 여기에 올 거라고 믿고 이 글을 쓴다네. 나는 지금 은신 중이라 내가 있는 곳을 밝힐 순 없지만 나는 지금 무사하다네. 자네와의 기나긴 모험을 끝마치고 돌아오던 중 나는 나름대로의 뜻이 있어 로어성에 돌아오지 않았다네. 내 자신의 의지였다면 영영 로어성에 돌아오지 않았겠지만 곧 발생할 새로운 위협을 나는 느끼고 있기 때문에 자네에게 이런 쪽지를 보내게 되었네.")
+		Talk("로어성까지는 소문이 미치지 않았는지는 모르겠지만 로어 대륙의 남동쪽에는 알 수 없는 피라미드가 땅속으로부터 솟아올랐다네. 나와 로어 헌터 둘이서 그곳을 탐험했었지. 그곳에는 다시 두 개의 동굴이 있었고 그 두 곳은 지하 세계와 연결되어 있었다네. 그곳에 대해서는 지금 이 메모의 여백이 좁아서 말하기 어렵다네. 나는 지금 이곳저곳 떠돌아다니지만 북동쪽 해안의 오두막에 살고 있는 전투승 레굴루스에게 물어보면 내가 있는 곳을 자세히 알 수 있을 걸세.")
+		Talk("지니어스 기로부터")
+		halt
+
+	# ---- 감옥 ----
+	if (On(50, 11))
+		Say("간수", "이 안에 갇혀 있는 사람들에게는 일체 면회가 허용되지 않습니다. 나가 주십시오.")
+		halt
+	if (On(53, 11))
+		Say("간수", "여기는 로드안의 체제에 대해서 깊은 반감을 가지고 있는 자들을 수용하고 있습니다.")
+		Say("간수", "아마 그들은 죽기 전에는 이곳을 나올 수 없을 겁니다.")
+		halt
+	if (On(41, 10))
+		Say("투옥된 기사", "나는 이곳의 기사로서 이 세계의 모든 대륙을 탐험하고 돌아왔었습니다. 내가 마지막 대륙을 돌았을 때 나는 새로운 존재를 발견했습니다. 그는 바로 예전까지도 Lord Ahn과 대립하던 Ancient Evil이라는 존재였습니다. 지금 우리의 성에서는 철저하게 배격하도록 어릴 때부터 가르침 받아 온 그 Ancient Evil이었습니다. 하지만 그곳에서 본 그는 우리가 알고 있는 그와는 전혀 다른 인간미를 가진, 말 그대로 신과 같은 존재였습니다. 내가 그의 신앙 아래 있는 어느 도시를 돌면서 내가 느낀 것은 정말 Lord Ahn에게서는 찾아볼 수가 없는 그런 자애와 따뜻한 정이었습니다. 그리고 여태껏 내가 알고 있는 그에 대한 지식이 정말 잘못되었다는 것과 이런 사실을 다른 사람에게도 알려 주고 싶다는 이유로 그의 사상을 퍼뜨리다 이렇게 잡히게 된 것입니다.")
+		Say("투옥된 기사", "하지만 더욱 이상한 것은 Lord Ahn 자신도 그에 대한 사실을 인정하면서도 왜 우리에게는 그를 배격하도록만 교육시키는가를 알고 싶을 뿐입니다. Lord Ahn께서는 나를 이해한다고 하셨지만 사회 혼란을 방지하기 위해 나를 이렇게밖에 할 수 없다고 말씀하시더군요. 그리고 이것은 선을 대표하는 자기로서는 이 방법밖에는 없다고 하시더군요.")
+		Say("투옥된 기사", "하지만 Lord Ahn의 마음은 사실 이렇지 않다는 걸 알 수 있었습니다. Ancient Evil의 말로는 사실 서로가 매우 절친한 관계임을 알 수가 있었기 때문입니다.")
+		halt
+	if (On(40, 15))
+		Say("미친 조", "히히히... 위대한 용사님. 낄낄낄.. 내가 당신들의 일행에 끼면 안 될까요? 우히히히..")
+		Select::Init()
+		Select::Add("어떻게 하겠습니까?")
+		Select::Add("그렇다면 당신을 받아들이지요")
+		Select::Add("당신은 이곳에 그냥 있는 게 낫겠소")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			Party::SetAssistant("mad_joe")
+			Flag::Set("JOINED_MADJOE")
+			Map::ChangeTile(40, 15, 47)
+			DisplayMap()
+		halt
+	if (On(63, 10))
+		Say("머큐리", "내가 몇 년 전에 황금 방패를 숨겨 놓았던 메너스에 새로운 일들이 생겼다는 게 사실이오?")
+		Say("머큐리", "내가 저번에는 용기가 없어서 당신과 함께 동행하자는 말을 못 했지만 이번에는 한번 부탁하겠소. 나는 비록 도둑질을 해서 여기에 들어왔지만 암살자로서의 임무도 잘 해낼 거요.")
+		Select::Init()
+		Select::Add("어떻게 하겠습니까?")
+		Select::Add("승낙하겠소, 그럼 잘 부탁하오")
+		Select::Add("죄수를 탈출시키면 나 역시 힘들게 되오")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			if (Not(Equal(Party::HasFreeSeat(), 1)))
+				Say("머큐리", "벌써 사람이 모두 채워져 있군요. 다음 기회를 기다리지요.")
+				halt
+			Say("머큐리", "고맙소. 그리고 병사들에게 들키지 않게 여기를 나가야 된다는 것 정도는 알고 있겠지요.")
+			Party::Join("mercury")
+			Flag::Set("JOINED_MERCURY")
+			Map::ChangeTile(63, 10, 47)
+			DisplayMap()
+		halt
+	if (On(60, 15))
+		Say("죄수", "당신들에게 경고해 두겠는데 건너편 방에 있는 조는 오랜 수감 생활 끝에 미쳐 버리고 말았소. 그의 말에 속아서 당신네 일행에 참가시키는 그런 실수는 하지 마시오.")
+		halt
+
+	# ---- 로어 은행 ----
+	if (On(79, 47))
+		Say("은행 직원", "우리 은행은 철저하게 보안되고 있습니다.")
+		halt
+	if (On(79, 49))
+		Say("은행 직원", "손님께서는 예금 창구의 안쪽으로는 들어가시면 안 됩니다. 그때의 일은 책임질 수 없습니다.")
+		halt
+	if (On(85, 48))
+		Say("은행 직원", "지금은 민심이 어수선해서 은행의 입출금을 금지하고 있습니다. 양해하여 주십시오.")
+		halt
+	# 은행 경비원 (90,47) — 말을 걸면 강도로 몰린다 (2nd/07 §7.2)
+	if (On(90, 47))
+		Say("은행 경비원", "누구냐! 앗 은행 강도다.")
+		Say("은행 경비원", "경비병! 경비병!")
+		Say("은행 경비원", "만약 당신이 우리와 싸운다면 당신은 범죄자로서 영영 로어성에 들어올 수 없다는 것을 알아야 한다. 항복하라!")
+		Select::Init()
+		Select::Add("어떻게 하겠습니까?")
+		Select::Add("항복한다")
+		Select::Add("그래도 싸운다")
+		Select::Run()
+		if (Equal(Select::Result(), 2))
+			Say("로드안", "당신이 은행에 침입하다니 의외로군요. 하지만 우리의 믿음을 저버리고 악한 일을 한 대가를 받으시오. 자, 그럼.")
+			Talk("로드안은 전체에게 '필멸 주문'을 사용했다.")
+			Screen::Flash()
+			Game::Over()
+		# 항복 — 1~5번 대원의 장비를 모두 잃고 미친 조의 독방 (41,16)으로
+		Party::StripEquipment()
+		Screen::FadeOut()
+		Party::Warp(41, 16)
+		Screen::FadeIn()
+		halt
+
+	# ---- 주민 ----
+	if (On(24, 50))
+		if (Equal(Variable::Get("LORD_STAGE"), 0))
+			Say("주민", "어서 로드안님에게 가 보도록 하게.")
+		else
+			Say("주민", "이번에도 큰일을 맞게 됐군, {주인공}.")
+			Say("주민", "이번에도 분명 당신은 해낼 수 있으리라고 믿네. 과거의 영웅은 이제 잊혀 가지만 다시 일어서는 날이 바로 지금인 것 같네. 이번 일만 성공하면 다시 그때의 영광을 찾을 수 있을 걸세. 자네의 성공을 빌어 주겠네.")
+		halt
+	if (On(24, 54))
+		Say("주민", "로드안님이 당신을 부르셨다면서요. 시대의 영웅이었던 당신처럼 되기 위해 저도 열심히 수련을 하고 있습니다.")
+		halt
+	if (On(19, 53))
+		Say("주민", "이 세계의 창시자는 안영기님이시며, 그는 위대한 프로그래머입니다.")
+		halt
+	if (On(13, 55))
+		Say("주민", "지금 어떤 예언서가 발견되어 주민들의 관심을 끌고 있더군요.")
+		halt
+	if (On(85, 55))
+		Say("주민", "살려 주십시오, {주인공}님.")
+		Say("주민", "아마 조금만 있으면 다크 메이지가 이곳을 폐허로 만들 겁니다.")
+		halt
+	if (On(72, 73))
+		Say("주민", "나는 어릴 적에 할아버지로부터 지하 세계의 사람들에 대해 들은 적이 있는데 지금은 기억이 잘 나지 않는군요.")
+		halt
+	if (On(51, 14))
+		Say("주민", "당신이 이 세계를 네크로만서로부터 구한 후에는 다른 대륙도 원래의 모습을 찾았습니다.")
+		halt
+	if (On(90, 59))
+		Say("밭의 주민", "{주인공}님.")
+		if (Flag::IsSet("FARM_FOOD"))
+			halt
+		Say("밭의 주민", "만나게 되어서 기쁩니다. 이번 모험을 하는 데 약간의 도움이 되었으면 합니다. 이 밭에 있는 채소를 조금 드릴 테니 식량으로 사용해 주십시오.")
+		Party::PlusFood(20)
+		Notice("당신은 그녀에게 약간의 식량을 받았다.")
+		Flag::Set("FARM_FOOD")
+		halt
+	if (On(92, 80))
+		Say("주민", "알비레오님의 예언서에 의하면 다크 메이지가 이 세계를 멸망시킨다고 하던데 정말 큰일이군요.")
+		halt
+	if (On(91, 81))
+		Say("주민", "얼마 전에 옆집에 살던 분이 메너스 광산에서 일하던 중 의문의 살인을 당했어요. 시체를 본 사람에 의하면 날카로운 독화살에 맞아서 즉사했다고 하던데요.")
+		halt
+	if (On(58, 74))
+		Say("주민", "이번에도 우리들은 당신만 믿고 있습니다.")
+		halt
+	if (On(63, 27))
+		Say("주민", "당신과 함께 싸웠던 전투승 레굴루스는 로어성을 떠나 대륙의 북동쪽 섬의 오두막에 산다고 합니다.")
+		halt
+	if (On(51, 72))
+		Say("주민", "당신과 함께 싸웠던 폴라리스는 라스트디치성 군주의 수석 호위관이 되어 있더군요.")
+		halt
+	if (On(50, 51))
+		Say("주민", "타이탄님은 당신과의 모험이 끝난 후 로어 주점의 경비와 치안을 맡고 있더군요.")
+		halt
+	if (On(52, 51))
+		Say("주민", "이번의 모험도 역시 성공하기를 빕니다.")
+		halt
+
+####### 푯말 ########
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+	if (On(51, 84))
+		Talk("여기는 로어성입니다")
+		Talk("여러분을 환영합니다")
+		Talk("@E로드안@@")
+		halt
+	if (On(24, 31))
+		Talk("여기는 로어 주점")
+		Talk("여러분 모두를 환영합니다!!")
+		halt
+	if (Or(On(51, 18), On(52, 18)))
+		Talk("로어 왕립 죄수 수용소")
+		halt
+	if (On(77, 48))
+		Talk("여기는 로어 은행입니다")
+		halt
+	if (On(77, 42))
+		Talk("허락 없이 들어가지 마시오!!")
+		halt
+	if (On(77, 36))
+		Talk("마법사 베텔규스의 집")
+		halt
+	if (On(77, 30))
+		Talk("지금 집주인인 저 레굴루스는 여행을 떠나고 없습니다. 저에게 용건이 있으신 분은 북쪽 해안으로 오십시오.")
+		halt
+	if (On(77, 24))
+		Talk("여기는 헤라클레스의 집")
+		halt
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	px.assign(Party::PosX())
+
+	# ---- 집 문 줄 (19,48~51) — 새 게임에서 처음 나설 때 이웃이 찾아온다 ----
+	if (OnArea(19, 48, 19, 51))
+		if (Flag::IsSet("INTRO_DONE"))
+			halt
+		Flag::Set("INTRO_DONE")
+		Say("이웃", "일어났군, {주인공}.")
+		Say("이웃", "자네 빨리 로드안님께 가 보도록 하게. 급히 찾으시는 것 보니 아무래도 무슨 큰일이 벌어진 것 같네. 네크로만서 이후 몇 년간 세상이 조용하더니만...")
+		Say("이웃", "그건 그렇고 빨리 서두르게.")
+		Map::ChangeTileArea(19, 48, 19, 51, 44)
+		DisplayMap()
+		halt
+
+	# ---- 무기고 입구 (41,79) — 한 번: 서쪽으로 세 걸음 들어가며 맨손인 대원이 단검을 든다 ----
+	if (On(41, 79))
+		if (Flag::IsSet("ARMORY_USED"))
+			halt
+		Flag::Set("ARMORY_USED")
+		Party::Face(FACE_LEFT)
+		Wait(340)
+		Party::Move(-1, 0)
+		Wait(340)
+		Party::Move(-1, 0)
+		Wait(340)
+		Party::Move(-1, 0)
+		Party::ArmBareHanded("weapon.short_sword", "fighter")		# 맨손인 전투사 계열만 (DARKSPEC.PAS:1197~1203)
+		Talk("일행은 가장 기본적인 무기로 모두 무장을 하였다.")
+		Map::ChangeTile(41, 79, 44)
+		halt
+
+	# ---- 감옥 문 (51,12)·(52,12) — 미친 조나 머큐리를 데리고 나가면 병사 ----
+	if (OnArea(51, 12, 52, 12))
+		if (Not(Or(Flag::IsSet("JOINED_MADJOE"), Flag::IsSet("JOINED_MERCURY"))))
+			halt
+		Battle::Init()
+		if (Flag::IsSet("PRISON_GUARDS_FOUGHT"))
+			Say("병사", "다시 돌아오다니, {주인공}. 이번에는 기어이 네놈들을 해치우고야 말겠다. 나의 친구들도 이번에 거들 것이다.")
+			Battle::RegisterVariant("soldier", 7)
+		else
+			Say("병사", "아니! 당신이 우리들을 배신하고 죄수를 풀어 주다니... 그렇다면 우리들은 결투로서 당신들과 승부할 수밖에 없군요.")
+			Battle::RegisterVariant("soldier", 2)
+		Flag::Set("PRISON_GUARDS_FOUGHT")
+		if (Party::Has("mad_joe"))
+			Talk("우리들 뒤에 있던 미친 조가 전투가 일어나자마자 도망을 가 버렸다.")
+			Party::RemoveAssistant()
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Talk("당신들은 수감소 병사들을 물리쳤다.")
+			Map::ChangeTileArea(51, 12, 52, 12, 44)
+			Map::ChangeTile(50, 11, 44)
+			Map::ChangeTile(53, 11, 44)
+			DisplayMap()
+		halt
+
+	# ---- 은행의 열쇠 (86,48) → 문 (87,48) ----
+	if (On(86, 48))
+		if (Not(Flag::IsSet("BANK_KEY")))
+			Flag::Set("BANK_KEY")
+			Talk("당신은 열쇠를 발견했다.")
+			Map::ChangeTile(87, 48, 47)
+			DisplayMap()
+		halt
+
+	# ---- 은행 금고 ----
+	if (On(90, 40))
+		if (Not(Flag::IsSet("BANK_CHEST_1")))
+			Flag::Set("BANK_CHEST_1")
+			Party::PlusGold(2000)
+			Talk("당신은 금화 2000개를 발견했다.")
+		halt
+	if (On(90, 41))
+		if (Not(Flag::IsSet("BANK_CHEST_2")))
+			Flag::Set("BANK_CHEST_2")
+			Party::PlusFood(100)
+			Talk("당신은 100개의 식량을 발견했다.")
+		halt
+	if (On(90, 42))
+		if (Not(Flag::IsSet("BANK_CHEST_3")))
+			Flag::Set("BANK_CHEST_3")
+			Party::PlusGold(1000)
+			Talk("당신은 금화 1000개를 발견했다.")
+		halt
+	if (On(90, 43))
+		if (Not(Flag::IsSet("BANK_CHEST_4")))
+			Flag::Set("BANK_CHEST_4")
+			Party::PlusGold(2500)
+			Talk("당신은 금화 2500개를 발견했다.")
+		halt
+	if (On(90, 44))
+		if (Not(Flag::IsSet("BANK_CHEST_5")))
+			Flag::Set("BANK_CHEST_5")
+			Party::PlusGold(5000)
+			Talk("당신은 금화 5000개를 발견했다.")
+		halt
+	if (On(82, 52))
+		if (Not(Flag::IsSet("BANK_CHEST_6")))
+			Flag::Set("BANK_CHEST_6")
+			Party::PlusGold(5000)
+			Talk("당신은 금화 5000개를 발견했다.")
+		halt
+	if (On(84, 52))
+		if (Not(Flag::IsSet("BANK_CHEST_7")))
+			Flag::Set("BANK_CHEST_7")
+			Party::PlusGold(5000)
+			Talk("당신은 금화 5000개를 발견했다.")
+		halt
+	if (On(89, 52))
+		if (Not(Flag::IsSet("BANK_CHEST_8")))
+			Flag::Set("BANK_CHEST_8")
+			Party::PlusGold(5000)
+			Talk("당신은 금화 5000개를 발견했다.")
+		halt
+	if (On(91, 52))
+		if (Not(Flag::IsSet("BANK_CHEST_9")))
+			Flag::Set("BANK_CHEST_9")
+			Party::PlusGold(5000)
+			Talk("당신은 금화 5000개를 발견했다.")
+		halt
+
+	# ---- 출구 줄 (49~53,95) ----
+	if (OnArea(49, 95, 53, 95))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E2_Lore", 20, 12)
+		else
+			WarpPrevPos()
+
+# (원작 확인) 무기고의 단검은 맨손인 전투사 계열(전투승 제외)만 받는다 (DARKSPEC.PAS:1197~1203) — Party::ArmBareHanded 의 "fighter".

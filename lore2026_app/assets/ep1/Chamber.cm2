@@ -1,0 +1,104 @@
+####### 제1부 네크로만서의 방 (E1_Chamber) — 50×50 마을형 (원작 k_den2 의 북쪽 구역) ########
+# 근거: 1st/03 §3.3(엔딩) · 1st/05 §5.2 M6 · 1st/06 §6.13 · 1st/07 §7.4(마법 방해) · 1st/08 §8.2 · 1st/10 §9.4 · §12 ·
+#       공략집 Walkthrough/1st/src/maps/Chamber.md · 원작 칸 번호(maps.json)
+# 마을형 · 기본 바닥 44. 결전 칸 (24~26,14)은 숨은 칸. 도착하면 아래에서 네 칸 걸어 올라와 (25,15)에 서고
+# 뒤의 통로 (24~26,16~19)가 막힌다. 결전이 끝나면 곧바로 엔딩이다.
+
+include("common/const.cm2")
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("town")
+	Encounter::Clear()
+	Encounter::Enable(0)
+	Map::SetHandicap(HANDICAP_SEETHROUGH, 1)
+	Map::SetHandicap(HANDICAP_CLAIRVOYANCE, 1)
+	Map::SetHandicap(HANDICAP_TILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_BIGTILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_TELEPORT, 1)
+	if (Equal(Party::PosY(), 19))
+		Screen::FadeIn()
+		Party::Face(FACE_UP)
+		Party::Move(0, -1)
+		Party::Move(0, -1)
+		Party::Move(0, -1)
+		Party::Move(0, -1)
+	Map::ChangeTileArea(24, 16, 26, 19, 16)
+	DisplayMap()
+
+####### 밟는 칸 — 결전의 칸 (24~26,14) ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	if (OnArea(24, 14, 26, 14))
+		# 일행이 북쪽으로 세 칸, 이어서 동쪽으로 x=26 까지 걸어 단 앞 (26,11)에서 북쪽을 본다
+		Party::Face(FACE_UP)
+		Party::Move(0, -1)
+		Party::Move(0, -1)
+		Party::Move(0, -1)
+		Party::Warp(26, 11)
+		Party::Face(FACE_UP)
+		# 아키몽크·아키메이지가 앞으로, 네크로만서가 왼쪽에서 걸어와 선다
+		Actor::Show("아키몽크", 53, 28, 7)
+		Actor::Show("아키메이지", 53, 26, 7)
+		Actor::Show("네크로만서", 53, 21, 10)
+		Actor::Move("아키몽크", 0, 1)
+		Actor::Move("아키메이지", 0, 1)
+		Actor::Move("네크로만서", 1, 0)
+		Actor::Wait()
+		Wait(340)
+		Actor::Move("아키몽크", 0, 1)
+		Actor::Move("아키메이지", 0, 1)
+		Actor::Move("네크로만서", 1, 0)
+		Actor::Wait()
+		Wait(340)
+		Actor::Move("네크로만서", 1, 0)
+		Actor::Wait()
+		Say("네크로만서", "당신들이 나를 없애겠다고 온 자들인가?")
+		Say("네크로만서", "그럼 예의를 갖추고 소개를 하지. 당신의 오른쪽의 사람은 ArchiMonk라고 하며 맨손을 사용하는 무예의 일인자로 통하지. 그리고 당신의 정면의 사람은 ArchiMage라고 하는 마법사 중의 마법사라네. 당신들은 우리 셋보다도 숫자가 많군. 그렇다면 나도 그것에 대비를 해야겠지. 내가 여기서 약간의 인원을 늘린다고 너무 섭섭하게 생각 말게. 그렇다면 이제 서로의 실력을 겨뤄 볼 시간이 다 되었나 보군. 당신의 행운을 빌겠네.")
+		Actor::Hide("아키몽크")
+		Actor::Hide("아키메이지")
+		Actor::Hide("네크로만서")
+		# 최종전 — 프로스트 드래곤·아키드라코니안·판저 바이퍼·블랙 나이트·아키몽크·아키메이지·네오 네크로만서.
+		# 적 선공, 반복 (도망에 성공해도 깎인 상태 그대로 다시 싸운다). 지면 엔진이 게임 오버를 처리한다.
+		Battle::Init()
+		Battle::SetRepeatText("@B네크로만서@@ : 하지만 나에게 도전한 이상 도주는 허용할 수 없다는 점이 안타깝군.")
+		Battle::RegisterEnemy(69, 1)
+		Battle::RegisterEnemy(70, 1)
+		Battle::RegisterEnemy(71, 1)
+		Battle::RegisterEnemy(72, 1)
+		Battle::RegisterEnemy(73, 1)
+		Battle::RegisterEnemy(74, 1)
+		Battle::RegisterEnemy(75, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, Add(BATTLE_NO_PRELUDE, BATTLE_REPEAT)))
+		Say("네크로만서", "욱!!! 역시 너희들의 능력으로 여기까지 뚫고 들어왔다는 게 믿어지는구나. 대단한 힘이다.")
+		Say("네크로만서", "내가 졌다는 걸 인정하마. 하지만 나는 완전히 너에게 진 것은 아니야. 나에게는 탈출할 수단이 있기 때문이지. 안심해라. 그렇지만 다시는 나와 만날 인연은 없으니까. 블랙홀이 생기기 시작하는구나. 다음 공간에서 또다시 힘을 길러야겠군. 내가 이 블랙홀로 들어간다면 다시 이 공간으로 올 확률이 거의 제로이지. 흠, 멋진 나의 도전자여 안녕. 나는 이런 공간의 패러독스를 운명적으로 반복하는 생명체로 태어난 내가 참으로 비참하지. 무한히 많은 3차원의 공간 중에서 내가 여기로 온 것도 이 공간의 생명이 끝날 때까지도 한 번 있을까 말까 한 희귀한 일이었다고 기억해 다오. 이제 블랙홀이 완전히 생겼군. 자! 나의 멋진 도전자 친구여 영원히 안녕!!")
+		PressAnyKey()
+
+		# ---- 엔딩 (1st/10 §12 · 1st/03 §3.3) ----
+		Music::Play("ending")
+		Screen::FadeOut()
+		ClearText()
+		# 검은 화면에 노란 글씨(14)로 서술
+		Letter::Clear()
+		Letter::Add("밖은 비바람이 치기 시작한다. 이번 계절에 들어 처음 오는 비였다. 마치 Necromancer의 기구한 운명을 애도하는 듯이... 하지만 그는 또 다른 운명의 아이러니 때문에 새로운 길을 떠났다. 그가 이런 역사를 몇 번이나 반복했는지 그 자신도 모른다. 그가 최후로 정착할 곳마저 알 수가 없었다. 아니, 그가 정착할 곳이 있는지조차도 알 수가 없었다. 당신도 이제 할 일을 모두 끝냈다. 이제 편안하게 쉴 기회를 가지게 된 것이다. 이제는 다시 이런 일이 일어나지 않을 것이다. 후세의 사람들은 말하겠지, 수천억 년에 한 번 날까 말까 한 일이라고. 아마 이 일도 별로 오래 기억되지 않을 것 같다. 몇천 년만 지나면 전설로서, 아니 잊힌 얘기로만 남을 테니까...")
+		Letter::Show(14, LETTER_STILL)
+		# 「이 게임의 끝마무리에 공헌한 인물」 — 제목은 하늘색(11), 줄은 초록(10). 줄마다 1부 인물 그림을 왼쪽에 붙인다.
+		# 번개가 번쩍이다가 첫 키에 멎고, 오른쪽 가장자리를 한 인물이 걸어 내려간다. 다음 키에 닫힌다 (LOREEND.PAS:127~210)
+		Letter::Clear()
+		Letter::Add("@B이 게임의 끝마무리에 공헌한 인물@@")
+		Letter::AddPicture("4", "이름은 {주인공}. 바로 당신이다.")
+		Letter::AddPicture("8 8 12", "Hydra, NOTICE 동굴의 보스였다.")
+		Letter::AddPicture("10 14 18 / 11 15 19", "Huge Dragon, LOCKUP 동굴의 보스였다.")
+		Letter::AddPicture("9", "Minotaur, 여기서 두 번 등장하는 생물이다.")
+		Letter::AddPicture("23", "Panzer Viper, DUNGEON OF EVIL을 지키던 기계 생물.")
+		Letter::AddPicture("22", "Black Knight, Necromancer 쪽의 제2인자이다.")
+		Letter::AddPicture("26", "ArchiMonk, Necromancer의 왼팔 역할의 실력자.")
+		Letter::AddPicture("25", "ArchiMage, Necromancer의 오른팔인 마법사.")
+		Letter::AddPicture("16 / 17", "Neo-Necromancer, 바로 당신의 목표였던 그자.")
+		Letter::Show(10, LETTER_CREDITS)
+		Talk("'The Codex of Another Lore vol. #1' is made by Ahn Young-Kie.")
+		Game::Ending("A")
+
+# (원작 확인) 엔딩 「공헌한 인물」 — 그림 번호는 LOREEND.PAS:136~153 의 PutSprite 그대로, 걷는 인물은 24·21·24·20 을
+#       0.2초마다 되풀이한다(LOREEND.PAS:185~212). 원작의 바닥 무늬 배경(글꼴 47번 칸)은 넣지 않았다 — 검은 바탕.

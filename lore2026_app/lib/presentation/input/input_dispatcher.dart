@@ -1,0 +1,174 @@
+import 'package:bonfire/bonfire.dart' show JoystickMoveDirectional;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import '../../hd_game_main.dart';
+import '../../application/window_manager.dart';
+import 'window_key_dispatcher.dart';
+import '../../domain/window/text_input_window_data.dart';
+import 'input_mode.dart';
+import 'virtual_input_state.dart';
+
+/// Routes hardware/virtual key events to the right subsystem based on the
+/// current [HDInputMode]. Holds no game state of its own — reads/mutates
+/// [HDGameMain] directly. Will become the host for per-mode strategies once
+/// menu/window state moves out of [HDGameMain].
+class HDInputDispatcher {
+  static final HDInputDispatcher _instance = HDInputDispatcher._internal();
+  factory HDInputDispatcher() => _instance;
+
+  bool _registered = false;
+
+  HDInputDispatcher._internal();
+
+  /// Hooks into [HardwareKeyboard]. Idempotent — safe to call multiple times.
+  void registerGlobalHandler() {
+    if (_registered) return;
+    _registered = true;
+    HardwareKeyboard.instance.addHandler((KeyEvent event) {
+      if (event is! KeyDownEvent) return false;
+      return process(event.logicalKey);
+    });
+  }
+
+  bool process(LogicalKeyboardKey key) {
+    final game = HDGameMain();
+    final mode = game.currentInputMode;
+
+    if (mode == HDInputMode.window) return _handleWindow(key);
+    if (mode == HDInputMode.menu) return _handleMenu(key, game);
+    if (mode == HDInputMode.dialogue) return _handleDialogue(key, game);
+    if (mode == HDInputMode.map) return _handleMap(key, game);
+    return false;
+  }
+
+  bool _handleWindow(LogicalKeyboardKey key) {
+    // A text field is on top: let the keys through to it. Everything
+    // else in window mode is swallowed here, and a swallowed Backspace
+    // or Enter never reaches the field.
+    final windows = HDWindowManager().windows;
+    if (windows.isNotEmpty && windows.last is HDTextInputWindow) {
+      if (key == LogicalKeyboardKey.escape) {
+        (windows.last as HDTextInputWindow).cancel();
+        return true;
+      }
+      return false;
+    }
+
+    final event = KeyDownEvent(
+      physicalKey:
+          PhysicalKeyboardKey.findKeyByCode(key.keyId) ??
+          PhysicalKeyboardKey.keyA,
+      logicalKey: key,
+      timeStamp: Duration.zero,
+    );
+
+    if (HDWindowKeyDispatcher().handleInput(event)) return true;
+
+    if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.keyQ) {
+      HDWindowManager().hideTopWindow();
+      return true;
+    }
+    return true; // Consume all keys when windows are open
+  }
+
+  bool _handleMenu(LogicalKeyboardKey key, HDGameMain game) {
+    final menu = game.activeMenu!;
+    if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.keyW) {
+      menu.selectedIndex--;
+      if (menu.selectedIndex < 1) menu.selectedIndex = menu.enabledCount;
+      game.refresh();
+      return true;
+    } else if (key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.keyS) {
+      menu.selectedIndex++;
+      if (menu.selectedIndex > menu.enabledCount) menu.selectedIndex = 1;
+      game.refresh();
+      return true;
+    } else if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.keyE ||
+        key == LogicalKeyboardKey.space) {
+      final result = menu.selectedIndex;
+      game.activeMenu = null;
+      menu.completer.complete(result);
+      game.refresh();
+      return true;
+    } else if (key == LogicalKeyboardKey.escape ||
+        key == LogicalKeyboardKey.keyQ) {
+      game.activeMenu = null;
+      menu.completer.complete(0);
+      game.refresh();
+      return true;
+    }
+    return true; // Consume all keys while menu is active
+  }
+
+  bool _handleDialogue(LogicalKeyboardKey key, HDGameMain game) {
+    final isDirectional =
+        key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.keyW ||
+        key == LogicalKeyboardKey.keyA ||
+        key == LogicalKeyboardKey.keyS ||
+        key == LogicalKeyboardKey.keyD;
+
+    final isModifier =
+        key == LogicalKeyboardKey.shiftLeft ||
+        key == LogicalKeyboardKey.shiftRight ||
+        key == LogicalKeyboardKey.controlLeft ||
+        key == LogicalKeyboardKey.controlRight ||
+        key == LogicalKeyboardKey.altLeft ||
+        key == LogicalKeyboardKey.altRight ||
+        key == LogicalKeyboardKey.metaLeft ||
+        key == LogicalKeyboardKey.metaRight;
+
+    if (!isDirectional && !isModifier) {
+      game.dismissKeyWait();
+      return true;
+    }
+    return false;
+  }
+
+  bool _handleMap(LogicalKeyboardKey key, HDGameMain game) {
+    // 짧게 누른 키를 적어 둔다 — 주인공 그림은 화면마다 「눌려 있는가」만 본다.
+    // 키는 그대로 흘려보내서(false) 길게 누를 때의 처리는 예전과 같다.
+    final step = switch (key) {
+      LogicalKeyboardKey.arrowUp || LogicalKeyboardKey.keyW => JoystickMoveDirectional.MOVE_UP,
+      LogicalKeyboardKey.arrowDown || LogicalKeyboardKey.keyS => JoystickMoveDirectional.MOVE_DOWN,
+      LogicalKeyboardKey.arrowLeft || LogicalKeyboardKey.keyA => JoystickMoveDirectional.MOVE_LEFT,
+      LogicalKeyboardKey.arrowRight || LogicalKeyboardKey.keyD => JoystickMoveDirectional.MOVE_RIGHT,
+      _ => null,
+    };
+    if (step != null) HDVirtualInputState().tapStep(step);
+    if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.keyE) {
+      HDVirtualInputState().tapAction();
+    }
+
+    if (key == LogicalKeyboardKey.escape ||
+        key == LogicalKeyboardKey.keyQ ||
+        key == LogicalKeyboardKey.space) {
+      game.showMainMenu();
+      return true;
+    }
+
+    // Test time control keys
+// Debug time keys: dawn · dusk · noon · midnight.
+    final (int, int)? jump = switch (key) {
+      LogicalKeyboardKey.insert => (5, 59),
+      LogicalKeyboardKey.delete => (18, 9),
+      LogicalKeyboardKey.home => (12, 0),
+      LogicalKeyboardKey.end => (0, 0),
+      _ => null,
+    };
+    if (jump != null && kDebugMode) {
+      game.party.world.calendar
+        ..hour = jump.$1
+        ..minute = jump.$2;
+      game.refresh();
+      return true;
+    }
+
+    return false;
+  }
+}

@@ -1,0 +1,58 @@
+name: lore2026_app
+description: "또 다른 지식의 성전 3부작 복각 (Lore Trilogy 2026) — hadar2026_app 의 엔진 위에 올린다."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  bonfire: 3.16.1 # pinned: 3.17.x is incompatible with flame 1.35.1 (hadar2026_app 과 같은 이유)
+  window_manager: ^0.5.1
+  shared_preferences: ^2.5.4
+  cm2_script:
+    path: ../packages/cm2_script
+  # 인물·파티·아이템 규칙 (제3부 시스템). 순수 Dart.
+  lore_world:
+    path: ../packages/lore_world
+  lore_world_text:
+    path: ../packages/lore_world_text
+  # 전투 model 과 그 문장. hd_battle 을 복사해 제3부 규칙으로 바꾼 것이다.
+  lore_battle:
+    path: ../packages/lore_battle
+  lore_battle_text:
+    path: ../packages/lore_battle_text
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/maps/
+    - assets/fonts/
+    # cm2 스크립트. 공통 상수와 편별 폴더로 나눈다 — 세 편에 같은 이름의 맵
+    # (Lore · Menace · LastDitch …)이 있어서 한 폴더에 둘 수 없다.
+    - assets/common/
+    - assets/ep1/
+    - assets/ep2/
+    - assets/ep3/
+    # 개발자 모드의 장면 자료 (lib/application/dev/dev_scenes.dart)
+    - assets/dev/
+
+  fonts:
+    - family: DungGeunMo
+      fonts:
+        - asset: assets/fonts/DungGeunMo.ttf
+
+dependency_overrides:
+  flame: 1.35.1

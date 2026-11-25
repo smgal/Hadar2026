@@ -1,0 +1,242 @@
+####### 제3부 — 베스퍼성 (Vesper, 요새형 75×75) #######
+# 근거: 기획서 05(M4·S5) · 06(6.15) · 10(10.9) · 12(12.3·12.4) · 14(7.2) · 16(B.2·B.3),
+#       공략 원고 Walkthrough/3rd/src/maps/Vesper.{md,json}
+#
+# 칸 종류 (maptool 로 확인):
+#   트롤 무리 7곳 — 원작은 푯말 번호(53). 변환기가 사람 칸으로 바꿔 놓았으므로 FLAG_TALK 에서 다룬다
+#     (30,19) 점령대장 · (50,19) · (64,26) · (61,38) · (40,40) · (22,40) · (20,26)
+#   시체 22구 — 원작은 입구 번호(54). 마찬가지로 FLAG_TALK. (47,55) 만 쪽지를 쥔 시체다
+#   이벤트 — 가장자리 네 줄 x=5 · x=71 · y=6 · y=70 (출구)
+#   이 맵에는 푯말·입구로 다루는 칸이 없다 (FLAG_SIGN · FLAG_ENTER 없음)
+#
+# 빈 바닥은 43 (이 맵의 default).
+
+include("common/const.cm2")
+variable(temp)
+
+
+####### 맵에 들어왔다 #######
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("keep")                         # 요새형 공통 곡 (13.11)
+
+	# 무작위 조우: 트롤병사·트롤용사·트롤사냥꾼 — 트롤킹을 처치하면 사라진다 (12.3)
+	Encounter::Clear()
+	if (Flag::IsSet("TROLL_KING_DEAD"))
+		Encounter::Enable(0)
+	else
+		Encounter::Add(26, 28)
+		Encounter::Enable(1)
+
+	# 부록 B.3 — 격파한 트롤 무리의 자리는 빈 바닥
+	# (무리 4는 (61,38) 이다. 원작이 (61,33) 에 적용하던 것은 버그 — 부록 A #33)
+	if (Flag::IsSet("VESPER_GROUP_1_CLEARED"))
+		Map::ChangeTile(30, 19, 43)
+	if (Flag::IsSet("VESPER_GROUP_2_CLEARED"))
+		Map::ChangeTile(50, 19, 43)
+	if (Flag::IsSet("VESPER_GROUP_3_CLEARED"))
+		Map::ChangeTile(64, 26, 43)
+	if (Flag::IsSet("VESPER_GROUP_4_CLEARED"))
+		Map::ChangeTile(61, 38, 43)
+	if (Flag::IsSet("VESPER_GROUP_5_CLEARED"))
+		Map::ChangeTile(40, 40, 43)
+	if (Flag::IsSet("VESPER_GROUP_6_CLEARED"))
+		Map::ChangeTile(22, 40, 43)
+	if (Flag::IsSet("VESPER_GROUP_7_CLEARED"))
+		Map::ChangeTile(20, 26, 43)
+
+
+####### 말을 걸었다 (트롤 무리 · 시체) #######
+if (Equal(ScriptMode(), FLAG_TALK))
+
+	####### 성 북쪽 들판 — 트롤 무리 7곳 #######
+	# 공통 대사 → 적 선공 전투. 이기면 보상을 얻고 그 칸이 바닥이 된다.
+	# 도망치면 들어온 방향과 관계없이 성의 기본 시작점 (38,69) 로 쫓겨난다.
+	if (Or(On(30, 19), On(50, 19), On(64, 26), On(61, 38), On(40, 40), On(22, 40), On(20, 26)))
+		if (Flag::IsSet("TROLL_SPEECH"))
+			Say("트롤", "아직도 남은 인간이 있었다니... 너도 나에게 죽어줘야겠다.")
+		else
+			Talk("당신 앞의 트롤이 무어라 말했지만 알아들을 수가 없었다.")
+		PressAnyKey()
+		Battle::Init()
+
+	# (30,19) 무리 1 — 트롤사냥꾼 1·트롤용사 6, 이어서 베스퍼 점령대장(트롤 암살자) 일당
+	# 두 전투 사이에는 기록이 없다. 점령대장 전투에서 도망치면 다음에는 첫 전투부터 다시 한다.
+	if (On(30, 19))
+		Battle::RegisterEnemy(28, 1)
+		Battle::RegisterEnemy(27, 6)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Talk("당신이 적들을 물리치자 동굴 속에서 날렵하게 생긴 트롤이 걸어 나왔다.")
+			if (Flag::IsSet("TROLL_SPEECH"))
+				Say("트롤 암살자", "음... 나의 부하들을 물리치다니 제법 실력이 있는 것 같군. 하지만 네가 이 동굴에 들어온 것은 정말 큰 불운이란 걸 명심해라. 바로 베스퍼 점령대의 대장인 트롤 암살자님이 바로 나이니까.")
+			else
+				Talk("그리고는 도저히 알아들을 수 없는 말을 몇 마디 지껄이더니 당신에게 달려들었다.")
+			PressAnyKey()
+			# 점령대장 — 트롤사냥꾼 2·트롤용사 4·트롤암살자·트롤강령술사
+			Battle::Init()
+			Battle::RegisterEnemy(28, 2)
+			Battle::RegisterEnemy(27, 4)
+			Battle::RegisterEnemy(30, 1)
+			Battle::RegisterEnemy(29, 1)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Talk("당신은 트롤 암살자를 처치했다.")
+				Notice("다크 크리스탈 + 1")
+				Item::Give("crystal.dark", 1)
+				Flag::Set("VESPER_CAPTAIN_DEAD")
+				Flag::Set("VESPER_GROUP_1_CLEARED")
+				Map::ChangeTile(30, 19, 43)
+				DisplayMap()
+			else
+				Party::Warp(38, 69)
+		else
+			Party::Warp(38, 69)
+
+	# (50,19) 무리 2 — 트롤사냥꾼 3·트롤용사 3·트롤강령술사 1 → 이름 있는 전원 민첩성 +1 (최대 20)
+	if (On(50, 19))
+		Battle::RegisterEnemy(28, 3)
+		Battle::RegisterEnemy(27, 3)
+		Battle::RegisterEnemy(29, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Notice("민첩성 + 1")
+			if (Player::IsAvailable(1))
+				Player::AddAttribute(1, "agility", 1, 20)
+			if (Player::IsAvailable(2))
+				Player::AddAttribute(2, "agility", 1, 20)
+			if (Player::IsAvailable(3))
+				Player::AddAttribute(3, "agility", 1, 20)
+			if (Player::IsAvailable(4))
+				Player::AddAttribute(4, "agility", 1, 20)
+			if (Player::IsAvailable(5))
+				Player::AddAttribute(5, "agility", 1, 20)
+			if (Player::IsAvailable(6))
+				Player::AddAttribute(6, "agility", 1, 20)
+			Flag::Set("VESPER_GROUP_2_CLEARED")
+			Map::ChangeTile(50, 19, 43)
+			DisplayMap()
+		else
+			Party::Warp(38, 69)
+
+	# (64,26) 무리 3 — 트롤병사 1·트롤용사 5·트롤사냥꾼 1 → 금화 20000
+	if (On(64, 26))
+		Battle::RegisterEnemy(26, 1)
+		Battle::RegisterEnemy(27, 5)
+		Battle::RegisterEnemy(28, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Notice("금화 + 20000")
+			Party::PlusGold(20000)
+			Flag::Set("VESPER_GROUP_3_CLEARED")
+			Map::ChangeTile(64, 26, 43)
+			DisplayMap()
+		else
+			Party::Warp(38, 69)
+
+	# (61,38) 무리 4 — 트롤용사 4·트롤병사 2 → 식량 50
+	if (On(61, 38))
+		Battle::RegisterEnemy(27, 4)
+		Battle::RegisterEnemy(26, 2)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Notice("식량 + 50")
+			Party::PlusFood(50)
+			Flag::Set("VESPER_GROUP_4_CLEARED")
+			Map::ChangeTile(61, 38, 43)
+			DisplayMap()
+		else
+			Party::Warp(38, 69)
+
+	# (40,40) 무리 5 — 트롤병사 5·트롤사냥꾼 2 → 곤봉 5
+	if (On(40, 40))
+		Battle::RegisterEnemy(26, 5)
+		Battle::RegisterEnemy(28, 2)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Notice("곤봉 + 5")
+			Item::Give("weapon.club", 5)
+			Flag::Set("VESPER_GROUP_5_CLEARED")
+			Map::ChangeTile(40, 40, 43)
+			DisplayMap()
+		else
+			Party::Warp(38, 69)
+
+	# (22,40) 무리 6 — 트롤용사 6·트롤사냥꾼 1 → 화살 30
+	if (On(22, 40))
+		Battle::RegisterEnemy(27, 6)
+		Battle::RegisterEnemy(28, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Notice("화살 + 30")
+			Party::PlusArrows(30)
+			Flag::Set("VESPER_GROUP_6_CLEARED")
+			Map::ChangeTile(22, 40, 43)
+			DisplayMap()
+		else
+			Party::Warp(38, 69)
+
+	# (20,26) 무리 7 — 트롤용사 5 → 금화 1000
+	if (On(20, 26))
+		Battle::RegisterEnemy(27, 5)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Notice("금화 + 1000")
+			Party::PlusGold(1000)
+			Flag::Set("VESPER_GROUP_7_CLEARED")
+			Map::ChangeTile(20, 26, 43)
+			DisplayMap()
+		else
+			Party::Warp(38, 69)
+
+	####### 성 안뜰과 남쪽 길 — 인간의 시체 #######
+	# 시체 21구 (공통 서술) — 안뜰 (22~54, 46~60) 과 남쪽 길 위의 (38,60)·(39,64)
+	temp.assign(0)
+	if (Or(On(36, 48), On(26, 49), On(30, 49), On(42, 49), On(50, 49), On(32, 50), On(45, 50)))
+		temp.assign(1)
+	if (Or(On(28, 51), On(34, 51), On(39, 51), On(48, 51), On(25, 52), On(50, 53), On(39, 54)))
+		temp.assign(1)
+	if (Or(On(25, 55), On(27, 56), On(37, 56), On(51, 57), On(48, 58), On(38, 60), On(39, 64)))
+		temp.assign(1)
+	if (Equal(temp, 1))
+		Talk("당신 앞에는 형체도 알아보기 힘들 정도로 처참히 살해된 인간의 시체가 있었다.")
+
+	# (47,55) 비교적 온전한 시체 — 부활의 약초 1개를 쓰면 쪽지를 읽는다 (05 S5)
+	if (On(47, 55))
+		Talk("당신 앞의 시체는 다른 시체들보다 늦게 살해당했는지 부패의 정도가 덜했다. 비교적 형태를 알아볼 수 있었기에 당신은 그의 몸을 조사하기 시작했다.")
+		if (Flag::IsSet("VESPER_MEMO_READ"))
+			Talk("하지만 더 이상 발견되지 않았다.")
+		else
+			Talk("곧이어 당신은 그 시체의 오른손에 무언가가 꽉 쥐어져 있음을 알아차렸고 그것이 메시지를 전하기 위한 메모 쪽지라는 것을 알게 되었다. 당신은 그의 손을 펴 보려 했지만 그의 몸은 빳빳하게 굳어 있었고 좀처럼 펼 수가 없었다.")
+			# 부활의 약초가 없으면 쪽지를 꺼내지 못하고 끝난다 (아무것도 쓰지 않는다)
+			if (Greater(Item::Count("item.revival_herb"), 0))
+				PressAnyKey()
+				Item::Take("item.revival_herb", 1)
+				Flag::Set("VESPER_MEMO_READ")
+				Talk("문득 당신은 지금 가지고 있는 부활의 약초가 생각이 났다. 비록 지금의 그 시체는 살릴 수 없을 정도로 부패했기 때문에 살려 내기는 불가능했지만 최소한 죽은 지 얼마 안 된 상태까지는 만들 수 있을 거라 생각했다. 당신은 그 시체에게 부활의 약초를 사용했고 예상대로 그의 몸은 약간의 핏기가 돌게 되었고 어렵지 않게 그의 손에 쥐여진 종이쪽지를 빼낼 수가 있었다. 내용은 이러했다.")
+				PressAnyKey()
+				Talk("혹시나 이 글을 누가 읽기를 바라며 ...")
+				Talk("트롤족에 의한 베스퍼성의 괴멸은 예견되었던 거나 다름없었다. 우리는 인간이기에 인간의 편을 들 수밖에 없었고 또한 우리의 견해와 입장으로써 이 사실을 다른 대륙으로 알렸다. 하지만 그것은 잘못되었다는 것을 이내 알았다. 아마 내가 죽고 난 상황에서의 이곳은 인류와 트롤 모두가 자신들의 정의에 따라 서로를 저주하며 대립하고 있을 것이다. 어떻게 보면 서로의 이익을 찾기 위해 명분을 세우고 침략을 정당화시킨다고 할 수 있다. 우리는 인간이기에 우리 쪽의 잘못은 감추려고 한다. 항상 다른 종족의 잘못을 들추어내며 우리를 더욱 값지게 해 왔던 게 사실이다. 이번의 경우도 그렇다. 책임이 있다면 사실상 이번 일은 인간의 책임이 더 크다. 자초지종을 말하자면 다음과 같다. 원래 아프로디테 테라는 트롤족의 땅이었다. 하지만 인간의 영역을 더욱 확보하려는 야심에서 명분을 세우고 그들의 땅을 침범하여 성을 구축한 곳이 바로 이곳 베스퍼성이었다. 그리고 그 일을 총지휘한 자는 바로 .............")
+				PressAnyKey()
+				Talk("당신이 여기까지 읽어 내려갔을 때 그 종이쪽지는 산화하여 공중으로 흩어져 버렸다. 당신은 지금 이 쪽지에서 말하려고 했던 자로부터 천리안으로 감시를 당하고 있다는 사실을 순간 깨달았다. 당신이 알지 못하는 제3의 인물이 있다는 확신이 강해짐에 따라 더욱더 긴장할 수밖에 없었다. 하지만 더 이상의 변화는 일어나지 않았다.")
+
+
+####### 이벤트 칸 #######
+if (Equal(ScriptMode(), FLAG_EVENT))
+	# 가장자리 네 줄 — 출구. 필드 (69,29) 에서 나간 방향으로 한 칸 옮긴 자리에 선다
+	if (Or(OnArea(5, 6, 71, 6), OnArea(5, 70, 71, 70), OnArea(5, 7, 5, 69), OnArea(71, 7, 71, 69)))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			# 북쪽 가장자리 y=6
+			if (OnArea(5, 6, 71, 6))
+				LoadScript("E3_Ground3", 69, 28)
+			# 남쪽 가장자리 y=70
+			if (OnArea(5, 70, 71, 70))
+				LoadScript("E3_Ground3", 69, 30)
+			# 서쪽 가장자리 x=5
+			if (OnArea(5, 7, 5, 69))
+				LoadScript("E3_Ground3", 68, 29)
+			# 동쪽 가장자리 x=71
+			if (OnArea(71, 7, 71, 69))
+				LoadScript("E3_Ground3", 70, 29)
+		else
+			WarpPrevPos()

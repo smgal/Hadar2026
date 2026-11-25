@@ -1,0 +1,626 @@
+####### 제2부 알 수 없는 피라미드 (E2_Pyramid) — 200×125 동굴 ########
+# 근거: 2nd/05 §5.2(라스트디치 성주) · §5.5(유적의 시험) · 2nd/06 §6.2 · §6.8 · 2nd/08 §8.2~8.3 · 2nd/09 §9.3~9.4 ·
+#       2nd/10 §7 · §11(피라미드 푯말) · 2nd/12 부록 B · 공략집 Walkthrough/2nd/src/maps/Pyramid.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥 44. 호수 (8~106,61~119)의 물 칸은 밟는 칸(52)이다 — 빛나는 25칸만 안전하고, 그 밖의 칸에
+# 들어서면 이 범위의 호수 칸이 모두 용암(50)이 된다(피라미드를 나갔다 오면 돌아온다 — 부록 A D15).
+# 고대 유적 구역 (138~193,78~119)은 순간 이동 칸 (96,94)·(96,95)로만 간다. 석상은 유적 푯말 (30,100)을 읽은 뒤 작동.
+# 들어오면 (99,100), 나가면 로어 대륙 (83,86).
+
+include("common/const.cm2")
+variable(px)
+variable(py)
+variable(ok)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 1~20 (레벨 1~5)
+	Encounter::Clear()
+	Encounter::Add(1, 20)
+	Encounter::Enable(1)
+
+####### 푯말 ########
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+	if (On(82, 101))
+		Talk("피라미드의 암흑이 호수 위를 비출 때, 고대 해 왔던 잊힌 유적은 당신 앞에서 그 진가를 발하며 불멸의 생명을 안겨 줄 것이다.")
+		halt
+	if (On(143, 116))
+		Talk("어서 오게, 친구여. 자네가 여기에 있는 6가지의 시험을 통과한다면 영원불멸의 생명을 영위하게 될 걸세.")
+		halt
+	if (On(30, 100))
+		Talk("오!! 현명한 자여. 당신은 영원한 생명을 얻을 자격이 있소. 이제 잊힌 유적은 당신의 의지에 순응할 것이오.")
+		Flag::Set("RUINS_ACCEPTED")
+		halt
+
+####### 입구 — 흉성의 증거 (16,16) · 흉성의 단서 (149,65) ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (On(16, 16))
+		Ask("흉성의 증거에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E2_Evidence", 25, 44)
+		halt
+	if (On(149, 65))
+		Ask("흉성의 단서에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E2_Clue", 25, 44)
+		halt
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	px.assign(Party::PosX())
+	py.assign(Party::PosY())
+
+	# ---- 출구 (100,100) ----
+	if (On(100, 100))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E2_Lore", 83, 86)
+		else
+			WarpPrevPos()
+		halt
+
+	# ---- 고대 유적으로 / 유적에서 나감 ----
+	if (OnArea(96, 94, 96, 95))
+		Talk("일행은 고대의 유적으로 공간 이동이 되었다.")
+		Party::Warp(141, 116)
+		halt
+	if (OnArea(137, 115, 137, 119))
+		Talk("일행은 공간 이동이 되었다.")
+		Party::Warp(94, 100)
+		halt
+
+	# ---- 로어 헌터 (184,31) — 라스트디치 의뢰 1. 그림이 없는 숨은 칸 ----
+	if (On(184, 31))
+		if (Not(Equal(Variable::Get("LASTDITCH_QUEST"), 1)))
+			halt
+		Say("로어 헌터", "아니! {주인공}, 자네가 여기 웬일인가?")
+		Say("로어 헌터", "정말 오래간만이네.")
+		Answer("나도 역시 반갑네. 나는 지금 라스트디치 성주님에게 당신의 신변을 알아 오라고 부탁을 받았다네. 자네가 살아 있어서 정말 다행이네.")
+		Say("로어 헌터", "그런가? 성주님이 나를 그렇게 생각해 주시다니 정말 고맙군. 그건 그렇고 이 안에 있는 두 개의 동굴 속에는 이미 지하 세계와의 통로가 단절되어 버렸다네. 나와 지니어스 기가 그곳을 탈출하자마자 지하 세계의 마법사에 의해 입구가 봉쇄된 것 같네. 그래도 한번 탐험해 보는 것도 좋은 경험일 테고. 지금은 그것보다는 나의 안부를 성주님께 알리는 게 더 중요하겠군. 그럼 먼저 가 보도록 하게.")
+		Variable::Set("LASTDITCH_QUEST", 2)
+		halt
+
+	# ---- 고정 전투 — 이길 때까지 ----
+	if (OnArea(104, 14, 105, 14))
+		if (Flag::IsSet("PYRAMID_GUARDIANS"))
+			halt
+		Say("파수꾼", "잠깐, 우리들은 전설의 갑옷을 지키는 파수꾼들이다. 당신들은 더 이상 들어갈 수 없다. 자, 각오해라.")
+		Battle::Init()
+		Battle::RegisterEnemy(34, 5)
+		Battle::RegisterEnemy(36, 1)
+		Battle::RegisterEnemy(39, 1)
+		Battle::RegisterEnemy(45, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Talk("당신은 보물 파수꾼들을 물리쳤다.")
+			Flag::Set("PYRAMID_GUARDIANS")
+		else
+			Party::Warp(px, 15)
+		halt
+	if (On(149, 51))
+		if (Flag::IsSet("PYRAMID_SLIMES"))
+			halt
+		Talk("일행이 앞으로 진행하려 했지만 점액 생물이 일행을 포위했다.")
+		Battle::Init()
+		Battle::RegisterEnemy(23, 8)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("PYRAMID_SLIMES")
+		else
+			Party::Warp(149, 50)
+		halt
+	if (On(149, 66))
+		if (Flag::IsSet("PYRAMID_CAVE_GUARD"))
+			halt
+		Talk("일행이 동굴 앞에 섰을 때 동굴의 입구를 지키는 괴물들이 일행의 앞을 가로막았다.")
+		Battle::Init()
+		Battle::RegisterEnemy(26, 1)
+		Battle::RegisterEnemy(27, 1)
+		Battle::RegisterEnemy(28, 1)
+		Battle::RegisterEnemy(29, 1)
+		Battle::RegisterEnemy(30, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("PYRAMID_CAVE_GUARD")
+		else
+			Party::Warp(149, 67)
+		halt
+
+	# ---- 흑요석 갑옷 (104,10) — 파수꾼을 물리친 뒤 ----
+	if (On(104, 10))
+		if (Or(Flag::IsSet("PYRAMID_OBSIDIAN"), Not(Flag::IsSet("PYRAMID_GUARDIANS"))))
+			halt
+		Flag::Set("PYRAMID_OBSIDIAN")
+		Talk("일행이 물 위에 다다르자 물속에서 검은 광채를 내며 전설의 흑요석 갑옷이 떠올랐다. 이 갑옷은 현재의 기술로 만들 수 있는 플래티움 재질의 갑옷보다 두 배의 방어력을 지닌다고 한다.")
+		Item::Give("armour.obsidian", 1)
+		Notice("흑요석 갑옷을 배낭에 넣었다")
+		halt
+
+	# ---- 뼈만 남은 기사 둘 ----
+	if (On(193, 119))
+		if (Not(Flag::IsSet("PYRAMID_KNIGHT_SHIELD")))
+			Flag::Set("PYRAMID_KNIGHT_SHIELD")
+			Talk("일행이 밑을 보자 거기에는 뼈만 남은 기사가 쓰러져 있었다. 그의 무기와 갑옷은 형편없이 깨어져 있었지만 그의 크로매틱 방패는 아직 사용할 수 있었다. 일행은 그 방패를 가지기로 하였다.")
+			Item::Give("shield.chromatic", 1)
+			Notice("크로매틱 방패를 배낭에 넣었다")
+		halt
+	if (On(63, 68))
+		if (Not(Flag::IsSet("PYRAMID_KNIGHT_AXE")))
+			Flag::Set("PYRAMID_KNIGHT_AXE")
+			Talk("일행이 밑을 보자 거기에는 뼈만 남은 기사가 쓰러져 있었다. 그의 방패와 갑옷은 형편없이 깨어져 있었지만 그의 양날 전투 도끼는 아직 사용할 수 있었다. 일행은 그 무기를 가지기로 하였다.")
+			Item::Give("weapon.battle_axe", 1)
+			Notice("양날 전투 도끼를 배낭에 넣었다")
+		halt
+
+	# ---- 보물 (모두 1회) ----
+	if (On(144, 56))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_1")))
+			Flag::Set("PYRAMID_GOLD_1")
+			Party::PlusGold(5000)
+			Talk("당신은 금화 5000개를 발견했다.")
+		halt
+	if (On(150, 58))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_2")))
+			Flag::Set("PYRAMID_GOLD_2")
+			Party::PlusGold(8000)
+			Talk("당신은 금화 8000개를 발견했다.")
+		halt
+	if (On(137, 110))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_3")))
+			Flag::Set("PYRAMID_GOLD_3")
+			Party::PlusGold(15000)
+			Talk("당신은 금화 15000개를 발견했다.")
+		halt
+	if (On(144, 80))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_4")))
+			Flag::Set("PYRAMID_GOLD_4")
+			Party::PlusGold(20000)
+			Talk("당신은 금화 20000개를 발견했다.")
+		halt
+	if (On(105, 88))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_5")))
+			Flag::Set("PYRAMID_GOLD_5")
+			Party::PlusGold(18000)
+			Talk("당신은 금화 18000개를 발견했다.")
+		halt
+	if (On(8, 16))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_6")))
+			Flag::Set("PYRAMID_GOLD_6")
+			Party::PlusGold(1000)
+			Talk("당신은 금화 1000개를 발견했다.")
+		halt
+	if (On(8, 49))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_7")))
+			Flag::Set("PYRAMID_GOLD_7")
+			Party::PlusGold(2000)
+			Talk("당신은 금화 2000개를 발견했다.")
+		halt
+	if (On(20, 55))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_8")))
+			Flag::Set("PYRAMID_GOLD_8")
+			Party::PlusGold(3000)
+			Talk("당신은 금화 3000개를 발견했다.")
+		halt
+	if (On(23, 51))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_9")))
+			Flag::Set("PYRAMID_GOLD_9")
+			Party::PlusGold(4000)
+			Talk("당신은 금화 4000개를 발견했다.")
+		halt
+	if (On(36, 41))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_10")))
+			Flag::Set("PYRAMID_GOLD_10")
+			Party::PlusGold(5000)
+			Talk("당신은 금화 5000개를 발견했다.")
+		halt
+	if (On(117, 116))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_11")))
+			Flag::Set("PYRAMID_GOLD_11")
+			Party::PlusGold(6000)
+			Talk("당신은 금화 6000개를 발견했다.")
+		halt
+	if (On(143, 73))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_12")))
+			Flag::Set("PYRAMID_GOLD_12")
+			Party::PlusGold(7000)
+			Talk("당신은 금화 7000개를 발견했다.")
+		halt
+	if (On(167, 38))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_13")))
+			Flag::Set("PYRAMID_GOLD_13")
+			Party::PlusGold(8000)
+			Talk("당신은 금화 8000개를 발견했다.")
+		halt
+	if (On(49, 14))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_14")))
+			Flag::Set("PYRAMID_GOLD_14")
+			Party::PlusGold(30000)
+			Talk("당신은 금화 30000개를 발견했다.")
+		halt
+	if (On(140, 7))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_15")))
+			Flag::Set("PYRAMID_GOLD_15")
+			Party::PlusGold(25000)
+			Talk("당신은 금화 25000개를 발견했다.")
+		halt
+	if (On(85, 89))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_16")))
+			Flag::Set("PYRAMID_GOLD_16")
+			Party::PlusGold(20000)
+			Talk("당신은 금화 20000개를 발견했다.")
+		halt
+	if (On(74, 78))
+		if (Not(Flag::IsSet("PYRAMID_GOLD_17")))
+			Flag::Set("PYRAMID_GOLD_17")
+			Party::PlusGold(35000)
+			Talk("당신은 금화 35000개를 발견했다.")
+		halt
+	if (On(146, 57))
+		if (Not(Flag::IsSet("PYRAMID_ITEM_1")))
+			Flag::Set("PYRAMID_ITEM_1")
+			Item::Give("item.seeing_orb", 5)
+			Talk("일행은 수정 구슬을 5개 발견했다.")
+		halt
+	if (On(154, 56))
+		if (Not(Flag::IsSet("PYRAMID_ITEM_2")))
+			Flag::Set("PYRAMID_ITEM_2")
+			Item::Give("item.flying_boots", 3)
+			Talk("일행은 비행 부츠를 3개 발견했다.")
+		halt
+	if (On(109, 89))
+		if (Not(Flag::IsSet("PYRAMID_ITEM_3")))
+			Flag::Set("PYRAMID_ITEM_3")
+			Item::Give("item.revival_herb", 2)
+			Talk("일행은 부활의 약초를 2개 발견했다.")
+		halt
+	if (On(41, 61))
+		if (Not(Flag::IsSet("PYRAMID_ITEM_4")))
+			Flag::Set("PYRAMID_ITEM_4")
+			Item::Give("item.hp_potion", 3)
+			Talk("일행은 체력 회복약을 3개 발견했다.")
+		halt
+	if (On(115, 7))
+		if (Not(Flag::IsSet("PYRAMID_ITEM_5")))
+			Flag::Set("PYRAMID_ITEM_5")
+			Item::Give("item.mp_potion", 2)
+			Talk("일행은 마법 회복약을 2개 발견했다.")
+		halt
+	if (On(162, 15))
+		if (Not(Flag::IsSet("PYRAMID_ITEM_6")))
+			Flag::Set("PYRAMID_ITEM_6")
+			Item::Give("item.antidote_herb", 1)
+			Talk("일행은 해독의 약초를 1개 발견했다.")
+		halt
+	if (On(163, 51))
+		if (Not(Flag::IsSet("PYRAMID_ITEM_7")))
+			Flag::Set("PYRAMID_ITEM_7")
+			Item::Give("item.awakening_herb", 3)
+			Talk("일행은 의식의 약초를 3개 발견했다.")
+		halt
+	if (On(164, 61))
+		if (Not(Flag::IsSet("PYRAMID_ITEM_8")))
+			Flag::Set("PYRAMID_ITEM_8")
+			Item::Give("item.revival_herb", 2)
+			Talk("일행은 부활의 약초를 2개 발견했다.")
+		halt
+	if (On(169, 52))
+		if (Not(Flag::IsSet("PYRAMID_ITEM_9")))
+			Flag::Set("PYRAMID_ITEM_9")
+			Item::Give("item.summon_scroll", 3)
+			Talk("일행은 소환 문서를 3개 발견했다.")
+		halt
+	if (On(97, 60))
+		if (Not(Flag::IsSet("PYRAMID_ITEM_10")))
+			Flag::Set("PYRAMID_ITEM_10")
+			Item::Give("item.big_torch", 4)
+			Talk("일행은 대형 횃불을 4개 발견했다.")
+		halt
+	if (On(99, 112))
+		if (Not(Flag::IsSet("PYRAMID_ITEM_11")))
+			Flag::Set("PYRAMID_ITEM_11")
+			Item::Give("item.seeing_orb", 5)
+			Talk("일행은 수정 구슬을 5개 발견했다.")
+		halt
+	if (On(95, 34))
+		if (Not(Flag::IsSet("PYRAMID_ITEM_12")))
+			Flag::Set("PYRAMID_ITEM_12")
+			Item::Give("item.revival_herb", 5)
+			Talk("일행은 부활의 약초를 5개 발견했다.")
+		halt
+	if (On(97, 24))
+		if (Not(Flag::IsSet("PYRAMID_ITEM_13")))
+			Flag::Set("PYRAMID_ITEM_13")
+			Item::Give("item.flying_boots", 5)
+			Talk("일행은 비행 부츠를 5개 발견했다.")
+		halt
+	if (On(11, 71))
+		if (Not(Flag::IsSet("PYRAMID_ITEM_14")))
+			Flag::Set("PYRAMID_ITEM_14")
+			Item::Give("item.warp_orb", 2)
+			Talk("일행은 이동 구슬을 2개 발견했다.")
+		halt
+
+	# ---- 호수 (8~106,61~119) — 빛나는 25칸만 안전하다 ----
+	if (OnArea(8, 61, 106, 119))
+		ok.assign(0)
+		if (OnArea(10, 102, 15, 102))
+			ok.assign(1)
+		if (OnArea(15, 101, 19, 101))
+			ok.assign(1)
+		if (OnArea(19, 98, 19, 100))
+			ok.assign(1)
+		if (OnArea(19, 98, 25, 98))
+			ok.assign(1)
+		if (OnArea(25, 99, 25, 100))
+			ok.assign(1)
+		if (OnArea(25, 100, 28, 100))
+			ok.assign(1)
+		if (Equal(ok, 1))
+			halt
+		Talk("일행이 물 위로 가려고 하자 갑자기 물은 용암으로 바뀌고 말았다.")
+		Map::ReplaceTile(8, 61, 106, 119, 52, 50)
+		DisplayMap()
+		halt
+
+####### 사람 — 고대 유적의 석상 (2nd/05 §5.5) ########
+# 석상 칸은 바닥 그림의 칸이고 석상 그림은 옆의 장식이다(6.8) — 말 걸기와 밟기 모두에서 받는다.
+
+if (Or(Equal(ScriptMode(), FLAG_TALK), Equal(ScriptMode(), FLAG_EVENT)))
+	if (Not(Or(Or(Or(On(157, 94), On(157, 108)), Or(On(171, 94), On(170, 108))), Or(On(186, 95), On(186, 108)))))
+		halt
+	if (Not(Flag::IsSet("RUINS_ACCEPTED")))
+		halt
+	Talk("당신 앞의 석상이 입을 열었다.")
+	ok.assign(1)
+
+	# ---- 천문학 (157,94) — 정신력, 최대 30 ----
+	if (On(157, 94))
+		if (Flag::IsSet("STATUE_1"))
+			Shop::StatTraining("mentality", 30)
+			halt
+		Say("석상", "나는 고대의 유적 중 천문학을 담당하고 있소. 만약 나의 4가지 질문을 모두 통과하면 이 시험을 통과한 것으로 간주하겠소.")
+		Select::Init()
+		Select::Add("'시그너스 X1'이란 별은 현대 과학에서 어떤 별로 간주되고 있겠소?")
+		Select::Add("혹성")
+		Select::Add("백색 왜성")
+		Select::Add("블랙홀")
+		Select::Add("중성자별")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 3)))
+			ok.assign(0)
+		Select::Init()
+		Select::Add("현재 알려진 항성 중에서 가장 밝은 항성은 무엇이라고 알려져 있소?")
+		Select::Add("폴라리스 (북극성)")
+		Select::Add("시리우스")
+		Select::Add("스피카")
+		Select::Add("베텔규스")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 2)))
+			ok.assign(0)
+		Select::Init()
+		Select::Add("금빛과 푸른빛의 이중성으로 알려진 아름다운 별의 이름은 무엇이겠소?")
+		Select::Add("시리우스")
+		Select::Add("알코르와 미자르")
+		Select::Add("알비레오")
+		Select::Add("베라트릭스")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 3)))
+			ok.assign(0)
+		Select::Init()
+		Select::Add("다음 중 오리온자리의 별이 아닌 것을 골라 보도록 하시오.")
+		Select::Add("베텔규스")
+		Select::Add("리겔")
+		Select::Add("베라트릭스")
+		Select::Add("안타레스")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 4)))
+			ok.assign(0)
+		if (Equal(ok, 1))
+			Say("석상", "당신은 정말 열심히 '또 다른 지식의 성전'을 했나 보군요. 내가 낸 모든 문제는 바로 거기에서 나오는 문제들이었다오.")
+			Say("석상", "당신은 이 시험을 통과했소.")
+			Party::GiveExp(50000)
+			Notice("경험치 + 50000")
+			Flag::Set("STATUE_1")
+		else
+			Say("석상", "당신은 모든 문제를 모두 맞히지 못했소. 내가 낸 문제는 모두 '또 다른 지식의 성전'에서 유래한 것이라는 것을 알아 두시오.")
+		halt
+
+	# ---- 컴퓨터 (157,108) — 인내력, 최대 30 ----
+	if (On(157, 108))
+		if (Flag::IsSet("STATUE_2"))
+			Shop::StatTraining("endurance", 30)
+			halt
+		Say("석상", "나는 고대의 유적 중 컴퓨터를 담당하고 있소. 만약 나의 4가지 질문을 모두 통과하면 이 시험을 통과한 것으로 간주하겠소.")
+		Select::Init()
+		Select::Add("'다크 메이지 실리안 카미너스'라는 이 게임이 지원하는 그래픽 카드는 무엇이겠소?")
+		Select::Add("Hercules")
+		Select::Add("Color Graphics Adapter")
+		Select::Add("Enhanced Graphics Adapter")
+		Select::Add("Video Graphics Array")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 4)))
+			ok.assign(0)
+		Select::Init()
+		Select::Add("다음은 여러 OS 간의 명령어라오. 이 중에서 성질이 다른 하나를 찾아보도록 하시오.")
+		Select::Add("Pro-Dos : 'prefix'")
+		Select::Add("Unix : 'ls'")
+		Select::Add("MS-Dos : 'dir'")
+		Select::Add("Apple Dos : 'catalog'")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 1)))
+			ok.assign(0)
+		Select::Init()
+		Select::Add("그럼 이 게임을 만들 때 쓰인 언어 중에서 주가 되는 언어는 무엇이었겠소?")
+		Select::Add("FORTRAN")
+		Select::Add("BASIC")
+		Select::Add("Pascal")
+		Select::Add("C++")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 3)))
+			ok.assign(0)
+		Select::Init()
+		Select::Add("다음은 여러 컴퓨터 언어의 출력 함수라오. 그중 결과가 틀린 것은 무엇이겠소?")
+		Select::Add("FORTRAN : WRITE(*,*) 'Dark.exe'")
+		Select::Add("BASIC : PRINT 'Dark.exe';")
+		Select::Add("Pascal : writeln('Dark.exe');")
+		Select::Add("C : puts('Dark.exe');")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 2)))
+			ok.assign(0)
+		if (Equal(ok, 1))
+			Say("석상", "당신은 정말 열심히 컴퓨터를 공부했나 보군요.")
+			Say("석상", "당신은 이 시험을 통과했소.")
+			Party::GiveExp(50000)
+			Notice("경험치 + 50000")
+			Flag::Set("STATUE_2")
+		else
+			Say("석상", "당신은 모든 문제를 모두 맞히지 못했소.")
+		halt
+
+	# ---- 물리학 (171,94) — 체력, 최대 30 ----
+	if (On(171, 94))
+		if (Flag::IsSet("STATUE_3"))
+			Shop::StatTraining("strength", 30)
+			halt
+		Say("석상", "나는 고대의 유적 중 물리학을 담당하고 있소. 만약 나의 3가지 질문을 모두 통과하면 이 시험을 통과한 것으로 간주하겠소.")
+		Select::Init()
+		Select::Add("빛보다 더 빠르게 달릴 수 있는 가상의 입자가 있소. 그 입자의 이름은 무엇이겠소?")
+		Select::Add("플라스마")
+		Select::Add("쿼크")
+		Select::Add("타키온")
+		Select::Add("타지온")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 3)))
+			ok.assign(0)
+		Select::Init()
+		Select::Add("다음 중 뉴턴의 세 가지 법칙에 속하지 않는 것은 어느 것이겠소?")
+		Select::Add("만유인력의 법칙")
+		Select::Add("관성의 법칙")
+		Select::Add("작용 반작용의 법칙")
+		Select::Add("질량 보존의 법칙")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 4)))
+			ok.assign(0)
+		Select::Init()
+		Select::Add("다음 공식 중 틀린 것을 한번 골라내 보도록 하시오.")
+		Select::Add("F = ma")
+		Select::Add("F = Blv")
+		Select::Add("F = mg")
+		Select::Add("F = Bli")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 2)))
+			ok.assign(0)
+		if (Equal(ok, 1))
+			Say("석상", "당신은 물리학에도 역시 상당한 지식을 가지고 있군요.")
+			Say("석상", "당신은 이 시험을 통과했소.")
+			Party::GiveExp(50000)
+			Notice("경험치 + 50000")
+			Flag::Set("STATUE_3")
+		else
+			Say("석상", "당신은 모든 문제를 모두 맞히지 못했소.")
+		halt
+
+	# ---- 「또 다른 지식의 성전」 상식 (170,108) — 민첩성, 최대 20 ----
+	if (On(170, 108))
+		if (Flag::IsSet("STATUE_4"))
+			Shop::StatTraining("agility", 20)
+			halt
+		Say("석상", "나는 고대의 유적 중 '또 다른 지식의 성전'에 대한 상식을 담당하고 있소. 만약 나의 3가지 질문을 모두 통과하면 이 시험을 통과한 것으로 간주하겠소.")
+		Select::Init()
+		Select::Add("이 게임의 전작이며 1부였던 '또 다른 지식의 성전'의 적의 최고 보스는 누구였소?")
+		Select::Add("에인션트 이블")
+		Select::Add("히드라")
+		Select::Add("드라코니안")
+		Select::Add("네크로만서")
+		Select::Add("로드안")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 4)))
+			ok.assign(0)
+		Select::Init()
+		Select::Add("전작에서 드래곤이 있던 동굴에서 수도하던 최고의 초능력자는 누구였소?")
+		Select::Add("레드 안타레스")
+		Select::Add("스피카")
+		Select::Add("알비레오")
+		Select::Add("드라코니안")
+		Select::Add("로어 헌터")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 2)))
+			ok.assign(0)
+		Select::Init()
+		Select::Add("전작에서 당신이 모험을 했던 대륙은 모두 몇 개로 이루어져 있었소?")
+		Select::Add("3개")
+		Select::Add("4개")
+		Select::Add("5개")
+		Select::Add("6개")
+		Select::Add("7개")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 3)))
+			ok.assign(0)
+		if (Equal(ok, 1))
+			Say("석상", "당신은 '또 다른 지식의 성전'을 정말 열심히 한 것 같군요.")
+			Say("석상", "당신은 이 시험을 통과했소.")
+			Party::GiveExp(50000)
+			Notice("경험치 + 50000")
+			Flag::Set("STATUE_4")
+		else
+			Say("석상", "당신은 모든 문제를 모두 맞히지 못했소.")
+		halt
+
+	# ---- 운명 (186,95) — 손상되어 작동하지 않는다 (원작 그대로, 부록 A D3) ----
+	if (On(186, 95))
+		Say("석상", "나는 고대의 유적 중 당신이 겪어 나간 운명에 관한 이해를 담당하고 있소. 만약 나의 3가지 질문을 모두 통과하면 이 !@ QfhR%{`as& ^Z>;/~ ^^Q+! ?hs<e#냠")
+		Say("석상", "< Error 43 : Illegal assignment >")
+		Say("석상", "< Error 3 : Unknown identifier >")
+		Say("석상", "< Error 122 : Invalid variable reference >")
+		Say("석상", "Program is Terminated !! ($F34DC1:$01BA8)")
+		Talk("하지만 석상은 심하게 손상되어 있었고 제대로 작동하지 않았다.")
+		halt
+
+	# ---- 수학 (186,108) — 정확성, 최대 20 ----
+	if (On(186, 108))
+		if (Flag::IsSet("STATUE_6"))
+			Shop::StatTraining("accuracy", 20)
+			halt
+		Say("석상", "나는 고대의 유적 중 수학에 대한 지식을 담당하고 있소. 만약 나의 3가지 질문을 모두 통과하면 이 시험을 통과한 것으로 간주하겠소.")
+		Select::Init()
+		Select::Add("X = 7, Y = 9, Z * Z = X + Y라면 Z의 값은 어떻게 되겠소?")
+		Select::Add("<< 3 >>")
+		Select::Add("<< 4 >>")
+		Select::Add("<< 5 >>")
+		Select::Add("<< 6 >>")
+		Select::Add("<< 7 >>")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 2)))
+			ok.assign(0)
+		Select::Init()
+		Select::Add("X + Y = 7, X - Y = 1에서 X와 Y를 알아내서 X * Y의 답을 말해 주시오.")
+		Select::Add("<< 0 >>")
+		Select::Add("<< 7 >>")
+		Select::Add("<< 10 >>")
+		Select::Add("<< 12 >>")
+		Select::Add("<< 14 >>")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 4)))
+			ok.assign(0)
+		Select::Init()
+		Select::Add("당신은 아마 로어 헌터를 만났을 것이오. 그가 있었던 좌표의 (X - Y)는 어떻게 되오?")
+		Select::Add("<< 153 >>")
+		Select::Add("<< 168 >>")
+		Select::Add("<< 171 >>")
+		Select::Add("<< -57 >>")
+		Select::Add("<< -25 >>")
+		Select::Run()
+		if (Not(Equal(Select::Result(), 1)))
+			ok.assign(0)
+		if (Equal(ok, 1))
+			Say("석상", "당신은 수학 실력 또한 대단하군요. 당신은 이 시험을 통과했소.")
+			Party::GiveExp(50000)
+			Notice("경험치 + 50000")
+			Flag::Set("STATUE_6")
+		else
+			Say("석상", "당신은 모든 문제를 모두 맞히지 못했소.")
+		halt

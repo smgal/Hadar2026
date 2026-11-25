@@ -1,0 +1,179 @@
+####### 빛의 성 (Light) — 반란 중인 배리언트 피플즈 ########
+# 근거: 기획서 05 §5.3 M11 · 06 §6.10 · 12 §12.4 · 13 §13.9 · 14 §6.1(푯말)·§10 · 15 부록 A #41,
+#       공략 원고 Light.md/json
+# 시작 (38,69) · 게이트 도착 (38,9) · 마을형 · 기본 바닥 44 · 무작위 조우 없음 · 마법 제한 없음
+# 사람·시설은 하나도 없다. 성문 (36~42,62~67) 은 격자로 막혀 있어 공간 이동·지형 변화로만 성 안에 들어간다
+# (맵 데이터 그대로 — 스크립트가 손대지 않는다). 충성 루트에서 이긴 뒤에도 맵은 바뀌지 않는다.
+
+include("common/const.cm2")
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("town")
+
+####### 푯말 ########
+# 문구는 배리언트 피플즈 때와 같다 (14 §6.1 「배리언트 피플즈/빛의 성 공통」)
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+
+	# (39,8) 게이트 안내
+	if (On(39, 8))
+		Talk("이곳은 로어 대륙으로 통하는 게이트입니다.")
+
+	# (39,68) 성 입구
+	if (On(39, 68))
+		Talk("여기는 가이아 테라의 배리언트 피플즈")
+		Talk("불의에 대해 가장 강력한 저항을 하는 곳")
+		Talk("여러분을 환영합니다.")
+		Talk("이곳의 성주로부터")
+
+####### 입구 ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+
+	# (38,10)·(39,10) 로어 게이트 → 라스트디치성 (38,9)
+	if (OnArea(38, 10, 39, 10))
+		Ask("로어 게이트에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E3_LastDtch", 38, 9)
+
+####### 이벤트 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# (37~40,70) 남쪽 출구 줄 → 가이아 테라 (19,27)
+	if (OnArea(37, 70, 40, 70))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E3_Ground2", 19, 27)
+		else
+			WarpPrevPos()
+
+	# (37~40,43) 대전 입구 줄 — 카미너스의 제안 (1회) · 충성을 고르면 반란 진압 3연전
+	if (OnArea(37, 43, 40, 43))
+
+		if (Not(Flag::IsSet("CAMINUS_RESOLVED")))
+			# 카미너스가 x=38 줄을 따라 (38,38) 에서 (38,42) 까지 0.5초에 한 칸씩 걸어 나온다 (13 §13.9).
+			# 빛의 성의 53번 칸 그림이 카미너스다. 칸을 바꾸지 않고 배우로 걷는다.
+			Actor::Show("카미너스", 53, 38, 38)
+			Wait(500)
+			Actor::Move("카미너스", 0, 1)
+			Actor::Wait()
+			Wait(340)
+			Actor::Move("카미너스", 0, 1)
+			Actor::Wait()
+			Wait(340)
+			Actor::Move("카미너스", 0, 1)
+			Actor::Wait()
+			Wait(340)
+			Actor::Move("카미너스", 0, 1)
+			Actor::Wait()
+
+			Say("카미너스", "나는 이번 반란을 지휘하고 있는 카미너스라는 사람이오. 며칠 전에 우리 성에 에인션트 이블의 의지가 다녀갔소. 그리고 이 세상의 진실을 어렴풋이 알게 되었소. 우리는 항상 로드안이 말하는 것을 그대로 믿어 왔소. 그건 여태껏 알려진 그의 명성 때문이었다오. 하지만 이제는 예외가 있다는 걸 깨닫게 되었소. 당신은 그의 명령대로 오크, 트롤, 코볼트, 드라코니안 이 네 종족을 제거하여 인간을 이롭게 한 건 사실이오. 당신 또한 그 일을 자랑스럽게 생각할지도 모르오. 하지만 우리의 입장에서 볼 때 그렇다는 것이지, 절대로 다른 종족의 입장에서는 당신이 한 일이 정의를 위한 것이 아니라오. 실제로 잘못은 우리가 했으면서 도리어 그들에게 잘못을 덮어씌워서 그들을 해한 것이지 않소. 당신이 에인션트 이블을 만났다는 말을 들었소. 그렇다면 우리가 지금 하려는 일을 이해할 거요. 우리들은 당신이 우리의 편에 서서 로드안을 응징해 주기를 바라고 있소.")
+			Say("카미너스", "자, 선택은 당신에게 있소.")
+
+			# Esc 로는 정해지지 않는다 (부록 A #41). 다시 묻고, 그래도 고르지 않으면 한 걸음 물러나
+			# 이 줄을 다시 밟을 때 처음부터 제안한다.
+			Select::Init()
+			Select::Add("")
+			Select::Add("로드안을 배신한다")
+			Select::Add("로드안의 말대로 이들을 벌한다")
+			Select::Run()
+			if (Equal(Select::Result(), 0))
+				Select::Init()
+				Select::Add("")
+				Select::Add("로드안을 배신한다")
+				Select::Add("로드안의 말대로 이들을 벌한다")
+				Select::Run()
+			if (Equal(Select::Result(), 0))
+				Select::Init()
+				Select::Add("")
+				Select::Add("로드안을 배신한다")
+				Select::Add("로드안의 말대로 이들을 벌한다")
+				Select::Run()
+			if (Equal(Select::Result(), 0))
+				Actor::Hide("카미너스")
+				DisplayMap()
+				WarpPrevPos()
+				halt
+
+			# 1. 로드안을 배신한다 → 반역 루트
+			if (Equal(Select::Result(), 1))
+				Flag::Set("CAMINUS_RESOLVED")
+				Variable::Set("ALLEGIANCE", 2)
+				Say("카미너스", "우리 성의 사람들은 당신의 용기 있는 결단에 찬사를 보내고 있소. 정말 장한 일이오.")
+				PressAnyKey()
+				# 카미너스가 같은 길로 되돌아간다
+				Actor::Move("카미너스", 0, -1)
+				Actor::Wait()
+				Wait(340)
+				Actor::Move("카미너스", 0, -1)
+				Actor::Wait()
+				Wait(340)
+				Actor::Move("카미너스", 0, -1)
+				Actor::Wait()
+				Wait(340)
+				Actor::Move("카미너스", 0, -1)
+				Actor::Wait()
+				Wait(340)
+				Actor::Hide("카미너스")
+				# 2~5번 동료가 모두 떠난다 (데이터는 보존, 보조 일원은 남는다 — 부록 B.4)
+				Party::HideCompanions()
+				DisplayStatus()
+				# 게임 시간 10분 뒤 에인션트 이블의 급보 (episode.cm2 의 FLAG_TIMER, 번호 1)
+				Timer::Set(1, 10)
+				halt
+
+			# 2. 로드안의 말대로 이들을 벌한다 → 충성 루트
+			if (Equal(Select::Result(), 2))
+				Flag::Set("CAMINUS_RESOLVED")
+				Variable::Set("ALLEGIANCE", 1)
+				Variable::Set("LIGHT_BATTLES_WON", 0)
+				Actor::Hide("카미너스")
+				DisplayMap()
+
+		# 충성 루트 — 반란 진압 3연전 (12 §12.4: 모두 적 선공, 도망해도 다시 싸운다).
+		# 몇 번째까지 이겼는지 적어 두므로, 끝나지 않았으면 이 줄을 밟을 때마다 이어서 싸운다.
+		if (And(Equal(Variable::Get("ALLEGIANCE"), 1), Less(Variable::Get("MAIN_STAGE"), 9)))
+
+			# 1전: 배리언트 주민 8
+			if (Equal(Variable::Get("LIGHT_BATTLES_WON"), 0))
+				Battle::Init()
+				Battle::RegisterEnemy(64, 8)
+				Battle::Start(Add(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE), BATTLE_REPEAT))
+				if (Equal(Battle::Result(), BATTLERESULT_WIN))
+					Variable::Set("LIGHT_BATTLES_WON", 1)
+				else
+					halt
+
+			# 2전: 배리언트 주민 7 · 배리언트 기사 1
+			if (Equal(Variable::Get("LIGHT_BATTLES_WON"), 1))
+				Battle::Init()
+				Battle::RegisterEnemy(64, 7)
+				Battle::RegisterEnemy(65, 1)
+				Battle::Start(Add(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE), BATTLE_REPEAT))
+				if (Equal(Battle::Result(), BATTLERESULT_WIN))
+					Variable::Set("LIGHT_BATTLES_WON", 2)
+				else
+					halt
+
+			# 3전: 배리언트 주민 4 · 배리언트 기사 3 · 카미너스
+			if (Equal(Variable::Get("LIGHT_BATTLES_WON"), 2))
+				Battle::Init()
+				Battle::RegisterEnemy(64, 4)
+				Battle::RegisterEnemy(65, 3)
+				Battle::RegisterEnemy(66, 1)
+				Battle::Start(Add(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE), BATTLE_REPEAT))
+				if (Equal(Battle::Result(), BATTLERESULT_WIN))
+					Variable::Set("LIGHT_BATTLES_WON", 3)
+					Variable::Set("MAIN_STAGE", 9)
+					Talk("하지만 카미너스는 배리언트 피플즈의 남은 주민들을 데리고 성을 버린 채 게이트를 통해 도망가 버렸다.")
+				else
+					halt
+
+# (해결된 NEED — BATTLE_REPEAT 로 바꿨다) BATTLE_REPEAT (Battle::Start 값) — 「반복」 전투. 도망에 성공해도 같은 적(앞 전투에서 입힌 피해 유지)과
+#       곧바로 다시, 다시 적 선공으로 싸운다 (12 §12.4). 이제 BATTLE_REPEAT 로 한다 — 피할 수 없다는
+#       결과는 같지만 「도망에 성공한 뒤 다시 붙는」 흐름은 아니다.
+# (해결된 NEED) 맵 칸을 바꾸지 않고 그림만 한 칸씩 옮기는 연출 (예: Actor::Show(53, x, y) · Actor::Move(dx, dy) · Actor::Hide()).
+#       (해결됨) 원작의 카미너스는 맵 칸이 아니라 화면에만 그려졌다 — 지금은 배우(Actor::*)로 걷는다.

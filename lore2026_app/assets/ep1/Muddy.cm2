@@ -1,0 +1,218 @@
+####### 제1부 머디 (E1_Muddy) — 50×100 동굴 ########
+# 근거: 1st/05 §5.2 M5 · §5.4(머디의 퀴즈 복도) · 1st/06 §6.12 · 1st/07 §7.4(암흑 미로) · 1st/08 §8.2~8.3 ·
+#       1st/10 §8.2 · 1st/12 부록 B · 공략집 Walkthrough/1st/src/maps/Muddy.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥 44. 숨은 칸: 퀴즈 줄 (23~26,91)·(23~26,75)·(23~25,54), 미노타우로스 줄 (23~25,48),
+# 암흑 미로 (8~42,19~43), 미로 출구 (24~25,18), 마지막 방 앞 (24~25,13), 출구 줄 (23~26,96).
+# 퀴즈를 받으면 위 가로 복도의 두 끝 (8,y)·(43,y)이 숨은 칸이 된다 — 맞는 쪽은 다음 구역으로, 틀린 쪽은 밖으로.
+# 들어오면 (25,95), 나가면(틀림·봉인 해제 포함) 늪의 대륙 (82,17).
+
+include("common/const.cm2")
+variable(q)
+variable(px)
+variable(correct)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 41~45: 로튼 콥스·가고일·와이번·그림 데스·그리핀 (레벨 11~12)
+	Encounter::Clear()
+	Encounter::Add(41, 45)
+	Encounter::Enable(1)
+	# 이 동굴의 악의 힘이 지형 변화·공간 이동을 방해한다 (1st/07 §7.4 — 기화 이동은 막지 않는다, 부록 A D20)
+	Map::SetHandicap(HANDICAP_TILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_BIGTILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_TELEPORT, 1)
+	# 퀴즈는 들어올 때마다 새로 낸다 (1 = 서쪽 끝이 맞음, 2 = 동쪽 끝이 맞음, 0 = 아직)
+	Variable::Set("MUDDY_QUIZ_1", 0)
+	Variable::Set("MUDDY_QUIZ_2", 0)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	px.assign(Party::PosX())
+
+	# ---- 출구 줄 (23~26,96) ----
+	if (OnArea(23, 96, 26, 96))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Swamp", 82, 17)
+		else
+			WarpPrevPos()
+		halt
+
+	# ---- 첫째 퀴즈 (23~26,91) — 컴퓨터. 문장 0~3 은 거짓, 4~7 은 참 ----
+	if (OnArea(23, 91, 26, 91))
+		q.assign(Random(8))
+		Talk("다음 물음이 맞다면 왼쪽 길로, 아니면 오른쪽 길로 가시오.")
+		if (Equal(q, 0))
+			Talk("문> CONFIG.SYS가 없으면 부팅이 안 된다")
+		if (Equal(q, 1))
+			Talk("문> Quick-BASIC은 인터프리터어이다")
+		if (Equal(q, 2))
+			Talk("문> Super VGA는 호환이 잘된다")
+		if (Equal(q, 3))
+			Talk("문> 8-bit APPLE의 CPU는 Z-80이다")
+		if (Equal(q, 4))
+			Talk("문> COMMAND.COM 안에 도스 명령이 들어 있다")
+		if (Equal(q, 5))
+			Talk("문> AdLib 카드는 9채널이다")
+		if (Equal(q, 6))
+			Talk("문> Ultima의 제작자는 리처드 개리엇이다")
+		if (Equal(q, 7))
+			Talk("문> 당신의 컴퓨터는 IBM 계열이다")
+		if (Less(q, 4))
+			Variable::Set("MUDDY_QUIZ_1", 2)
+		else
+			Variable::Set("MUDDY_QUIZ_1", 1)
+		Map::ChangeTileArea(23, 91, 26, 91, 44)
+		Map::ChangeTile(8, 88, 0)
+		Map::ChangeTile(43, 88, 0)
+		halt
+	if (Or(On(8, 88), On(43, 88)))
+		correct.assign(Variable::Get("MUDDY_QUIZ_1"))
+		if (Equal(correct, 0))
+			halt
+		if (Or(And(On(8, 88), Equal(correct, 1)), And(On(43, 88), Equal(correct, 2))))
+			Party::Warp(px, 80)
+		else
+			LoadScript("E1_Swamp", 82, 17)
+		halt
+
+	# ---- 둘째 퀴즈 (23~26,75) — 천문. 드라코니안의 강의와 이어진다 ----
+	if (OnArea(23, 75, 26, 75))
+		q.assign(Random(8))
+		Talk("다음 물음이 맞다면 왼쪽 길로, 아니면 오른쪽 길로 가시오.")
+		if (Equal(q, 0))
+			Talk("문> 태양계의 제4 혹성은 지구이다")
+		if (Equal(q, 1))
+			Talk("문> 북극성이 가장 밝은 별이다")
+		if (Equal(q, 2))
+			Talk("문> 1월의 수호 성좌는 1월에 볼 수 있다")
+		if (Equal(q, 3))
+			Talk("문> 빛보다 빠른 입자는 실험상 없었다")
+		if (Equal(q, 4))
+			Talk("문> 달이 지구보다 먼저 생겨났다")
+		if (Equal(q, 5))
+			Talk("문> 시그너스 X1은 블랙홀이다")
+		if (Equal(q, 6))
+			Talk("문> 과거로의 타임머신은 불가능하다")
+		if (Equal(q, 7))
+			Talk("문> 북극성은 주기적으로 달라진다")
+		if (Less(q, 4))
+			Variable::Set("MUDDY_QUIZ_2", 2)
+		else
+			Variable::Set("MUDDY_QUIZ_2", 1)
+		Map::ChangeTileArea(23, 75, 26, 75, 44)
+		Map::ChangeTile(8, 71, 0)
+		Map::ChangeTile(43, 71, 0)
+		halt
+	if (Or(On(8, 71), On(43, 71)))
+		correct.assign(Variable::Get("MUDDY_QUIZ_2"))
+		if (Equal(correct, 0))
+			halt
+		if (Or(And(On(8, 71), Equal(correct, 1)), And(On(43, 71), Equal(correct, 2))))
+			Party::Warp(px, 63)
+		else
+			LoadScript("E1_Swamp", 82, 17)
+		halt
+
+	# ---- 셋째 퀴즈 (23~25,54) — 세계관. 맞히면 북쪽 벽 (23~25,49~52)이 통로가 된다 ----
+	# Esc 로 물러서면 남쪽으로 한 칸 — 다시 밟으면 새 문제 (원작대로, 부록 A D20)
+	if (OnArea(23, 54, 25, 54))
+		q.assign(Random(8))
+		Talk("<< 다음의 옳고 그름을 가리시오 >>")
+		if (Equal(q, 0))
+			Talk("문> 이 게임의 배경은 4개의 대륙이다")
+		if (Equal(q, 1))
+			Talk("문> Ancient Evil은 응징되어야 한다")
+		if (Equal(q, 2))
+			Talk("문> Lord Ahn만이 유일한 Semi-God이다")
+		if (Equal(q, 3))
+			Talk("문> 이 세계의 모든 악은 응징되어야 한다")
+		if (Equal(q, 4))
+			Talk("문> 이 게임의 제작자는 안영기이다")
+		if (Equal(q, 5))
+			Talk("문> 게임 속의 인물은 거의 별의 이름을 가졌다")
+		if (Equal(q, 6))
+			Talk("문> Necromancer는 신의 경지에 이르렀다")
+		if (Equal(q, 7))
+			Talk("문> Necromancer는 이 세계의 존재가 아니었다")
+		Select::Init()
+		Select::Add("어느 쪽입니까?")
+		Select::Add("위의 말은 옳다")
+		Select::Add("위의 말은 잘못되었다")
+		Select::Run()
+		if (Equal(Select::Result(), 0))
+			Party::Warp(px, 55)
+			halt
+		# 옳은 답: 0~3 은 「잘못되었다」(2), 4~7 은 「옳다」(1)
+		if (Or(And(Less(q, 4), Equal(Select::Result(), 2)), And(GreaterEqual(q, 4), Equal(Select::Result(), 1))))
+			Map::ChangeTileArea(23, 54, 25, 54, 44)
+			Map::ChangeTileArea(23, 49, 25, 52, 44)
+			DisplayMap()
+		else
+			LoadScript("E1_Swamp", 82, 17)
+		halt
+
+	# ---- 미노타우로스 (23~25,48) — 한 번. 이기든 도망치든 다시 나오지 않는다 ----
+	if (OnArea(23, 48, 25, 48))
+		if (Flag::IsSet("MUDDY_MINOTAUR"))
+			halt
+		Flag::Set("MUDDY_MINOTAUR")
+		if (Equal(Party::Torch(), 0))
+			Party::SetTorch(1)
+		Notice("미로 속에서 소를 닮은 괴물이 나타났다")
+		Battle::Init()
+		Battle::RegisterEnemy(53, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		halt
+
+	# ---- 암흑 미로 출구 (24~25,18) — 횃불이 0 이면 1 로 (원작은 많아도 1 로 줄였다 — 부록 A #28) ----
+	if (OnArea(24, 18, 25, 18))
+		if (Equal(Party::Torch(), 0))
+			Party::SetTorch(1)
+		halt
+
+	# ---- 마지막 방 앞 (24~25,13) — 드래곤 3 → 머드맨 7 → 아스트랄 머드 + 머드맨 6 ----
+	if (OnArea(24, 13, 25, 13))
+		if (Equal(Party::Torch(), 0))
+			Party::SetTorch(1)
+		if (Flag::IsSet("MUDDY_SEAL"))
+			LoadScript("E1_Swamp", 82, 17)
+		if (Not(Flag::IsSet("MUDDY_DRAGONS")))
+			Battle::Init()
+			Battle::RegisterEnemy(54, 3)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Not(Equal(Battle::Result(), BATTLERESULT_WIN)))
+				Party::Warp(px, 14)
+				halt
+			Flag::Set("MUDDY_DRAGONS")
+		if (Not(Flag::IsSet("MUDDY_MUDMEN")))
+			Battle::Init()
+			Battle::RegisterEnemy(31, 7)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Not(Equal(Battle::Result(), BATTLERESULT_WIN)))
+				Party::Warp(px, 14)
+				halt
+			Flag::Set("MUDDY_MUDMEN")
+		Say("아스트랄 머드", "나는 Necromancer와 함께 다른 차원에서 내려온 Astral Mud이다. 여기는 그가 세운 최고의 동굴이자 너가 마지막으로 거칠 동굴이다. 나를 만만하게 보지 마라. 다른 차원의 능력들을 너가 맛볼 기회를 가진다는 것에 대해 고맙게 생각하기 바란다. 하하하...")
+		Battle::Init()
+		Battle::RegisterEnemy(31, 6)
+		Battle::RegisterEnemy(57, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		# 아스트랄 머드(등록 7번째)만 쓰러뜨려도 성공 — 도망쳤어도, 의식불명이어도 (1st/08 §8.2, 원작 차이 부록 A #22)
+		if (Not(Or(Equal(Battle::Result(), BATTLERESULT_WIN), Equal(Battle::EnemyDown(7), 1))))
+			Party::Warp(px, 14)
+			halt
+		Talk("당신은 이 동굴에 보관되어 있는 봉인을 발견했다. 그리고는 봉쇄되었던 봉인을 풀어 버렸다.")
+		Flag::Set("MUDDY_SEAL")
+		PressAnyKey()
+		LoadScript("E1_Swamp", 82, 17)
+
+	# ---- 암흑 미로 (8~42,19~43) — 한 걸음마다 횃불이 1 줄고, 0 이면 화면이 검다 (1st/07 §7.4) ----
+	if (OnArea(8, 19, 42, 43))
+		if (Greater(Party::Torch(), 0))
+			Party::SetTorch(Sub(Party::Torch(), 1))
+		halt
+

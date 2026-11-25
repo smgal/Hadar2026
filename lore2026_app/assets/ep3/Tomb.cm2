@@ -1,0 +1,138 @@
+####### 17대 드라콘 제왕의 지하 묘 (Tomb · 100×40 · 동굴형) ########
+# 근거: 기획서 제5장 S12, 제6장 6.23, 제10장 10.9, 제11장 11.2, 제12장 12.2 비고 · 12.4,
+#       제14장 9.3, 부록 A(D13 · D15 · #47), 부록 B.2 · B.4
+#       공략집 3rd/src/maps/Tomb.md · Tomb.json
+#
+# - 드라코니안 마을 묘비 (89,103)에서 주인공 혼자 내려온다. 시작 (24,16).
+# - 한 번 나가면 다시 들어올 수 없다 (DRACO_TOMB_ENTERED — 마을 쪽에서 켠다).
+#   그래서 다시 들어올 때 고칠 것(부록 B.3)이 없다.
+# - 통로가 두께 1칸 벽으로 11조각으로 끊겨 있어 모든 보물은 기화 이동으로만 닿는다.
+# - 이 맵의 푯말 번호 칸 (89,20)·(88,21)에는 해골이 놓여 있고 대화로 처리한다 (제11장 11.2).
+# - 보물 플래그 번호는 제6장 6.23 의 순서다:
+#     TOMB_TREASURE_1 (19,35) 플래티움 갑옷   TOMB_TREASURE_4 (84,26) 함정 — 저승사자
+#     TOMB_TREASURE_2 (84,15) 황금 100000     TOMB_TREASURE_5 (87,26) 함정 — 켈베로스
+#     TOMB_TREASURE_3 (87,15) 황금 50000      TOMB_EMPEROR_DEAD (85,21) 17대 드라콘제왕
+
+include("common/const.cm2")
+
+########## 맵에 들어왔다 ##########
+if (Equal(ScriptMode(), FLAG_MAP))
+	# 동굴형 공통 곡 (제13장 13.11)
+	Music::Play("den")
+
+	# 혼자 들어가는 곳 — 2~5번 동료를 데이터를 보존한 채 숨긴다 (부록 B.4).
+	# 계단으로 나갈 때 되돌린다. 보조 일원(6번)은 원작대로 따라 들어온다 (부록 A D15, 결정 필요).
+	Party::HideCompanions()
+
+	# 마법 제한 (제6장 「맵별 마법 제한」): 지형 변화 · 대지형 변화 · 공간 이동(이동 구슬) ·
+	# 주시자의 눈(수정 구슬) 불가. 기화 이동 · 투시는 된다.
+	Map::SetHandicap(HANDICAP_TILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_BIGTILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_TELEPORT, 1)
+	Map::SetHandicap(HANDICAP_EAGLEEYE, 1)
+
+	# 무작위 조우 없음
+
+########## 사람 칸 (이 맵에서는 해골) ##########
+if (Equal(ScriptMode(), FLAG_TALK))
+	# 도굴꾼의 해골 (89,20)·(88,21) — 관 벽감의 트인 쪽을 막고 있다. 비키지 않는다.
+	if (Or(On(89, 20), On(88, 21)))
+		Talk("당신은 여기서 뼈만 남은 인간의 해골을 보았다. 아마도 오래전에 여기를 도굴하려다가 갇혔던 것 같다.")
+
+########## 입구 ##########
+if (Equal(ScriptMode(), FLAG_ENTER))
+	# 나가는 계단 (23,16) — 시작 칸 바로 서쪽, 이 맵의 유일한 입구 칸.
+	# 나가면 드라코니안 마을 (88,103)에 서고 숨겼던 동료가 돌아온다. 다시는 들어올 수 없다.
+	if (On(23, 16))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			Party::RestoreCompanions()
+			LoadScript("E3_DracTown", 88, 103)
+
+########## 이벤트 칸 ##########
+if (Equal(ScriptMode(), FLAG_EVENT))
+	# ================= 북동쪽 통로 =================
+	# 바닥 장치 (83,10) — 밟으면 멀리 (39,31) 벽이 바닥이 된다. 글도 소리도 없고 몇 번 밟아도 같다.
+	# 옆 (40,31)은 벽 그대로라 큰 동굴에는 (39,31)에서 동쪽으로 기화 이동해 들어간다.
+	if (On(83, 10))
+		Map::ChangeTile(39, 31, 44)
+		DisplayMap()
+
+	# ================= 남서쪽 통로 =================
+	# 보물 1 — 플래티움 갑옷 (19,35), 통로 끝의 보이는 칸
+	if (On(19, 35))
+		if (Not(Flag::IsSet("TOMB_TREASURE_1")))
+			Notice("플래티움 갑옷 + 1")
+			Item::Give("armour.platinum", 1)
+			Flag::Set("TOMB_TREASURE_1")
+
+	# ================= 묘실 (x 80~92, y 15~26) =================
+	# 보물 2 — 황금 (84,15), 북쪽 벽감의 숨은 칸
+	if (On(84, 15))
+		if (Not(Flag::IsSet("TOMB_TREASURE_2")))
+			Notice("황금 + 100000")
+			Party::PlusGold(100000)
+			Flag::Set("TOMB_TREASURE_2")
+
+	# 보물 3 — 황금 (87,15), 북쪽 벽감의 숨은 칸
+	if (On(87, 15))
+		if (Not(Flag::IsSet("TOMB_TREASURE_3")))
+			Notice("황금 + 50000")
+			Party::PlusGold(50000)
+			Flag::Set("TOMB_TREASURE_3")
+
+	# 보물 4 — 함정 상자: 레벨 30 저승사자 1, 적 선공 (84,26), 남쪽 벽감의 숨은 칸.
+	# 레벨을 올려 쓰고 HP 도 새 레벨로 셈한다 (제12장 12.2 비고). 혼자라 도망칠 수 없다.
+	if (On(84, 26))
+		if (Not(Flag::IsSet("TOMB_TREASURE_4")))
+			Talk("당신이 보물상자를 열자 갑자기 저승사자가 튀어나왔다.")
+			PressAnyKey()
+			Battle::Init()
+			Battle::RegisterEnemy(1)
+			Enemy::ChangeAttribute(1, "level", 30)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("TOMB_TREASURE_4")
+
+	# 보물 5 — 함정 상자: 레벨 15 켈베로스 5, 적 선공 (87,26), 남쪽 벽감의 숨은 칸
+	if (On(87, 26))
+		if (Not(Flag::IsSet("TOMB_TREASURE_5")))
+			Talk("당신이 보물상자를 열자 갑자기 켈베로스가 튀어나왔다.")
+			PressAnyKey()
+			Battle::Init()
+			Battle::RegisterEnemy(12, 5)
+			Enemy::ChangeAttribute(1, "level", 15)
+			Enemy::ChangeAttribute(2, "level", 15)
+			Enemy::ChangeAttribute(3, "level", 15)
+			Enemy::ChangeAttribute(4, "level", 15)
+			Enemy::ChangeAttribute(5, "level", 15)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("TOMB_TREASURE_5")
+
+	# ================= 관 둘레 (x 85~88, y 20~21) =================
+	# 17대 드라콘제왕의 관 (85,21) — 관 바로 아래의 숨은 칸.
+	# (87,18)에서 남쪽으로 기화 이동해 (87,20)으로 들어온 뒤 (87,21)·(86,21)을 지나 밟는다.
+	# 17대 드라콘제왕 1 (아키드라코니안 능력치 + 분신), 적 선공, 반복. 이기면 영혼의 크리스탈.
+	if (On(85, 21))
+		if (Not(Flag::IsSet("TOMB_EMPEROR_DEAD")))
+			Talk("당신이 관 앞에 섰을 때 무언가 묘한 분위기가 당신의 전신을 스치고 지나갔다. 잠시 후 관의 뚜껑이 스르르 열리기 시작했다. 당신은 무의식적으로 한 걸음 뒤로 물러났다. 곧이어 관 속에서는 에테르화된 드라코니안의 형체가 일어났다. 그리고 말을 하기 시작했다.")
+			Say("17대 드라콘제왕", "100년 만에 도굴꾼이 또 이곳에 나타났군. 너도 역시 내가 가지고 있는 영혼의 크리스탈을 훔칠 목적으로 여기에 온 것임에 틀림없다. 하지만 너도 별수 없이 이 앞의 해골과 같은 운명이 될 것이다.")
+			PressAnyKey()
+			# 분신 능력을 붙일 속성이 없다 — 이름만 바꾼다 (파일 끝 NEED).
+			Battle::Init()
+			Battle::RegisterEnemy(58)
+			Enemy::ChangeAttribute(1, "name", "17대 드라콘제왕")
+			Enemy::ChangeAttribute(1, "ability_clone", 1)          # 초자연 능력 「분신」 (12 §12.2 비고)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, Add(BATTLE_NO_PRELUDE, BATTLE_REPEAT)))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Notice("영혼의 크리스탈 + 1")
+				Item::Give("crystal.spirit", 1)
+				Flag::Set("TOMB_EMPEROR_DEAD")
+
+# (해결된 NEED — BATTLE_REPEAT 로 바꿨다) Battle::Start 의 「반복」 방식 (예: BATTLE_REPEAT) — 도망에 성공해도 같은 적 편성·남은 피해 그대로
+#   곧바로 다시 적 선공으로 싸운다 (제12장 12.4 「반복」). 17대 드라콘제왕이 쓴다.
+#   이제 BATTLE_REPEAT 로 한다(이기거나 질 때까지 끝나지 않는다는 결과는 같다).
+# (해결된 NEED) 초자연 능력 「분신」 — Enemy::ChangeAttribute(1, "ability_clone", 1).
+#   17대 드라콘제왕 = 58번 아키드라코니안 능력치 + 분신 (제12장 12.2 비고 · 12.4).
+# (원작 확인) 바닥 장치 (83,10) 은 (39,31) 을 44 로 바꾼다 — PutMap(39,31,44) (MYSTSPEC.PAS:1267).

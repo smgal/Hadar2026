@@ -1,0 +1,1531 @@
+####### 코볼트성 (E3_Kobold) — 제3부 「비전 속으로」 ########
+# 150×120 요새형. 이쉬도 테라 (82,16) 에서 들어와 (6,30) 에 선다. 나가면 이쉬도 테라 (82,17).
+# 근거: 기획서 05 M7 · 06 6.20 · 12 12.4 · 14 8.4 · 15 부록 A · 16 부록 B, 공략 3rd/Kobold.md
+#
+# 이 성은 들어올 때마다 맵이 처음 상태로 돌아간다 (부록 B.3 — 입장 때 다시 적용하는 것이 없다).
+# 남는 것은 열쇠 · 관문 · 보물 · 퀴즈 기록뿐이고, 문은 같은 칸을 다시 밟아 연다.
+#
+# 타일(요새형): 43 바닥 · 0 숨은 사건 칸 · 52 보이는 사건 칸(이 성에서는 물 그림) · 48 물 · 49 늪 ·
+#              50 용암 · 53 푯말 · 35 상자 그림(막힘) · 16 닫힌 벽 · 37/38 움직이는 바닥 방의 칸막이
+#
+# 진행 기록 (부록 B 이름 그대로):
+#   변수  KOBOLD_CHEST_MASK(1~31: 1 A · 2 B · 4 C · 8 D · 16 해골 자리 상자) · KOBOLD_DIG_COUNT(0~4) ·
+#         DARKNESS_ZONE(0/1) · KOBOLD_DOOR_CODE 는 값이 둘이라 둘로 나눴다 →
+#         KOBOLD_DOOR_CODE_TOP(윗줄 1~5) · KOBOLD_DOOR_CODE_BOTTOM(아랫줄 1~5)
+#   플래그 KEY_EMERALD · KEY_GOLD · KEY_PLATINUM · KEY_SAPPHIRE · KEY_OPAL · KEY_OBSIDIAN ·
+#         KOBOLD_PRIEST_DEAD(= 다이아몬드키 2개) · KOBOLD_GATE_W / _C / _CAPTAIN / _E ·
+#         KOBOLD_ROYAL_GUARD_DEAD · KOBOLD_KING_FLED · KOBOLD_SEALED ·
+#         KOBOLD_QUIZ_A~D_SOLVED / _FAILED · KOBOLD_MIMIC_A~D_DEAD ·
+#         KOBOLD_SKULL_WARNED · KOBOLD_SKULL_CHEST_OPENED · KOBOLD_SOUL_CRYSTAL_TAKEN
+#   읽기만 하는 것: KOBOLD_SPEECH (에인션트 이블의 신전 기둥에서 배운다)
+
+include("common/const.cm2")
+
+# 임시 변수 — 맨 바깥에는 선언만 둔다
+# 자리와 방향
+variable(px)
+variable(py)
+variable(face)
+variable(fx)
+variable(fy)
+# 움직이는 바닥
+variable(dx)
+variable(dy)
+variable(cx)
+variable(cy)
+variable(rx)
+variable(ry)
+variable(ok)
+variable(jump)
+# 무작위
+variable(r)
+# 동료 찾기
+variable(who)
+variable(found)
+# 퀴즈
+variable(wrong)
+variable(ans)
+variable(sw)
+variable(s1)
+variable(s2)
+variable(s3)
+variable(s4)
+variable(n)
+variable(v)
+variable(inc)
+# 해골 상자 활성 조합
+variable(m)
+variable(bitA)
+variable(bitB)
+variable(bitC)
+variable(bitD)
+variable(bitE)
+
+############################################################
+# 맵에 들어온 직후
+############################################################
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("keep")                                  # 요새형 공통 곡 (13.11)
+
+	# 맵별 마법 제한 (06 6.1) — 지형 변화 · 대지형 변화 · 기화 이동 · 공간 이동(이동 구슬) ·
+	# 주시자의 눈(수정 구슬) 모두 불가. 투시만 된다
+	Map::SetHandicap(HANDICAP_TILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_BIGTILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_ETHEREAL, 1)
+	Map::SetHandicap(HANDICAP_TELEPORT, 1)
+	Map::SetHandicap(HANDICAP_EAGLEEYE, 1)
+
+	# 무작위 조우 (12.3) — 코볼트병사 · 코볼트투사 · 코볼트매직유저, 봉인할 때까지
+	Encounter::Clear()
+	Encounter::Add(35, 37)
+	if (Flag::IsSet("KOBOLD_SEALED"))
+		Encounter::Enable(0)
+	else
+		Encounter::Enable(1)
+
+	# 처음 들어올 때 한 번 정해지는 두 가지 (05 M7) — 값이 0 일 때만 정한다
+	if (Equal(Variable::Get("KOBOLD_DOOR_CODE_TOP"), 0))
+		Variable::Set("KOBOLD_DOOR_CODE_TOP", Add(Random(5), 1))        # 윗줄 다이아몬드 문 1~5
+		Variable::Set("KOBOLD_DOOR_CODE_BOTTOM", Add(Random(5), 1))     # 아랫줄 다이아몬드 문 1~5
+	if (Equal(Variable::Get("KOBOLD_CHEST_MASK"), 0))
+		Variable::Set("KOBOLD_CHEST_MASK", Add(Random(31), 1))          # 다섯 상자의 활성 조합 1~31 (모두 비활성은 없다)
+
+	# 떠오른 땅 (76,74) 은 처음에 물이다. 원작 맵 데이터는 처음부터 사건 칸(52)이라
+	# 유압 벽돌을 건너뛸 수 있었다 (부록 A #46) — 의도대로 물로 둔다
+	Map::ChangeTile(76, 74, 48)
+
+	# 완전한 암흑 — 성을 나갈 때 끄므로 (부록 A #45) 밖에서 들어오면 늘 꺼져 있다.
+	# 암흑 속에서 저장했다 불러온 경우를 위해 기록대로 다시 맞춘다
+	if (Equal(Variable::Get("DARKNESS_ZONE"), 1))
+		Map::SetDark(1)
+	else
+		Map::SetDark(0)
+
+############################################################
+# 사람 칸 — 이 성에는 사람 칸(55 이상)이 없다. 해골 상자도 밟는 사건 칸이다
+############################################################
+if (Equal(ScriptMode(), FLAG_TALK))
+	halt
+
+############################################################
+# 푯말
+############################################################
+if (Equal(ScriptMode(), FLAG_SIGN))
+	# 로드안의 경고 (9,30) — (8,30) 을 밟으면 솟아오른다
+	if (On(9, 30))
+		Talk("여기서는 믿을 만한 기술이 투시밖에는 없소")
+		Talk("상당히 난해한 곳이 많으니 주의하시오")
+		Talk("로드안")
+		halt
+
+	# 용암 건너기 (54,63) — 몇 번이든 읽을 수 있다
+	if (On(54, 63))
+		Talk("당신이 원한다면")
+		Select::Init()
+		Select::Add("당신 앞의 용암을 건너게 해주겠소")
+		Select::Add("용암을 건너겠다")
+		Select::Add("건널 필요는 없다")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			Party::Warp(58, 63)                              # 활 모양 용암 강 건너편, 사파이어 문 앞 땅
+		if (Equal(Select::Result(), 2))
+			Map::ChangeTile(48, 73, 0)                       # 남쪽 용암 한가운데에 숨은 칸이 생긴다
+			DisplayMap()
+		halt
+
+############################################################
+# 입구 칸 — 이 성에는 입구 칸(54)이 없다. 출구는 x=5 줄의 사건 칸이다
+############################################################
+if (Equal(ScriptMode(), FLAG_ENTER))
+	halt
+
+############################################################
+# 사건 칸 (숨은 칸 포함) — 서쪽 입구에서 성을 푸는 순서대로
+# 처리 없는 사건 칸: (89,60) · (89,61) — 원작에도 사건이 없다 (부록 A.4)
+############################################################
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ──────── 입구 통로 ────────
+
+	# 출구 (5,27)~(5,33) 일곱 칸 → 이쉬도 테라 (82,17)
+	# 코볼트킹이 달아난 뒤에는 불사의 몸이 된 킹이 막아선다. 도망에 성공해야 나가고, 나가면 성이 봉인된다
+	if (OnArea(5, 27, 5, 33))
+		Ask("여기서 나가기를 원합니까?")
+		if (Not(Equal(Select::Result(), 1)))
+			Party::Warp(6, Party::PosY())                    # 아니오 — 동쪽으로 한 칸 물러선다
+			halt
+		if (Not(Flag::IsSet("KOBOLD_KING_FLED")))
+			Variable::Set("DARKNESS_ZONE", 0)                # 암흑은 성 밖으로 따라 나가지 않는다 (부록 A #45)
+			Map::SetDark(0)
+			LoadScript("E3_Ground4", 82, 17)
+			halt
+		Talk("당신이 문을 나서려 하자 도망쳤던 코볼트킹이 당신 앞을 가로막았다.")
+		Say("코볼트킹", "나는 너를 내 손으로 처치하지 않고는 편안히 죽을 수가 없었다. 그래서 나는 영원한 생명을 가지기를 원했고 그 대가로 악마에게 혼을 팔았다. 나는 결코 죽지 않고 너를 끝까지 괴롭힐 것이다.")
+		# 탈출 전투 (12.4) — 코볼트킹 혼자, 적 선공. 이기면 새 코볼트킹이 다시 막아선다 (BATTLE_RENEW — 매번 새로 편성).
+		# 도망에 성공해야 끝난다. 지면 게임 오버
+		Battle::Init()
+		Battle::RegisterEnemy(45)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, Add(BATTLE_NO_PRELUDE, BATTLE_RENEW)))
+		if (Not(Equal(Battle::Result(), BATTLERESULT_EVADE)))
+			Party::Warp(6, Party::PosY())
+			halt
+		# 도망에 성공했다 — 로드안의 봉인. 코볼트 정벌이 끝난다
+		Flag::Set("KOBOLD_SEALED")
+		Encounter::Enable(0)
+		Variable::Set("DARKNESS_ZONE", 0)
+		Map::SetDark(0)
+		# 성 밖(이쉬도 테라)에 나선 뒤에 듣는다 (MYSTSPEC.PAS:1467~1479 — DefaultExit 다음에 낸다)
+		Arrival::Talk("당신이 성 밖으로 탈출하자 허공에서 로드안의 음성이 들려왔다.")
+		Arrival::Say("로드안", "당신은 빨리 이곳을 나가시오. 나의 선의 봉인으로 악마의 힘을 빌린 코볼트킹을 막겠소. 아마 그는 다시는 이 성을 벗어나지 못할 거요.")
+		Arrival::Talk("말이 채 끝나기도 전에 코볼트성 주위에는 구형의 결계가 형성되었고 곧이어 기의 파문이 일렁이기 시작했다.")
+		LoadScript("E3_Ground4", 82, 17)
+		halt
+
+	# 푯말이 솟는 칸 (8,30) → (9,30) 에 로드안의 푯말 — (9,30) 이 아직 푯말이 아닐 때만
+	if (On(8, 30))
+		if (Map::IsTile(9, 30, 53))
+			halt
+		Map::ChangeTile(9, 30, 53)
+		DisplayMap()
+		Talk("갑자기 땅에서 푯말이 솟아 나왔다.")
+		halt
+
+	# ──────── 바깥뜰 북쪽 연못 (x 33~42, y 11~16) ────────
+
+	# 바닥 벽돌 (38,13) → (99,21) 가 통로로. 연못 한가운데라 물 위를 걸어야 닿는다. 소용돌이 구역의 바깥쪽 길이 열린다
+	if (On(38, 13))
+		Talk("당신이 바닥의 기묘한 벽돌을 밟자 돌이 약간 밑으로 들어갔다.")
+		Map::ChangeTile(99, 21, 43)
+		DisplayMap()
+		halt
+
+	# ──────── 용암 함정 터 (x 30~55, y 21~36) ────────
+
+	# 숨은 칸 열두 곳: (40,22) (32,23) (50,24) (36,25) (44,25) (54,28) (42,29) (49,31) (33,32) (38,33) (44,34) (53,34)
+	# (49,31) 은 에메랄드키 전투 칸이고, 나머지는 선 칸을 포함한 3×3 을 용암으로 바꾸는 함정이다.
+	# 에메랄드키를 얻은 뒤에는 (49,31) 도 함정이 된다
+	if (OnArea(30, 21, 55, 36))
+		if (And(On(49, 31), Not(Flag::IsSet("KEY_EMERALD"))))
+			Battle::Init()
+			Battle::RegisterEnemy(36, 5) # 코볼트투사 5
+			Battle::RegisterEnemy(39, 2) # 근위기사 2
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Talk("당신은 쓰러진 코볼트 근위기사의 몸을 뒤져 에메랄드키를 찾아냈다.")
+				Flag::Set("KEY_EMERALD")
+			halt                                             # 도망치면 용암 없이 그 칸에 그대로 선다
+		px.assign(Party::PosX())
+		py.assign(Party::PosY())
+		Map::ChangeTileArea(Sub(px, 1), Sub(py, 1), Add(px, 1), Add(py, 1), 50)
+		DisplayMap()
+		halt
+
+	# ──────── 소용돌이 구역 (x 96~121, y 21~36) ────────
+
+	# 바닥 벽돌 (121,36) → (110,26) 가 통로로. 동쪽 세로 복도 끝. 바깥쪽 길과 중심부를 잇는다
+	if (On(121, 36))
+		Talk("당신이 바닥의 기묘한 벽돌을 밟자 돌이 약간 밑으로 들어갔다.")
+		Map::ChangeTile(110, 26, 43)
+		DisplayMap()
+		halt
+
+	# 바닥 벽돌 (105,27) → (118,35) 가 통로로. 중심부. 바깥 고리와 황금 키 줄을 잇는다
+	if (On(105, 27))
+		Talk("당신이 바닥의 기묘한 벽돌을 밟자 돌이 약간 밑으로 들어갔다.")
+		Map::ChangeTile(118, 35, 43)
+		DisplayMap()
+		halt
+
+	# 바닥 벽돌 (112,29) → (96,21) 가 통로로. 중심부. 서쪽 세로 복도의 입구가 열린다
+	if (On(112, 29))
+		Talk("당신이 바닥의 기묘한 벽돌을 밟자 돌이 약간 밑으로 들어갔다.")
+		Map::ChangeTile(96, 21, 43)
+		DisplayMap()
+		halt
+
+	# 바닥 벽돌 (96,36) → (107,30) 가 통로로. 서쪽 세로 복도 끝. 중심부와 바깥 고리를 잇는다
+	if (On(96, 36))
+		Talk("당신이 바닥의 기묘한 벽돌을 밟자 돌이 약간 밑으로 들어갔다.")
+		Map::ChangeTile(107, 30, 43)
+		DisplayMap()
+		halt
+
+	# 황금 키 (100,36)
+	if (On(100, 36))
+		if (Not(Flag::IsSet("KEY_GOLD")))
+			Battle::Init()
+			Battle::RegisterEnemy(36, 7) # 코볼트투사 7
+			Battle::RegisterEnemy(39)    # 근위기사
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Talk("당신은 벽에 걸려 있는 황금 키를 가졌다.")
+				Flag::Set("KEY_GOLD")
+		halt
+
+	# ──────── 움직이는 바닥 방 (x 96~119, y 85~98) ────────
+
+	# 4×4 방 열다섯 개(x 96~99 · 101~104 · 106~109 · 111~114 · 116~119, y 85~88 · 90~93 · 95~98)마다
+	# 숨은 칸이 하나씩 있다. 밟으면
+	#  ① 숨은 칸이 옮겨 간다 — 절반은 걸어온 방향으로 한 칸, 절반은 여덟 방향 중 무작위로 한 칸.
+	#     옮겨 갈 칸이 평범한 바닥(43)이 아니면 반대쪽으로 두 칸. (원작은 그 자리를 확인하지 않아 칸막이에
+	#     구멍이 나기도 했다 — 여기서는 같은 방 안의 평범한 바닥일 때만 옮기고, 아니면 그 자리에 둔다.
+	#     방 밖을 따로 보는 까닭: 두 칸 건너뛰면 칸막이 너머 옆 방의 바닥에 닿는다)
+	#  ② 걸어온 방향 바로 앞이 칸막이 벽이면 그 방향으로 두 칸 뛰어넘는다 — 방 사이 x=100·105·110·115,
+	#     y=89·94, 동쪽 바깥 벽 x=120(입구 (120,91)·(120,92) 는 바닥), 남쪽 바깥 벽 y=99.
+	#     북쪽·서쪽 바깥 벽은 넘지 못한다. 내려선 칸에서는 아무 일도 없다
+	if (OnArea(96, 85, 119, 98))
+		px.assign(Party::PosX())
+		py.assign(Party::PosY())
+		face.assign(Party::Faced())
+		# 걸어온 방향
+		fx.assign(0)
+		fy.assign(0)
+		if (Equal(face, FACE_DOWN))
+			fy.assign(1)
+		if (Equal(face, FACE_UP))
+			fy.assign(-1)
+		if (Equal(face, FACE_RIGHT))
+			fx.assign(1)
+		if (Equal(face, FACE_LEFT))
+			fx.assign(-1)
+		# 숨은 칸이 옮겨 갈 방향
+		dx.assign(fx)
+		dy.assign(fy)
+		if (Equal(Random(2), 1))
+			r.assign(Random(8))
+			if (Equal(r, 0))
+				dx.assign(0)
+				dy.assign(-1)
+			if (Equal(r, 1))
+				dx.assign(1)
+				dy.assign(-1)
+			if (Equal(r, 2))
+				dx.assign(1)
+				dy.assign(0)
+			if (Equal(r, 3))
+				dx.assign(1)
+				dy.assign(1)
+			if (Equal(r, 4))
+				dx.assign(0)
+				dy.assign(1)
+			if (Equal(r, 5))
+				dx.assign(-1)
+				dy.assign(1)
+			if (Equal(r, 6))
+				dx.assign(-1)
+				dy.assign(0)
+			if (Equal(r, 7))
+				dx.assign(-1)
+				dy.assign(-1)
+		# 지금 서 있는 방의 왼쪽 위 칸
+		rx.assign(Sub(px, Mod(Sub(px, 96), 5)))
+		ry.assign(Sub(py, Mod(Sub(py, 85), 5)))
+		# 첫째 후보: 그 방향으로 한 칸
+		cx.assign(Add(px, dx))
+		cy.assign(Add(py, dy))
+		ok.assign(1)
+		if (Or(Less(cx, rx), Greater(cx, Add(rx, 3)), Less(cy, ry), Greater(cy, Add(ry, 3))))
+			ok.assign(0)                                 # 방 밖 — 칸막이나 바깥 벽이다
+		if (Not(Map::IsTile(cx, cy, 43)))
+			ok.assign(0)                                 # 평범한 바닥이 아니다 — 무늬가 다른 바닥이나 숨은 칸
+		# 둘째 후보: 반대쪽으로 두 칸
+		if (Equal(ok, 0))
+			cx.assign(Sub(Sub(px, dx), dx))
+			cy.assign(Sub(Sub(py, dy), dy))
+			ok.assign(1)
+			if (Or(Less(cx, rx), Greater(cx, Add(rx, 3)), Less(cy, ry), Greater(cy, Add(ry, 3))))
+				ok.assign(0)                                 # 방 밖 — 칸막이나 바깥 벽이다
+			if (Not(Map::IsTile(cx, cy, 43)))
+				ok.assign(0)                                 # 평범한 바닥이 아니다
+		if (Equal(ok, 1))
+			Map::ChangeTile(px, py, 43)                      # 방금 밟은 칸은 평범한 바닥이 된다
+			Map::ChangeTile(cx, cy, 0)
+		# 칸막이 뛰어넘기
+		jump.assign(0)
+		if (And(Equal(face, FACE_RIGHT), Equal(px, Add(rx, 3))))
+			jump.assign(1)
+			if (And(Equal(px, 119), Or(Equal(py, 91), Equal(py, 92))))
+				jump.assign(0)                               # 앞이 입구 바닥 (120,91)·(120,92) 이다
+		if (And(Equal(face, FACE_LEFT), Equal(px, rx), Greater(px, 96)))
+			jump.assign(1)
+		if (And(Equal(face, FACE_DOWN), Equal(py, Add(ry, 3))))
+			jump.assign(1)                                   # y=98 에서 넘으면 남쪽 뜰 (x,100)
+		if (And(Equal(face, FACE_UP), Equal(py, ry), Greater(py, 85)))
+			jump.assign(1)
+		if (Equal(jump, 1))
+			Party::Warp(Add(px, fx, fx), Add(py, fy, fy))
+		DisplayMap()
+		halt
+
+	# 사파이어 키 (95,91) — 가운데 줄 서쪽 방의 서쪽 벽 홈
+	if (On(95, 91))
+		if (Not(Flag::IsSet("KEY_SAPPHIRE")))
+			Battle::Init()
+			Battle::RegisterEnemy(36, 6) # 코볼트투사 6
+			Battle::RegisterEnemy(37, 2) # 코볼트매직유저 2
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Talk("당신은 벽에 걸린 사파이어 키를 가졌다.")
+				Flag::Set("KEY_SAPPHIRE")
+		halt
+
+	# ──────── 남쪽 뜰 — 유압 벽돌 연쇄의 앞 두 단계 ────────
+
+	# 기대는 벽 (58,101) → (58,86)~(58,100) 늪길, (58,85) 에 숨은 칸 — (58,100) 이 아직 늪이 아닐 때만
+	if (On(58, 101))
+		if (Map::IsTile(58, 100, 49))
+			halt
+		Talk("당신이 무심코 벽에 팔을 기대자 벽은 안으로 쑥 들어가 버렸다. 그리고는 새로운 길이 나타났다.")
+		Map::ChangeTileArea(58, 86, 58, 100, 49)
+		Map::ChangeTile(58, 85, 0)
+		DisplayMap()
+		halt
+
+	# 유압 벽돌 (58,85) → 남쪽 연못 한가운데 (76,74) 에 땅이 떠오른다 (물 그림의 사건 칸)
+	# 첫 동료(2~5번 중 가장 앞 번호)가 설명한다
+	if (On(58, 85))
+		Talk("당신이 발밑의 벽돌을 밟자 벽돌은 유압에 의해 서서히 가라앉기 시작했다. 당신은 즉시 벽돌에서 발을 떼고 한 걸음 물러섰다. 하지만 벽돌은 빨려 들어가듯이 밑으로 가라앉았다.")
+		found.assign(0)
+		if (Player::IsAvailable(5))
+			who.assign(Player::GetName(5))
+			found.assign(1)
+		if (Player::IsAvailable(4))
+			who.assign(Player::GetName(4))
+			found.assign(1)
+		if (Player::IsAvailable(3))
+			who.assign(Player::GetName(3))
+			found.assign(1)
+		if (Player::IsAvailable(2))
+			who.assign(Player::GetName(2))
+			found.assign(1)
+		if (Equal(found, 1))
+			Talk("그때 옆에 있던 {$who:이/가} 말했다.")
+			Say(who, "이런 장치는 전에 한 번 본 적이 있다네. 벽돌이 가라앉는 무게와 압력으로 다른 곳의 물체를 떠올리는 장치라네. 그런데 어디가 다시 떠올랐는지 모르겠군.")
+		Map::ChangeTile(58, 85, 43)                          # 벽돌은 가라앉아 평범한 바닥이 된다
+		Map::ChangeTile(76, 74, 52)
+		DisplayMap()
+		halt
+
+	# ──────── 남서 미로 (x 30~54, y 86~98) ────────
+
+	# 백금 키 (32,90)
+	if (On(32, 90))
+		if (Not(Flag::IsSet("KEY_PLATINUM")))
+			Battle::Init()
+			Battle::RegisterEnemy(36, 7) # 코볼트투사 7
+			Battle::RegisterEnemy(37)    # 코볼트매직유저
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Talk("당신은 코볼트 매직유저의 몸을 뒤져서 백금 키를 발견했다.")
+				Flag::Set("KEY_PLATINUM")
+		halt
+
+	# ──────── 서문과 서쪽 관문 (y 60~61) ────────
+
+	# 서문 열쇠 칸 (27,60)·(27,61)
+	#  황금 키   → 서문 (28,60~61) 이 열리고 안쪽 (29,60~61) 이 관문 전투 칸이 된다
+	#  에메랄드키 → 멀리 중앙 홀 동쪽의 에메랄드 문 (87~88,60~61) 이 열리고 (86,60~61) 이 경비대장 전투 칸이 된다
+	# 성을 나가면 닫히므로 들어올 때마다 다시 밟는다
+	if (OnArea(27, 60, 27, 61))
+		if (Flag::IsSet("KEY_GOLD"))
+			Map::ChangeTileArea(28, 60, 28, 61, 43)
+			Map::ChangeTileArea(29, 60, 29, 61, 0)
+		if (Flag::IsSet("KEY_EMERALD"))
+			Map::ChangeTileArea(87, 60, 88, 61, 43)
+			Map::ChangeTileArea(86, 60, 86, 61, 0)
+		DisplayMap()
+		halt
+
+	# 서쪽 관문 (29,60)·(29,61) — 한 번. 도망치면 서쪽으로 한 칸 밀린다
+	if (OnArea(29, 60, 29, 61))
+		if (Not(Flag::IsSet("KOBOLD_GATE_W")))
+			Say("코볼트 성전사", "또 인간들이 우리 성을 침범하러 왔군. 너희들은 이 주위의 해골들이 보이지 않는가? 이것들은 우리에게 무모한 싸움을 걸었다가 죽어간 사람들의 해골이다.")
+			Battle::Init()
+			Battle::RegisterEnemy(39, 4) # 근위기사 4
+			Battle::RegisterEnemy(37, 3) # 코볼트매직유저 3
+			Battle::RegisterEnemy(41)    # 코볼트성전사
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("KOBOLD_GATE_W")
+			else
+				Party::Warp(28, Party::PosY())
+		halt
+
+	# ──────── 서쪽 홀 (x 30~60, y 41~80) ────────
+
+	# 오팔키 발굴 터 (x 42~53, y 55~66) — 처음 숨은 칸은 푯말 서쪽의 (53,63) 하나
+	# 밟을 때마다 그 칸은 평범한 땅이 되고 터 안 무작위 자리에 새 숨은 칸이 생긴다. 네 번째에 오팔키.
+	# 캔 횟수는 성을 나갔다 와도 이어지고, 오팔키를 얻은 뒤로는 반응하지 않는다
+	if (OnArea(42, 55, 53, 66))
+		if (Not(Flag::IsSet("KEY_OPAL")))
+			Variable::Add("KOBOLD_DIG_COUNT")
+			Map::ChangeTile(Party::PosX(), Party::PosY(), 43)
+			if (Less(Variable::Get("KOBOLD_DIG_COUNT"), 4))
+				Map::ChangeTile(Add(42, Random(12)), Add(55, Random(12)), 0)
+			else
+				Talk("당신은 땅에 반쯤 묻혀 있는 오팔키를 발견했다.")
+				Flag::Set("KEY_OPAL")
+			DisplayMap()
+		halt
+
+	# 용암 → 늪 (48,73) — 푯말 (54,63) 에서 건너기를 거절하면 생기는 칸. 남쪽 용암 한가운데
+	# 북쪽 용암 (46,47) 이 아직 용암이면 고리 (x 37~54, y 42~50) 안의 용암이 모두 늪으로 바뀐다 (76칸)
+	if (On(48, 73))
+		if (Map::IsTile(46, 47, 50))
+			Map::ReplaceTile(37, 42, 54, 50, 50, 49)
+			DisplayMap()
+		halt
+
+	# 용암 → 물 (45,46) — 북쪽 용암 고리의 안쪽 빈 땅. (48,73) 과 관계없이 작동한다
+	# 활 모양 용암 강 (x 56~60, y 51~74) 안의 용암이 모두 물로 바뀐다 (57칸). 원작은 강이 아직 용암인지 보는데
+	# 어느 칸을 보는지는 공략집에 없다 — 용암인 칸만 바꾸므로 다시 밟아도 달라지는 것이 없다
+	if (On(45, 46))
+		Map::ReplaceTile(56, 51, 60, 74, 50, 48)
+		DisplayMap()
+		halt
+
+	# ──────── 사파이어 문과 소환주술사 관문 (y 60~61) ────────
+
+	# 사파이어 문 칸 (62,60)·(62,61) — 사파이어 키 → 문 (63~64,60~61) 이 열리고 (65,60~61) 이 관문 전투 칸이 된다
+	if (OnArea(62, 60, 62, 61))
+		if (Flag::IsSet("KEY_SAPPHIRE"))
+			Map::ChangeTileArea(63, 60, 64, 61, 43)
+			Map::ChangeTileArea(65, 60, 65, 61, 0)
+			DisplayMap()
+		halt
+
+	# 소환주술사 관문 (65,60)·(65,61) — 한 번. 도망치면 서쪽으로 한 칸 밀린다
+	if (OnArea(65, 60, 65, 61))
+		if (Not(Flag::IsSet("KOBOLD_GATE_C")))
+			Say("소환주술사", "용케도 우리 성의 내부까지 들어왔군. 당신들은 소환 마법이란 걸 들어봤나? 지금 바로 내가 소환 마법의 진가를 보여주지.")
+			Battle::Init()
+			Battle::RegisterEnemy(39, 3) # 근위기사 3
+			Battle::RegisterEnemy(42)    # 소환주술사
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("KOBOLD_GATE_C")
+			else
+				Party::Warp(64, Party::PosY())
+		halt
+
+	# ──────── 중앙 홀 (x 66~85, y 39~82) ────────
+
+	# 경비대장 관문 (86,60)·(86,61) — 한 번. 도망치면 동쪽으로 한 칸 밀린다
+	if (OnArea(86, 60, 86, 61))
+		if (Not(Flag::IsSet("KOBOLD_GATE_CAPTAIN")))
+			Say("코볼트 경비대장", "나는 이 성의 경비대장이다. 나의 임무는 바로 너희들을 이 안으로 들여놓지 않는 것이다. 나의 목숨을 바쳐서라도...")
+			Battle::Init()
+			Battle::RegisterEnemy(37, 7) # 코볼트매직유저 7
+			Battle::RegisterEnemy(38)    # 경비대장
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("KOBOLD_GATE_CAPTAIN")
+			else
+				Party::Warp(87, Party::PosY())
+				halt
+		# 경비대장을 이긴 뒤로는 이 줄을 밟을 때마다 사파이어 문과 서문이 열쇠 없이 트인다 (관문 칸도 바닥이 된다)
+		Map::ChangeTileArea(63, 60, 65, 61, 43)
+		Map::ChangeTileArea(28, 60, 29, 61, 43)
+		DisplayMap()
+		halt
+
+	# 제단 (x 74~78, y 57~64) — 오팔 문
+	# 서쪽 홈 (75,60) 을 오팔키를 가진 채 밟으면 바로 아래 (75,61) 이 열린다
+	if (On(75, 60))
+		if (Flag::IsSet("KEY_OPAL"))
+			Map::ChangeTile(75, 61, 43)
+			DisplayMap()
+		halt
+
+	# 제단 — 흑요석 문. (76,61) 을 흑요석키를 가진 채 밟으면 동쪽 (77,61) 이 열린다
+	if (On(76, 61))
+		if (Flag::IsSet("KEY_OBSIDIAN"))
+			Map::ChangeTile(77, 61, 43)
+			DisplayMap()
+		halt
+
+	# 제단의 대제사장 (77,59) — 한 번. 이기면 다이아몬드키 두 개. 도망치면 (77,60) 으로 밀린다
+	if (On(77, 59))
+		if (Not(Flag::IsSet("KOBOLD_PRIEST_DEAD")))
+			Say("대제사장", "신성한 신의 제단에 더러운 발을 디딘 놈들은 누구냐? 신을 모독한 너희네 인간들에게 몸소 가르침을 주겠다. 받아랏!!")
+			Battle::Init()
+			Battle::RegisterEnemy(39, 3) # 근위기사 3
+			Battle::RegisterEnemy(40, 2) # 코볼트위저드 2
+			Battle::RegisterEnemy(41, 2) # 코볼트성전사 2
+			Battle::RegisterEnemy(43)    # 대제사장
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Talk("당신은 대제사장으로부터 다이아몬드키 두 개를 빼앗았다.")
+				Flag::Set("KOBOLD_PRIEST_DEAD")
+			else
+				Party::Warp(77, 60)
+		halt
+
+	# 윗줄 다이아몬드 문 — y=39 줄의 앞 칸 (67·71·75·79·83, 39). 문 n 의 앞 칸은 (63+4n, 39)
+	# 다이아몬드키를 가진 채 정답 문의 앞 칸을 밟으면 그 위 2×2 (62+4n~63+4n, 37~38) 이 열린다 → 해골 상자 전당
+	# 틀린 문 앞에서는 아무 일도 없다
+	if (On(67, 39))
+		if (And(Flag::IsSet("KOBOLD_PRIEST_DEAD"), Equal(Variable::Get("KOBOLD_DOOR_CODE_TOP"), 1)))
+			Map::ChangeTileArea(66, 37, 67, 38, 43)
+			DisplayMap()
+		halt
+	if (On(71, 39))
+		if (And(Flag::IsSet("KOBOLD_PRIEST_DEAD"), Equal(Variable::Get("KOBOLD_DOOR_CODE_TOP"), 2)))
+			Map::ChangeTileArea(70, 37, 71, 38, 43)
+			DisplayMap()
+		halt
+	if (On(75, 39))
+		if (And(Flag::IsSet("KOBOLD_PRIEST_DEAD"), Equal(Variable::Get("KOBOLD_DOOR_CODE_TOP"), 3)))
+			Map::ChangeTileArea(74, 37, 75, 38, 43)
+			DisplayMap()
+		halt
+	if (On(79, 39))
+		if (And(Flag::IsSet("KOBOLD_PRIEST_DEAD"), Equal(Variable::Get("KOBOLD_DOOR_CODE_TOP"), 4)))
+			Map::ChangeTileArea(78, 37, 79, 38, 43)
+			DisplayMap()
+		halt
+	if (On(83, 39))
+		if (And(Flag::IsSet("KOBOLD_PRIEST_DEAD"), Equal(Variable::Get("KOBOLD_DOOR_CODE_TOP"), 5)))
+			Map::ChangeTileArea(82, 37, 83, 38, 43)
+			DisplayMap()
+		halt
+
+	# 아랫줄 다이아몬드 문 — y=82 줄의 앞 칸 (68·72·76·80·84, 82). 문 n 의 앞 칸은 (64+4n, 82)
+	# 정답이면 그 아래 2×2 (64+4n~65+4n, 83~84) 이 열린다 → 코볼트킹 전당
+	if (On(68, 82))
+		if (And(Flag::IsSet("KOBOLD_PRIEST_DEAD"), Equal(Variable::Get("KOBOLD_DOOR_CODE_BOTTOM"), 1)))
+			Map::ChangeTileArea(68, 83, 69, 84, 43)
+			DisplayMap()
+		halt
+	if (On(72, 82))
+		if (And(Flag::IsSet("KOBOLD_PRIEST_DEAD"), Equal(Variable::Get("KOBOLD_DOOR_CODE_BOTTOM"), 2)))
+			Map::ChangeTileArea(72, 83, 73, 84, 43)
+			DisplayMap()
+		halt
+	if (On(76, 82))
+		if (And(Flag::IsSet("KOBOLD_PRIEST_DEAD"), Equal(Variable::Get("KOBOLD_DOOR_CODE_BOTTOM"), 3)))
+			Map::ChangeTileArea(76, 83, 77, 84, 43)
+			DisplayMap()
+		halt
+	if (On(80, 82))
+		if (And(Flag::IsSet("KOBOLD_PRIEST_DEAD"), Equal(Variable::Get("KOBOLD_DOOR_CODE_BOTTOM"), 4)))
+			Map::ChangeTileArea(80, 83, 81, 84, 43)
+			DisplayMap()
+		halt
+	if (On(84, 82))
+		if (And(Flag::IsSet("KOBOLD_PRIEST_DEAD"), Equal(Variable::Get("KOBOLD_DOOR_CODE_BOTTOM"), 5)))
+			Map::ChangeTileArea(84, 83, 85, 84, 43)
+			DisplayMap()
+		halt
+
+	# 떠오른 땅 (76,74) — 남쪽 연못 (x 70~82, y 69~77) 한가운데. 유압 벽돌 (58,85) 을 밟아야 생긴다
+	# 밟으면 다시 가라앉고, 해골 상자 전당 (65,25) 에 상자 모양 장치가 생기며 (64,25) 가 숨은 칸이 된다
+	if (On(76, 74))
+		Talk("당신이 물 위로 떠오른 땅을 밟자 다시 가라앉아 버렸다.")
+		Map::ChangeTile(76, 74, 48)
+		Map::ChangeTile(65, 25, 35)
+		Map::ChangeTile(64, 25, 0)
+		DisplayMap()
+		halt
+
+	# ──────── 해골 상자 전당 (x 61~90, y 25~36) ────────
+
+	# 숨은 장치 (64,25) → 암흑 구역의 벽 (108~109, 53~54) 가 열린다 (영혼의 크리스탈 벽감으로 가는 길)
+	# (108,53) 이 아직 닫힌 벽(21)일 때만. 열리면 이 칸은 평범한 바닥이 된다
+	if (On(64, 25))
+		if (Not(Map::IsTile(108, 53, 21)))
+			halt
+		Talk("성의 남동쪽에서 돌연히 커다란 진동음과 함께 기계 소리가 들렸다.")
+		Map::ChangeTileArea(108, 53, 109, 54, 0)             # 암흑 구역의 바닥은 모두 숨은 칸이다
+		Map::ChangeTile(64, 25, 43)
+		DisplayMap()
+		halt
+
+	# 해골을 얹은 보물상자 다섯 — 서는 칸 (68·72·76·80·84, 25), 상자 그림은 그 오른쪽 칸
+	# 활성 조합은 KOBOLD_CHEST_MASK (1 A · 2 B · 4 C · 8 D · 16 해골 자리 상자)
+	# 비활성이면 침묵, 활성이어도 코볼트 말을 모르면 알아듣지 못한다. 하나라도 틀리면 미미크
+	if (OnArea(68, 25, 84, 25))
+		m.assign(Variable::Get("KOBOLD_CHEST_MASK"))
+		bitA.assign(0)
+		bitB.assign(0)
+		bitC.assign(0)
+		bitD.assign(0)
+		bitE.assign(0)
+		if (GreaterEqual(m, 16))
+			bitE.assign(1)
+			m.add(-16)
+		if (GreaterEqual(m, 8))
+			bitD.assign(1)
+			m.add(-8)
+		if (GreaterEqual(m, 4))
+			bitC.assign(1)
+			m.add(-4)
+		if (GreaterEqual(m, 2))
+			bitB.assign(1)
+			m.add(-2)
+		if (GreaterEqual(m, 1))
+			bitA.assign(1)
+			m.add(-1)
+
+		# 상자 A (68,25) — 시리즈 퀴즈 (4지선다 3문, 보기 순서는 매번 섞인다)
+		if (On(68, 25))
+			if (Or(Flag::IsSet("KOBOLD_QUIZ_A_SOLVED"), Flag::IsSet("KOBOLD_MIMIC_A_DEAD")))
+				halt
+			if (Not(Flag::IsSet("KOBOLD_QUIZ_A_FAILED")))
+				if (Equal(bitA, 0))                       # 이 상자는 잠들어 있다
+					Talk("당신이 보물상자 앞으로 다가섰지만 상자 위의 두개골은 아무 말도 하지 않았다.")
+					halt
+				if (Not(Flag::IsSet("KOBOLD_SPEECH")))      # 코볼트 말을 모른다
+					Talk("당신이 보물상자 앞으로 다가섰을 때 상자 위의 두개골이 무어라 말을 했지만 전혀 알아들을 수가 없었다.")
+					halt
+				wrong.assign(0)
+				Talk("당신이 보물상자 앞으로 다가섰을 때 상자 위의 두개골이 당신에게 질문을 던졌다.")
+				# 정답: 알비레오
+				s1.assign("로드안")
+				s2.assign("네크로만서")
+				s3.assign("레드 안타레스")
+				s4.assign("알비레오")
+				# 보기를 섞는다 — 정답은 넷째(s4)에서 시작하고, ans 가 정답이 옮겨 간 자리를 따라간다
+				ans.assign(4)
+				r.assign(Random(4))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s4)
+					s4.assign(sw)
+					ans.assign(1)
+				if (Equal(r, 1))
+					sw.assign(s2)
+					s2.assign(s4)
+					s4.assign(sw)
+					ans.assign(2)
+				if (Equal(r, 2))
+					sw.assign(s3)
+					s3.assign(s4)
+					s4.assign(sw)
+					ans.assign(3)
+				r.assign(Random(3))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s3)
+					s3.assign(sw)
+					if (Equal(ans, 1))
+						ans.assign(3)
+					else
+						if (Equal(ans, 3))
+							ans.assign(1)
+				if (Equal(r, 1))
+					sw.assign(s2)
+					s2.assign(s3)
+					s3.assign(sw)
+					if (Equal(ans, 2))
+						ans.assign(3)
+					else
+						if (Equal(ans, 3))
+							ans.assign(2)
+				r.assign(Random(2))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s2)
+					s2.assign(sw)
+					if (Equal(ans, 1))
+						ans.assign(2)
+					else
+						if (Equal(ans, 2))
+							ans.assign(1)
+				Select::Init()
+				Select::Add("1편 <또 다른 지식의 성전>과 2편 <다크 메이지 실리안 카미너스>에 모두 출현했던 인물이 아닌 것은 누구인가?")
+				Select::Add(s1)
+				Select::Add(s2)
+				Select::Add(s3)
+				Select::Add(s4)
+				Select::Run()
+				if (Not(Equal(Select::Result(), ans)))
+					wrong.add(1)
+				ClearText()
+				# 정답: 에인션트 이블
+				s1.assign("실리안 카미너스")
+				s2.assign("안타레스 Jr.")
+				s3.assign("드라코니안")
+				s4.assign("에인션트 이블")
+				# 보기를 섞는다 — 정답은 넷째(s4)에서 시작하고, ans 가 정답이 옮겨 간 자리를 따라간다
+				ans.assign(4)
+				r.assign(Random(4))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s4)
+					s4.assign(sw)
+					ans.assign(1)
+				if (Equal(r, 1))
+					sw.assign(s2)
+					s2.assign(s4)
+					s4.assign(sw)
+					ans.assign(2)
+				if (Equal(r, 2))
+					sw.assign(s3)
+					s3.assign(s4)
+					s4.assign(sw)
+					ans.assign(3)
+				r.assign(Random(3))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s3)
+					s3.assign(sw)
+					if (Equal(ans, 1))
+						ans.assign(3)
+					else
+						if (Equal(ans, 3))
+							ans.assign(1)
+				if (Equal(r, 1))
+					sw.assign(s2)
+					s2.assign(s3)
+					s3.assign(sw)
+					if (Equal(ans, 2))
+						ans.assign(3)
+					else
+						if (Equal(ans, 3))
+							ans.assign(2)
+				r.assign(Random(2))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s2)
+					s2.assign(sw)
+					if (Equal(ans, 1))
+						ans.assign(2)
+					else
+						if (Equal(ans, 2))
+							ans.assign(1)
+				Select::Init()
+				Select::Add("이 게임의 1, 2, 3편에 모두 출현한 인물은 누구인가?")
+				Select::Add(s1)
+				Select::Add(s2)
+				Select::Add(s3)
+				Select::Add(s4)
+				Select::Run()
+				if (Not(Equal(Select::Result(), ans)))
+					wrong.add(1)
+				ClearText()
+				# 정답: 제작자(안영기)
+				s1.assign("카노푸스")
+				s2.assign("안타레스 Jr.")
+				s3.assign("드라코니안")
+				s4.assign("제작자(안영기)")
+				# 보기를 섞는다 — 정답은 넷째(s4)에서 시작하고, ans 가 정답이 옮겨 간 자리를 따라간다
+				ans.assign(4)
+				r.assign(Random(4))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s4)
+					s4.assign(sw)
+					ans.assign(1)
+				if (Equal(r, 1))
+					sw.assign(s2)
+					s2.assign(s4)
+					s4.assign(sw)
+					ans.assign(2)
+				if (Equal(r, 2))
+					sw.assign(s3)
+					s3.assign(s4)
+					s4.assign(sw)
+					ans.assign(3)
+				r.assign(Random(3))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s3)
+					s3.assign(sw)
+					if (Equal(ans, 1))
+						ans.assign(3)
+					else
+						if (Equal(ans, 3))
+							ans.assign(1)
+				if (Equal(r, 1))
+					sw.assign(s2)
+					s2.assign(s3)
+					s3.assign(sw)
+					if (Equal(ans, 2))
+						ans.assign(3)
+					else
+						if (Equal(ans, 3))
+							ans.assign(2)
+				r.assign(Random(2))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s2)
+					s2.assign(sw)
+					if (Equal(ans, 1))
+						ans.assign(2)
+					else
+						if (Equal(ans, 2))
+							ans.assign(1)
+				Select::Init()
+				Select::Add("이 게임에서 1, 3편만 출현한 인물이 아닌 것은 누구인가?")
+				Select::Add(s1)
+				Select::Add(s2)
+				Select::Add(s3)
+				Select::Add(s4)
+				Select::Run()
+				if (Not(Equal(Select::Result(), ans)))
+					wrong.add(1)
+				# 모든 문제에 답한 뒤 한꺼번에 판정한다
+				ClearText()
+				if (Equal(wrong, 0))
+					Talk("보물상자는 스스로 스르륵 열렸다.")
+					# 이름 있는 대원 전원(보조 일원 포함) 인내력 +(행운÷5)
+					if (Player::IsAvailable(1))
+						Player::AddAttribute(1, "endurance", Div(Player::GetAttribute(1, "luck"), 5))
+					if (Player::IsAvailable(2))
+						Player::AddAttribute(2, "endurance", Div(Player::GetAttribute(2, "luck"), 5))
+					if (Player::IsAvailable(3))
+						Player::AddAttribute(3, "endurance", Div(Player::GetAttribute(3, "luck"), 5))
+					if (Player::IsAvailable(4))
+						Player::AddAttribute(4, "endurance", Div(Player::GetAttribute(4, "luck"), 5))
+					if (Player::IsAvailable(5))
+						Player::AddAttribute(5, "endurance", Div(Player::GetAttribute(5, "luck"), 5))
+					if (Player::IsAvailable(6))
+						Player::AddAttribute(6, "endurance", Div(Player::GetAttribute(6, "luck"), 5))
+					DisplayStatus()
+					Notice("인내력 + 0 에서 + 4")
+					Flag::Set("KOBOLD_QUIZ_A_SOLVED")
+					halt
+				Flag::Set("KOBOLD_QUIZ_A_FAILED")
+			# 미미크 — 틀린 뒤로는 이 칸을 밟을 때마다 덤빈다. 다시 풀 기회는 없다. 덤빌 때마다 변신 서술이 나온다 (MYSTSPEC.PAS:1925~1934)
+			Talk("갑자기 보물상자의 양옆에서 팔이 나오고 밑에서 다리가 나오더니 괴물로 변해 당신을 공격하기 시작했다. 당신은 그것이 보물상자의 모습을 하고 있는 미미크라는 것을 금방 알아차렸다.")
+			PressAnyKey()
+			Battle::Init()
+			Battle::RegisterEnemy(46)    # 미미크
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("KOBOLD_MIMIC_A_DEAD")
+				Map::ChangeTile(69, 25, 43)                # 상자 그림이 사라진다
+				DisplayMap()
+			else
+				Party::Warp(68, 26)                           # 도망치면 남쪽으로 한 칸
+			halt
+
+		# 상자 B (72,25) — 과학 퀴즈 (4지선다 3문)
+		if (On(72, 25))
+			if (Or(Flag::IsSet("KOBOLD_QUIZ_B_SOLVED"), Flag::IsSet("KOBOLD_MIMIC_B_DEAD")))
+				halt
+			if (Not(Flag::IsSet("KOBOLD_QUIZ_B_FAILED")))
+				if (Equal(bitB, 0))                       # 이 상자는 잠들어 있다
+					Talk("당신이 보물상자 앞으로 다가섰지만 상자 위의 두개골은 아무 말도 하지 않았다.")
+					halt
+				if (Not(Flag::IsSet("KOBOLD_SPEECH")))      # 코볼트 말을 모른다
+					Talk("당신이 보물상자 앞으로 다가섰을 때 상자 위의 두개골이 무어라 말을 했지만 전혀 알아들을 수가 없었다.")
+					halt
+				wrong.assign(0)
+				Talk("당신이 보물상자 앞으로 다가섰을 때 상자 위의 두개골이 당신에게 질문을 던졌다.")
+				# 질량결손 N 은 1~100 mg 무작위. 보기는 (3N/100)·(N/100)·(10N/100)·(9N/100) x 10^15, 소수 둘째 자리까지
+				# 정답: (9N/100) x 10^15
+				n.assign(Add(Random(100), 1))
+				v.assign(Mul(n, 3))
+				if (Less(Mod(v, 100), 10))
+					s1.assign(JoinString(Div(v, 100), ".0", Mod(v, 100), " x 10^15"))
+				else
+					s1.assign(JoinString(Div(v, 100), ".", Mod(v, 100), " x 10^15"))
+				v.assign(n)
+				if (Less(Mod(v, 100), 10))
+					s2.assign(JoinString(Div(v, 100), ".0", Mod(v, 100), " x 10^15"))
+				else
+					s2.assign(JoinString(Div(v, 100), ".", Mod(v, 100), " x 10^15"))
+				v.assign(Mul(n, 10))
+				if (Less(Mod(v, 100), 10))
+					s3.assign(JoinString(Div(v, 100), ".0", Mod(v, 100), " x 10^15"))
+				else
+					s3.assign(JoinString(Div(v, 100), ".", Mod(v, 100), " x 10^15"))
+				v.assign(Mul(n, 9))
+				if (Less(Mod(v, 100), 10))
+					s4.assign(JoinString(Div(v, 100), ".0", Mod(v, 100), " x 10^15"))
+				else
+					s4.assign(JoinString(Div(v, 100), ".", Mod(v, 100), " x 10^15"))
+				Talk("당신은 핵융합 마법을 종종 사용하곤 한다.")
+				# 보기를 섞는다 — 정답은 넷째(s4)에서 시작하고, ans 가 정답이 옮겨 간 자리를 따라간다
+				ans.assign(4)
+				r.assign(Random(4))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s4)
+					s4.assign(sw)
+					ans.assign(1)
+				if (Equal(r, 1))
+					sw.assign(s2)
+					s2.assign(s4)
+					s4.assign(sw)
+					ans.assign(2)
+				if (Equal(r, 2))
+					sw.assign(s3)
+					s3.assign(s4)
+					s4.assign(sw)
+					ans.assign(3)
+				r.assign(Random(3))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s3)
+					s3.assign(sw)
+					if (Equal(ans, 1))
+						ans.assign(3)
+					else
+						if (Equal(ans, 3))
+							ans.assign(1)
+				if (Equal(r, 1))
+					sw.assign(s2)
+					s2.assign(s3)
+					s3.assign(sw)
+					if (Equal(ans, 2))
+						ans.assign(3)
+					else
+						if (Equal(ans, 3))
+							ans.assign(2)
+				r.assign(Random(2))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s2)
+					s2.assign(sw)
+					if (Equal(ans, 1))
+						ans.assign(2)
+					else
+						if (Equal(ans, 2))
+							ans.assign(1)
+				Select::Init()
+				Select::Add("당신이 공기 중에 분포해 있는 수소원자 4개를 헬륨원자 1개로 핵융합시켰을 때 질량결손이 {$n} mg이라면 적에게 방출된 에너지는 얼마인가?")
+				Select::Add(s1)
+				Select::Add(s2)
+				Select::Add(s3)
+				Select::Add(s4)
+				Select::Run()
+				if (Not(Equal(Select::Result(), ans)))
+					wrong.add(1)
+				ClearText()
+				# 정답: 일반 상대성 이론
+				Talk("당신은 종종 공간이동을 하여 위치를 이동하기도 한다. 그리고 그때 당신은 3차원의 공간에 강한 중력을 걸어 공간을 압축시킨 후 그 공간면을 뚫고 이동하고 나서 공간을 원위치시킴으로써(워프 방식) 그것을 가능하게 한다.")
+				s1.assign("질량보존의 법칙")
+				s2.assign("작용 반작용의 법칙")
+				s3.assign("특수 상대성 이론")
+				s4.assign("일반 상대성 이론")
+				# 보기를 섞는다 — 정답은 넷째(s4)에서 시작하고, ans 가 정답이 옮겨 간 자리를 따라간다
+				ans.assign(4)
+				r.assign(Random(4))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s4)
+					s4.assign(sw)
+					ans.assign(1)
+				if (Equal(r, 1))
+					sw.assign(s2)
+					s2.assign(s4)
+					s4.assign(sw)
+					ans.assign(2)
+				if (Equal(r, 2))
+					sw.assign(s3)
+					s3.assign(s4)
+					s4.assign(sw)
+					ans.assign(3)
+				r.assign(Random(3))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s3)
+					s3.assign(sw)
+					if (Equal(ans, 1))
+						ans.assign(3)
+					else
+						if (Equal(ans, 3))
+							ans.assign(1)
+				if (Equal(r, 1))
+					sw.assign(s2)
+					s2.assign(s3)
+					s3.assign(sw)
+					if (Equal(ans, 2))
+						ans.assign(3)
+					else
+						if (Equal(ans, 3))
+							ans.assign(2)
+				r.assign(Random(2))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s2)
+					s2.assign(sw)
+					if (Equal(ans, 1))
+						ans.assign(2)
+					else
+						if (Equal(ans, 2))
+							ans.assign(1)
+				Select::Init()
+				Select::Add("이것은 무슨 법칙으로 증명될 수 있겠는가?")
+				Select::Add(s1)
+				Select::Add(s2)
+				Select::Add(s3)
+				Select::Add(s4)
+				Select::Run()
+				if (Not(Equal(Select::Result(), ans)))
+					wrong.add(1)
+				ClearText()
+				# 정답: Oxygen
+				Talk("당신은 '마법 화구'라는 불공을 만들어 적에게 던져 제압해 본 경험이 있다. 당신은 당신의 손 위에 불덩어리를 만들기 위해서 이 물질을 결합시킨다.")
+				s1.assign("Hydrogen")
+				s2.assign("Carbon")
+				s3.assign("Nitrogen")
+				s4.assign("Oxygen")
+				# 보기를 섞는다 — 정답은 넷째(s4)에서 시작하고, ans 가 정답이 옮겨 간 자리를 따라간다
+				ans.assign(4)
+				r.assign(Random(4))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s4)
+					s4.assign(sw)
+					ans.assign(1)
+				if (Equal(r, 1))
+					sw.assign(s2)
+					s2.assign(s4)
+					s4.assign(sw)
+					ans.assign(2)
+				if (Equal(r, 2))
+					sw.assign(s3)
+					s3.assign(s4)
+					s4.assign(sw)
+					ans.assign(3)
+				r.assign(Random(3))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s3)
+					s3.assign(sw)
+					if (Equal(ans, 1))
+						ans.assign(3)
+					else
+						if (Equal(ans, 3))
+							ans.assign(1)
+				if (Equal(r, 1))
+					sw.assign(s2)
+					s2.assign(s3)
+					s3.assign(sw)
+					if (Equal(ans, 2))
+						ans.assign(3)
+					else
+						if (Equal(ans, 3))
+							ans.assign(2)
+				r.assign(Random(2))
+				if (Equal(r, 0))
+					sw.assign(s1)
+					s1.assign(s2)
+					s2.assign(sw)
+					if (Equal(ans, 1))
+						ans.assign(2)
+					else
+						if (Equal(ans, 2))
+							ans.assign(1)
+				Select::Init()
+				Select::Add("이 물질의 이름은 무엇인가?")
+				Select::Add(s1)
+				Select::Add(s2)
+				Select::Add(s3)
+				Select::Add(s4)
+				Select::Run()
+				if (Not(Equal(Select::Result(), ans)))
+					wrong.add(1)
+				# 모든 문제에 답한 뒤 한꺼번에 판정한다
+				ClearText()
+				if (Equal(wrong, 0))
+					Talk("보물상자는 스스로 스르륵 열렸다.")
+					Item::Give("crystal.summon", 1)
+					Notice("소환의 크리스탈 + 1")
+					Flag::Set("KOBOLD_QUIZ_B_SOLVED")
+					halt
+				Flag::Set("KOBOLD_QUIZ_B_FAILED")
+			# 미미크 — 틀린 뒤로는 이 칸을 밟을 때마다 덤빈다. 다시 풀 기회는 없다. 덤빌 때마다 변신 서술이 나온다 (MYSTSPEC.PAS:1925~1934)
+			Talk("갑자기 보물상자의 양옆에서 팔이 나오고 밑에서 다리가 나오더니 괴물로 변해 당신을 공격하기 시작했다. 당신은 그것이 보물상자의 모습을 하고 있는 미미크라는 것을 금방 알아차렸다.")
+			PressAnyKey()
+			Battle::Init()
+			Battle::RegisterEnemy(46)    # 미미크
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("KOBOLD_MIMIC_B_DEAD")
+				Map::ChangeTile(73, 25, 43)                # 상자 그림이 사라진다
+				DisplayMap()
+			else
+				Party::Warp(72, 26)                           # 도망치면 남쪽으로 한 칸
+			halt
+
+		# 상자 C (76,25) — 천문 O/X 퀴즈 (6문: 아니다 · 맞다 · 맞다 · 아니다 · 아니다 · 맞다)
+		if (On(76, 25))
+			if (Or(Flag::IsSet("KOBOLD_QUIZ_C_SOLVED"), Flag::IsSet("KOBOLD_MIMIC_C_DEAD")))
+				halt
+			if (Not(Flag::IsSet("KOBOLD_QUIZ_C_FAILED")))
+				if (Equal(bitC, 0))                       # 이 상자는 잠들어 있다
+					Talk("당신이 보물상자 앞으로 다가섰지만 상자 위의 두개골은 아무 말도 하지 않았다.")
+					halt
+				if (Not(Flag::IsSet("KOBOLD_SPEECH")))      # 코볼트 말을 모른다
+					Talk("당신이 보물상자 앞으로 다가섰을 때 상자 위의 두개골이 무어라 말을 했지만 전혀 알아들을 수가 없었다.")
+					halt
+				wrong.assign(0)
+				Talk("당신이 보물상자 앞으로 다가섰을 때 상자 위의 두개골이 당신에게 질문을 던졌다.")
+				Select::Init()
+				Select::Add("달과 지구의 나이는 같거나 지구가 더 많다.")
+				Select::Add("맞다")
+				Select::Add("아니다")
+				Select::Run()
+				if (Not(Equal(Select::Result(), 2)))    # 정답: 아니다
+					wrong.add(1)
+				ClearText()
+				Select::Init()
+				Select::Add("예전에는 화성과 목성 사이에 혹성이 하나 있었다.")
+				Select::Add("맞다")
+				Select::Add("아니다")
+				Select::Run()
+				if (Not(Equal(Select::Result(), 1)))    # 정답: 맞다
+					wrong.add(1)
+				ClearText()
+				Select::Init()
+				Select::Add("태양의 나이는 50억 살이다. 80억 년 전에도 지금의 태양 자리에 항성이 있었을 것이다.")
+				Select::Add("맞다")
+				Select::Add("아니다")
+				Select::Run()
+				if (Not(Equal(Select::Result(), 1)))    # 정답: 맞다
+					wrong.add(1)
+				ClearText()
+				Select::Init()
+				Select::Add("우주의 크기는 변함이 없다.")
+				Select::Add("맞다")
+				Select::Add("아니다")
+				Select::Run()
+				if (Not(Equal(Select::Result(), 2)))    # 정답: 아니다
+					wrong.add(1)
+				ClearText()
+				Select::Init()
+				Select::Add("태양계 혹성의 순서는 수성, 금성, 지구,... 천왕성, 해왕성, 명왕성의 순서로 일정하다.")
+				Select::Add("맞다")
+				Select::Add("아니다")
+				Select::Run()
+				if (Not(Equal(Select::Result(), 2)))    # 정답: 아니다
+					wrong.add(1)
+				ClearText()
+				Select::Init()
+				Select::Add("토성을 물에 띄우면 뜬다.")
+				Select::Add("맞다")
+				Select::Add("아니다")
+				Select::Run()
+				if (Not(Equal(Select::Result(), 1)))    # 정답: 맞다
+					wrong.add(1)
+				# 모든 문제에 답한 뒤 한꺼번에 판정한다
+				ClearText()
+				if (Equal(wrong, 0))
+					Talk("보물상자는 스스로 스르륵 열렸다.")
+					Item::Give("crystal.flame", 1)
+					Notice("화염의 크리스탈 + 1")
+					Flag::Set("KOBOLD_QUIZ_C_SOLVED")
+					halt
+				Flag::Set("KOBOLD_QUIZ_C_FAILED")
+			# 미미크 — 틀린 뒤로는 이 칸을 밟을 때마다 덤빈다. 다시 풀 기회는 없다. 덤빌 때마다 변신 서술이 나온다 (MYSTSPEC.PAS:1925~1934)
+			Talk("갑자기 보물상자의 양옆에서 팔이 나오고 밑에서 다리가 나오더니 괴물로 변해 당신을 공격하기 시작했다. 당신은 그것이 보물상자의 모습을 하고 있는 미미크라는 것을 금방 알아차렸다.")
+			PressAnyKey()
+			Battle::Init()
+			Battle::RegisterEnemy(46)    # 미미크
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("KOBOLD_MIMIC_C_DEAD")
+				Map::ChangeTile(77, 25, 43)                # 상자 그림이 사라진다
+				DisplayMap()
+			else
+				Party::Warp(76, 26)                           # 도망치면 남쪽으로 한 칸
+			halt
+
+		# 상자 D (80,25) — 프로그래밍 O/X 퀴즈 (5문: 아니다 · 아니다 · 맞다 · 아니다 · 맞다)
+		if (On(80, 25))
+			if (Or(Flag::IsSet("KOBOLD_QUIZ_D_SOLVED"), Flag::IsSet("KOBOLD_MIMIC_D_DEAD")))
+				halt
+			if (Not(Flag::IsSet("KOBOLD_QUIZ_D_FAILED")))
+				if (Equal(bitD, 0))                       # 이 상자는 잠들어 있다
+					Talk("당신이 보물상자 앞으로 다가섰지만 상자 위의 두개골은 아무 말도 하지 않았다.")
+					halt
+				if (Not(Flag::IsSet("KOBOLD_SPEECH")))      # 코볼트 말을 모른다
+					Talk("당신이 보물상자 앞으로 다가섰을 때 상자 위의 두개골이 무어라 말을 했지만 전혀 알아들을 수가 없었다.")
+					halt
+				wrong.assign(0)
+				Talk("당신이 보물상자 앞으로 다가섰을 때 상자 위의 두개골이 당신에게 질문을 던졌다.")
+				Select::Init()
+				Select::Add("BASIC 언어의 ';'(세미콜론)은 문장의 끝을 의미한다")
+				Select::Add("맞다")
+				Select::Add("아니다")
+				Select::Run()
+				if (Not(Equal(Select::Result(), 2)))    # 정답: 아니다
+					wrong.add(1)
+				ClearText()
+				Select::Init()
+				Select::Add("Pascal에서 대입 기호는 '='이다.")
+				Select::Add("맞다")
+				Select::Add("아니다")
+				Select::Run()
+				if (Not(Equal(Select::Result(), 2)))    # 정답: 아니다
+					wrong.add(1)
+				ClearText()
+				Select::Init()
+				Select::Add("C 언어는 영문 소문자를 기본으로 설계되었다.")
+				Select::Add("맞다")
+				Select::Add("아니다")
+				Select::Run()
+				if (Not(Equal(Select::Result(), 1)))    # 정답: 맞다
+					wrong.add(1)
+				ClearText()
+				Select::Init()
+				Select::Add("FORTRAN은 subroutine 기능이 없다.")
+				Select::Add("맞다")
+				Select::Add("아니다")
+				Select::Run()
+				if (Not(Equal(Select::Result(), 2)))    # 정답: 아니다
+					wrong.add(1)
+				ClearText()
+				Select::Init()
+				Select::Add("Small Talk, C++, Pascal은 현재 모두 객체지향 프로그래밍을 지원한다.")
+				Select::Add("맞다")
+				Select::Add("아니다")
+				Select::Run()
+				if (Not(Equal(Select::Result(), 1)))    # 정답: 맞다
+					wrong.add(1)
+				# 모든 문제에 답한 뒤 한꺼번에 판정한다
+				ClearText()
+				if (Equal(wrong, 0))
+					Talk("보물상자는 스스로 스르륵 열렸다.")
+					# 이름 있는 대원 전원(보조 일원 포함) 체력 +((행운÷5)+1)÷2 — 마법사 계열(family 1)은 체력 대신 정신력
+					if (Player::IsAvailable(1))
+						inc.assign(Div(Add(Div(Player::GetAttribute(1, "luck"), 5), 1), 2))
+						if (Equal(Player::GetAttribute(1, "family"), 1))
+							Player::AddAttribute(1, "mentality", inc)
+						else
+							Player::AddAttribute(1, "strength", inc)
+					if (Player::IsAvailable(2))
+						inc.assign(Div(Add(Div(Player::GetAttribute(2, "luck"), 5), 1), 2))
+						if (Equal(Player::GetAttribute(2, "family"), 1))
+							Player::AddAttribute(2, "mentality", inc)
+						else
+							Player::AddAttribute(2, "strength", inc)
+					if (Player::IsAvailable(3))
+						inc.assign(Div(Add(Div(Player::GetAttribute(3, "luck"), 5), 1), 2))
+						if (Equal(Player::GetAttribute(3, "family"), 1))
+							Player::AddAttribute(3, "mentality", inc)
+						else
+							Player::AddAttribute(3, "strength", inc)
+					if (Player::IsAvailable(4))
+						inc.assign(Div(Add(Div(Player::GetAttribute(4, "luck"), 5), 1), 2))
+						if (Equal(Player::GetAttribute(4, "family"), 1))
+							Player::AddAttribute(4, "mentality", inc)
+						else
+							Player::AddAttribute(4, "strength", inc)
+					if (Player::IsAvailable(5))
+						inc.assign(Div(Add(Div(Player::GetAttribute(5, "luck"), 5), 1), 2))
+						if (Equal(Player::GetAttribute(5, "family"), 1))
+							Player::AddAttribute(5, "mentality", inc)
+						else
+							Player::AddAttribute(5, "strength", inc)
+					if (Player::IsAvailable(6))
+						inc.assign(Div(Add(Div(Player::GetAttribute(6, "luck"), 5), 1), 2))
+						if (Equal(Player::GetAttribute(6, "family"), 1))
+							Player::AddAttribute(6, "mentality", inc)
+						else
+							Player::AddAttribute(6, "strength", inc)
+					DisplayStatus()
+					Notice("체력 또는 정신력 + 0 에서 + 2")
+					Flag::Set("KOBOLD_QUIZ_D_SOLVED")
+					halt
+				Flag::Set("KOBOLD_QUIZ_D_FAILED")
+			# 미미크 — 틀린 뒤로는 이 칸을 밟을 때마다 덤빈다. 다시 풀 기회는 없다. 덤빌 때마다 변신 서술이 나온다 (MYSTSPEC.PAS:1925~1934)
+			Talk("갑자기 보물상자의 양옆에서 팔이 나오고 밑에서 다리가 나오더니 괴물로 변해 당신을 공격하기 시작했다. 당신은 그것이 보물상자의 모습을 하고 있는 미미크라는 것을 금방 알아차렸다.")
+			PressAnyKey()
+			Battle::Init()
+			Battle::RegisterEnemy(46)    # 미미크
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("KOBOLD_MIMIC_D_DEAD")
+				Map::ChangeTile(81, 25, 43)                # 상자 그림이 사라진다
+				DisplayMap()
+			else
+				Party::Warp(80, 26)                           # 도망치면 남쪽으로 한 칸
+			halt
+
+		# 말하는 해골 (84,25) — 처음 한 번, 상자의 활성·코볼트 말과 관계없이 일어난다
+		# 이 사건이 에인션트 이블 신전의 무덤 앞 결계를 푼다 (KOBOLD_SKULL_WARNED)
+		if (On(84, 25))
+			if (Not(Flag::IsSet("KOBOLD_SKULL_WARNED")))
+				Talk("당신이 앞에 있는 보물상자를 보았을 때 섬찟함을 느끼며 한 걸음 물러섰다. 그 상자 위에는 인간의 해골이 앉아 있었고 그 해골에는 두 눈동자와 머리카락이 듬성듬성 붙어 있었다.")
+				Talk("스르르 해골이 고개를 들며 당신을 노려보았다. 당신은 다시 한 걸음을 물러섰다. 그러자 그 해골은 뼈뿐인 두 손을 들어 당신을 가리켰다. 그리고 인간의 말을 하기 시작했다.")
+				Say("해골", "당신은 당신들이 지금 하고 있는 일이 어떤 것인지 모르고 있다. 지금 이 시대가 정의라고 생각하는 것을 역사가 반드시 정의라고 평가짓지는 않을 것이다. 당신이 만약 에인션트 이블을 만나지 않았다면 당장 그를 만나보아라. 그를 통해 당신은 진정한 정의를 체험하게 될 것이다. 게다가 너는 ...")
+				Talk("그가 이런 말을 하고 있을 때 갑자기 천장을 뚫고 직격뇌진이 그를 강타했다. 당신은 순간적으로 벌어진 이 일을 보고 넋 나간 듯 얼마 동안 있다가 산산이 흩어진 뼈를 보며 방금의 말을 되새겼다.")
+				Flag::Set("KOBOLD_SKULL_WARNED")
+			# 해골이 앉아 있던 상자 — 다섯째 상자가 활성일 때 한 번. 퀴즈도 코볼트 말도 필요 없다
+			# 철퇴는 원작에서 양날 전투 도끼로 들어왔다 (부록 A #8) — 의도대로 철퇴를 준다
+			if (And(Equal(bitE, 1), Not(Flag::IsSet("KOBOLD_SKULL_CHEST_OPENED"))))
+				Talk("당신은 해골이 걸터앉아 있던 보물상자를 열었다.")
+				Item::Give("shield.chromatic", 1)
+				Notice("크로매틱 방패 + 1")
+				Item::Give("armour.brigandine", 1)
+				Notice("브리간디 + 1")
+				Item::Give("weapon.mace", 1)
+				Notice("철퇴 + 1")
+				Flag::Set("KOBOLD_SKULL_CHEST_OPENED")
+			halt
+		halt
+
+	# ──────── 코볼트킹 전당 (x 61~90, y 85~96) ────────
+
+	# 근위대장 (76,90)·(77,90) — 한 번. 도망치면 남쪽으로 한 칸 밀린다
+	if (OnArea(76, 90, 77, 90))
+		if (Not(Flag::IsSet("KOBOLD_ROYAL_GUARD_DEAD")))
+			Say("근위기사장", "나는 코볼트킹님의 근위대의 대장이다. 내가 살아 있는 한 너희들을 결코 이 안으로 한 발자국도 들여놓지 못할 것이다.")
+			Battle::Init()
+			Battle::RegisterEnemy(41, 2) # 코볼트성전사 2
+			Battle::RegisterEnemy(40)    # 코볼트위저드
+			Battle::RegisterEnemy(42)    # 소환주술사
+			Battle::RegisterEnemy(44)    # 근위기사장
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("KOBOLD_ROYAL_GUARD_DEAD")
+			else
+				Party::Warp(Party::PosX(), 91)
+		halt
+
+	# 코볼트킹 (76,86)·(77,86) — 혼자 싸운다, 적 선공, 반복 (12.4)
+	# 도망에 성공해도 결계에 막혀 곧바로 다시 싸우고, 앞에서 입힌 피해가 그대로 남는다 (BATTLE_REPEAT).
+	# 이기면 공간이동으로 사라진다 (KOBOLD_KING_FLED)
+	if (OnArea(76, 86, 77, 86))
+		if (Not(Flag::IsSet("KOBOLD_KING_FLED")))
+			Say("코볼트킹", "지상 최상 최대의 마도사인 나, 코볼트킹에게 도전해 오다니 정말 배짱 한번 좋구나. 네놈들은 나 혼자서 상대하겠다. 가소로운 것들...")
+			Battle::Init()
+			Battle::SetRepeatText("당신은 코볼트킹에게서 도망치려 했지만 그가 만든 결계를 벗어날 수가 없었다.")
+			Battle::RegisterEnemy(45)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, Add(BATTLE_NO_PRELUDE, BATTLE_REPEAT)))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Talk("당신이 코볼트킹을 물리쳤구나라고 생각했을 때 코볼트킹은 공간이동의 마법을 써서 어디론가 사라져 버렸다. 당신은 당황해서 이곳 전 지역을 투시해 보았지만 그는 없었다.")
+				Flag::Set("KOBOLD_KING_FLED")
+		halt
+
+	# ──────── 동문과 동쪽 관문 (y 60~61) ────────
+
+	# 동문 열쇠 칸 (124,60)·(124,61) — 백금 키 + 소환주술사 격파 → 동문 (123,60~61) 이 열리고 (122,60~61) 이 관문 전투 칸이 된다
+	if (OnArea(124, 60, 124, 61))
+		if (And(Flag::IsSet("KEY_PLATINUM"), Flag::IsSet("KOBOLD_GATE_C")))
+			Map::ChangeTileArea(123, 60, 123, 61, 43)
+			Map::ChangeTileArea(122, 60, 122, 61, 0)
+			DisplayMap()
+		halt
+
+	# 동쪽 관문 (122,60)·(122,61) — 한 번. 도망치면 동쪽으로 한 칸 밀린다
+	if (OnArea(122, 60, 122, 61))
+		if (Not(Flag::IsSet("KOBOLD_GATE_E")))
+			Say("코볼트 근위기사", "정말 끈질긴 인간들이군. 번번이 패하면서 또 시비를 걸어 오다니...")
+			Battle::Init()
+			Battle::RegisterEnemy(39, 6) # 근위기사 6
+			Battle::RegisterEnemy(40, 2) # 코볼트위저드 2
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("KOBOLD_GATE_E")
+			else
+				Party::Warp(123, Party::PosY())
+		halt
+
+	# ──────── 완전한 암흑 구역 (x 91~121, y 41~80) ────────
+
+	# 미로의 바닥은 거의 모두 숨은 칸이고, 밟으면 완전한 암흑이 된다 (횃불이 꺼진다 · DARKNESS_ZONE).
+	# 통로 y 60~61 은 평범한 바닥이라 여기로 오지 않는다 — 네 토막 x 89~91 / 93~105 / 107~118 / 121.
+	# 동문 → (121,62) → 남쪽 미로 → (108,75) → 북동 미로 → (105,58) → 통로 가운데 토막 → (93,60) → (91,60)
+	# 은 되돌아갈 수 없는 한 방향 길이다. (91,60) 에서 나가는 길은 에메랄드 문뿐이다
+	if (OnArea(91, 41, 121, 80))
+
+		# 순간 이동 칸 넷
+		# (93,60) → (91,60) — 통로 가운데 토막의 서쪽 끝 → 서쪽 토막. 암흑이 풀린다 (암흑 탈출)
+		if (On(93, 60))
+			Party::Warp(91, 60)
+			Map::SetDark(0)
+			Variable::Set("DARKNESS_ZONE", 0)
+			DisplayMap()
+			halt
+		# (119,61) → (121,61) — 통로 동쪽 토막의 끝 → 남쪽 미로 입구 바로 위. 암흑은 그대로
+		if (On(119, 61))
+			Party::Warp(121, 61)
+			DisplayMap()
+			halt
+		# (103,75) → (107,60) — 남쪽 미로의 되돌이 칸 → 통로 동쪽 토막. 암흑이 풀린다
+		if (On(103, 75))
+			Party::Warp(107, 60)
+			Map::SetDark(0)
+			Variable::Set("DARKNESS_ZONE", 0)
+			DisplayMap()
+			halt
+		# (108,75) → (102,49) — 남쪽 미로 → 북동 미로. 암흑은 그대로. 되돌아올 수 없다
+		if (On(108, 75))
+			Party::Warp(102, 49)
+			DisplayMap()
+			halt
+
+		# 미로 입구 칸 (91,59) 북서 미로 · (121,62) 남쪽 미로 — 켜고 끄는 칸
+		# 밝을 때 밟으면 암흑이 시작되고, 암흑 속에서 밟으면 풀린다
+		if (Or(On(91, 59), On(121, 62)))
+			if (Equal(Variable::Get("DARKNESS_ZONE"), 1))
+				Map::SetDark(0)
+				Variable::Set("DARKNESS_ZONE", 0)
+			else
+				Map::SetDark(1)
+				Party::SetTorch(0)
+				Variable::Set("DARKNESS_ZONE", 1)
+			DisplayMap()
+			halt
+
+		# 그 밖의 칸 — 밟으면 암흑 (이미 암흑이어도 횃불을 다시 끈다)
+		Map::SetDark(1)
+		Party::SetTorch(0)
+		Variable::Set("DARKNESS_ZONE", 1)
+
+		# 흑요석키 (91,41) — 북서 미로의 막다른 곳
+		if (On(91, 41))
+			if (Not(Flag::IsSet("KEY_OBSIDIAN")))
+				Talk("당신은 어둠 속에서도 반짝이는 물체를 하나 보았다. 자세히 보니 그것은 흑요석키였고 즉시 그것을 가졌다.")
+				Flag::Set("KEY_OBSIDIAN")
+
+		# 통로 여는 칸 (105,58) — 북동 미로. 바로 아래 벽 (105,59) 가 통로가 되어 통로 가운데 토막으로 내려간다
+		if (On(105, 58))
+			Map::ChangeTile(105, 59, 43)
+
+		# 영혼의 크리스탈 (106,54) — 북동 미로의 벽감. 숨은 장치 (64,25) 가 벽을 열어야 닿는다. 한 번
+		# 동료가 있으면 마지막 동료(2~5번 중 가장 뒤 번호)가 알아본다
+		if (On(106, 54))
+			if (Not(Flag::IsSet("KOBOLD_SOUL_CRYSTAL_TAKEN")))
+				Talk("당신은 벽에서 무언가 반짝이는 것이 있어 벽으로 다가갔다. 가까이에서 보니 그것은 수정이었다. 하지만 그 수정은 특이하게도 스스로 희미한 빛을 발하고 있었다. 당신이 수정 속을 들여다보았을 때 소스라치게 놀랄 수밖에 없었다. 그 속에는 형체를 분간하기 힘들 정도의 많은 영혼들이 배회하고 있었다. 그들이 아마 이 희미한 빛을 발하는 것 같았다. 당신이 약간의 힘을 주어 빼어 보니 쉽게 벽에서 떨어져 나왔다.")
+				found.assign(0)
+				if (Player::IsAvailable(2))
+					who.assign(Player::GetName(2))
+					found.assign(1)
+				if (Player::IsAvailable(3))
+					who.assign(Player::GetName(3))
+					found.assign(1)
+				if (Player::IsAvailable(4))
+					who.assign(Player::GetName(4))
+					found.assign(1)
+				if (Player::IsAvailable(5))
+					who.assign(Player::GetName(5))
+					found.assign(1)
+				if (Equal(found, 1))
+					Talk("그걸 보더니 {$who:이/가} 말했다.")
+					Say(who, "아니, 이건.... 이건 바로 그 전설 속에서나 논해지던 영혼의 크리스탈임에 틀림없네. 이것은 전 세계에 두 개밖에 존재하지 않는 귀한 것인데 우리가 발견했군.")
+				Item::Give("crystal.spirit", 1)
+				Flag::Set("KOBOLD_SOUL_CRYSTAL_TAKEN")
+
+		DisplayMap()
+		halt
+
+############################################################
+# 남은 것
+############################################################
+# (해결된 NEED) 반복 전투 — 코볼트킹은 BATTLE_REPEAT(도망쳐도 같은 적, 입힌 피해 그대로), 탈출은 BATTLE_RENEW
+#       (이기면 새 킹, 도망에 성공해야 끝)로 쓴다. 여덟 번까지 펼쳐 쓴 것을 걷었다.
+# (해결된 NEED) Map::IsTile · Map::GetTile — 원작처럼 칸을 읽는다: (8,30) 은 (9,30) 이 푯말인지, (58,101) 은
+#       (58,100) 이 늪인지, (48,73) 은 (46,47) 이 용암인지, (64,25) 는 (108,53) 이 닫힌 벽인지, 움직이는 바닥은
+#       옮겨 갈 칸이 평범한 바닥(43)인지 본다.
+# (해결된 NEED) Map::ReplaceTile — 용암→늪 · 용암→물을 사각형 하나로 쓴다. 원작 맵 데이터와 대조해 줄 단위로
+#       적었던 76칸 · 57칸과 같은 칸이 바뀐다.
+#
+# (원작 확인) 주인공 혼자일 때의 탈출 — 원작도 따로 처리하지 않는다. 탈출 전투는 도망에 성공해야 끝나고
+#       (repeat … until party.etc[6] = 2, MYSTSPEC.PAS:1458~1465) 주인공에게는 도망 명령이 없으니 질 때까지 싸운다.
+#       바꿀지는 부록 A D20 에서 정한다 — 지금은 원작대로다.
+# (원작 확인) 코볼트 말(getbit(11))을 보는 곳은 해골 상자 퀴즈뿐이다. 관문 · 대제사장 · 근위기사장 · 코볼트킹 ·
+#       불사의 코볼트킹 대사는 말을 몰라도 나온다(MYSTSPEC.PAS:1449~1456 · 1650~1716 · 1892 · 2295 · 2313).
+# (원작 확인) 상자 B · C · D 도 「…두개골이 당신에게 질문을 던졌다.」로 시작한다(MYSTSPEC.PAS:2033 · 2123 · 2195).
+# (원작 확인) 미미크는 덤빌 때마다 변신 서술이 나온다 — 서술이 battle1~4 표지 아래에 있다(MYSTSPEC.PAS:1925~1934).
+# (원작 확인) 사건 전투는 모두 BattleMode(FALSE,TRUE) — 머리말(적이 출현했다 · 교전/도망) 없이 적이 먼저 친다(16곳).
+# (원작 확인) 로드안의 봉인 장면은 성 밖 맵을 불러온 뒤에 나온다(DefaultExit 다음, MYSTSPEC.PAS:1467~1480) — Arrival 로 낸다.
+# (원작 확인) 음악은 요새형 공통 곡(Music5.Bgm) — 전용 곡이 있는 맵이 아니면 맵 유형으로 고른다(MYSTSUB.PAS:3021~3037).
+# (원작 확인) (105,59) 는 43 이 된다 — PutMap(105,59,43) (MYSTSPEC.PAS:1788).

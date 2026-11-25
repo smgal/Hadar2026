@@ -133,33 +133,27 @@ class HDWorldMap extends WorldMap {
           );
         }
 
-        if (unit.ixObj0 > 0) {
-          final lowerSprite = _getBSprite(unit.ixObj0);
-          if (lowerSprite != null) {
-            lowerSprite.paint.filterQuality = FilterQuality.low;
-            lowerSprite.render(
-              canvas,
-              position: Vector2(x * renderTileSize, y * renderTileSize),
-              size: Vector2(renderTileSize, renderTileSize),
-            );
-          }
-        }
-
-        if (unit.ixObj1 > 0) {
-          final upperSprite = _getBSprite(unit.ixObj1);
-          if (upperSprite != null) {
-            upperSprite.paint.filterQuality = FilterQuality.low;
-            upperSprite.render(
-              canvas,
-              position: Vector2(x * renderTileSize, y * renderTileSize),
-              size: Vector2(renderTileSize, renderTileSize),
-            );
-          }
-        }
+        // Bottom to top: L2 floor decor (z1) → L3 object (z2) →
+        // L4 top object (z3), then the night shadow. BP-36 R-36-57.
+        _renderBTile(canvas, x, y, unit.ixDecor);
+        _renderBTile(canvas, x, y, unit.ixObj0);
+        _renderBTile(canvas, x, y, unit.ixObj1);
 
         _renderShadow(canvas, x, y, unit.shadow);
       }
     }
+  }
+
+  void _renderBTile(Canvas canvas, int x, int y, int id) {
+    if (id <= 0) return;
+    final sprite = _getBSprite(id);
+    if (sprite == null) return;
+    sprite.paint.filterQuality = FilterQuality.low;
+    sprite.render(
+      canvas,
+      position: Vector2(x * renderTileSize, y * renderTileSize),
+      size: Vector2(renderTileSize, renderTileSize),
+    );
   }
 
   void _renderShadow(Canvas canvas, int x, int y, int shadowVal) {

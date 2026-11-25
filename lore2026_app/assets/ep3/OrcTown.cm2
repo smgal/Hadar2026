@@ -1,0 +1,315 @@
+####### 오크 마을 (OrcTown) ########
+# 근거: 기획서 05 §5.3 M3 · 06 §6.13 · 11 §11.2 · 12 §12.3·§12.4 · 14 §6.4 · 15 부록 A.2·A.4 · 16 부록 B.3,
+#       공략 원고 OrcTown.md/json
+# 시작 (25,44) · 요새형 · 기본 바닥 43 · 무작위 조우: 오크주민·병사·매직유저·전사 (오크킹 처치 전) · 마법 제한 없음
+#
+# 이 맵의 오크들은 원작에서 푯말 번호(53) 칸에 서 있고 대화로 처리된다 (11 §11.2 맵별 예외) — FLAG_TALK 로 온다.
+# 오크킹 (25,17) 만 입구 번호(54) 칸이다. 시체는 34번 칸 (요새형에서 벽 — 지나갈 수 없다).
+# 오크 말(ORC_SPEECH)을 모르면 오크의 대사는 들리지 않는다. 문지기만 인간의 말을 쓴다.
+
+include("common/const.cm2")
+variable(resident)
+variable(rx)
+variable(ry)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("orc_town")
+	# 12 §12.3 — 18 오크주민 · 19 오크병사 · 20 오크매직유저 · 21 오크전사. 오크킹을 처치하면 사라진다
+	Encounter::Clear()
+	if (Flag::IsSet("ORC_KING_DEAD"))
+		Encounter::Enable(0)
+	else
+		Encounter::Add(18, 21)
+		Encounter::Enable(1)
+	# 부록 B.3 — 오크킹을 처치하면 아래 기록이 모두 켜지므로 다음에 들어올 때 한꺼번에 적용된다
+	# 문지기 → (25,42~43) 개방
+	if (Flag::IsSet("ORC_GATE_OPEN"))
+		Map::ChangeTile(25, 42, 43)
+		Map::ChangeTile(25, 43, 43)
+	# 안뜰 경비 → (24,20)·(26,20) 개방
+	if (Flag::IsSet("ORC_YARD_OPEN"))
+		Map::ChangeTile(24, 20, 43)
+		Map::ChangeTile(26, 20, 43)
+	# 아키메이지 → (23,18) 을 바닥으로
+	if (Flag::IsSet("ORC_ARCHMAGE_DEAD"))
+		Map::ChangeTile(23, 18, 43)
+	# 오크킹 → (25~26,17) 개방
+	if (Flag::IsSet("ORC_KING_ROOM_CLEARED"))
+		Map::ChangeTile(25, 17, 43)
+		Map::ChangeTile(26, 17, 43)
+	# 주민 1~8 처단 → 각 자리에 시체
+	if (Flag::IsSet("ORC_RESIDENT_1_DEAD"))
+		Map::ChangeTile(10, 39, 34)
+	if (Flag::IsSet("ORC_RESIDENT_2_DEAD"))
+		Map::ChangeTile(9, 19, 34)
+	if (Flag::IsSet("ORC_RESIDENT_3_DEAD"))
+		Map::ChangeTile(13, 12, 34)
+	if (Flag::IsSet("ORC_RESIDENT_4_DEAD"))
+		Map::ChangeTile(21, 9, 34)
+	if (Flag::IsSet("ORC_RESIDENT_5_DEAD"))
+		Map::ChangeTile(43, 12, 34)
+	if (Flag::IsSet("ORC_RESIDENT_6_DEAD"))
+		Map::ChangeTile(44, 30, 34)
+	if (Flag::IsSet("ORC_RESIDENT_7_DEAD"))
+		Map::ChangeTile(35, 29, 34)
+	if (Flag::IsSet("ORC_RESIDENT_8_DEAD"))
+		Map::ChangeTile(41, 39, 34)
+
+####### 사람 ########
+
+if (Equal(ScriptMode(), FLAG_TALK))
+
+	# ---- 마을 입구 ----
+
+	# (25,42)·(25,43) 문지기 — 싸워 이기면 문이 열린다. 1번이나 Esc 는 아무 일 없이 끝난다 (밀려나지 않는다)
+	if (OnArea(25, 42, 25, 43))
+		Talk("마을의 문 앞을 지키고 있는 오크가 당신에게 인간의 말로 이렇게 말했다.")
+		Say("오크 문지기", "인간은 오크 마을에 들어올 수 없소.")
+		Say("오크 문지기", "썩 물러나시오!!")
+		Select::Init()
+		Select::Add("")
+		Select::Add("알았소, 나가면 될 거 아니오")
+		Select::Add("당신들을 쓰러뜨리고 지나가야겠소")
+		Select::Run()
+		if (Equal(Select::Result(), 2))
+			# 12 §12.4 — 오크병사 7, 일행 선공. 도망치면 그대로다 (다시 부딪혀 재도전)
+			Battle::Init()
+			Battle::RegisterEnemy(19, 7)
+			Battle::Start(BATTLE_NO_PRELUDE)
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("ORC_GATE_OPEN")
+				Map::ChangeTile(25, 42, 43)
+				Map::ChangeTile(25, 43, 43)
+				DisplayMap()
+
+	# ---- 궁전 ----
+
+	# (24,20)·(26,20) 안뜰 경비 — 고르는 것 없이 곧바로 전투
+	if (Or(On(24, 20), On(26, 20)))
+		if (Flag::IsSet("ORC_SPEECH"))
+			Say("오크 전사", "인간은 절대 이곳으로 들여보내지 않겠다. 자! 덤벼라.")
+		else
+			Talk("무장을 제법 갖춘 2명의 오크 전사와 다른 전투사들이 당신을 공격하기 시작했다.")
+		PressAnyKey()
+		# 12 §12.4 — 오크병사 3 · 오크매직유저 1 · 오크전사 2, 적 선공. 도망치면 그대로다
+		Battle::Init()
+		Battle::RegisterEnemy(19, 3)
+		Battle::RegisterEnemy(20, 1)
+		Battle::RegisterEnemy(21, 2)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("ORC_YARD_OPEN")
+			Map::ChangeTile(24, 20, 43)
+			Map::ChangeTile(26, 20, 43)
+			DisplayMap()
+
+	# (23,18) 아키메이지 · (26,17) 오크킹 곁의 오크 — 부딪혀도 아무 일이 없다 (부록 A.2).
+	# 싸움은 궁전 안의 칸을 밟아서 일어난다 (아래 이벤트 칸).
+
+	# ---- 주민 8명 — 말을 건 뒤 「죽인다/살린다」를 고른다 ----
+	# 오크킹을 처치한 그 방문 동안에는 (기록이 켜졌어도) 살아 있던 주민이 그대로 서 있고 말도 걸 수 있다.
+
+	resident.assign(0)
+
+	# (10,39) 오크 주민 1
+	if (On(10, 39))
+		resident.assign(1)
+		rx.assign(10)
+		ry.assign(39)
+		if (Flag::IsSet("ORC_SPEECH"))
+			Talk("제발 살려 주십시오. 저는 여태껏 남에게 해 한 번 안 입히고 살아왔습니다.")
+		else
+			Talk("당신 앞의 오크 주민이 무어라 당신에게 애원하는 듯했지만 알아들을 수는 없었다.")
+
+	# (9,19) 오크 주민 2 — 말을 알 때만
+	if (On(9, 19))
+		resident.assign(2)
+		rx.assign(9)
+		ry.assign(19)
+		if (Flag::IsSet("ORC_SPEECH"))
+			Say("오크 주민", "우리는 당신네 인간들에게 아무런 나쁜 짓도 안 했는데 왜 당신들은 우리를 못살게 구는 겁니까?")
+
+	# (13,12) 늙은 오크 (주민 3)
+	if (On(13, 12))
+		resident.assign(3)
+		rx.assign(13)
+		ry.assign(12)
+		if (Flag::IsSet("ORC_SPEECH"))
+			Talk("나는 이곳에서 50년 가까이 농사만 지으며 살아왔소. 이곳 밖으로 나가 본 적도 거의 없고, 더욱이 인간에게 밉보일 짓도 하지 않았소. 그런데 왜 당신들은 우리 마을을 짓밟고 우리 동족을 죽이려 하오?")
+		else
+			Talk("당신 앞에 있는 늙은 오크가 당신에게 무어라 질책하는 듯하였으나 도무지 말을 알아들을 수가 없었다.")
+
+	# (21,9) 오크 주민 4 — 말을 알 때만
+	if (On(21, 9))
+		resident.assign(4)
+		rx.assign(21)
+		ry.assign(9)
+		if (Flag::IsSet("ORC_SPEECH"))
+			Say("오크 주민", "분명 오크족 중에서도 나쁜 자가 있어서 지나가는 여행자들을 위협하기도 했던 게 사실이오. 하지만 대부분은 선량한 오크들이란 걸 알아 두시오.")
+
+	# (43,12) 오크 주민 5 — 말을 알 때만
+	if (On(43, 12))
+		resident.assign(5)
+		rx.assign(43)
+		ry.assign(12)
+		if (Flag::IsSet("ORC_SPEECH"))
+			Say("오크 주민", "당신네들이 이렇게 우리들을 못살게 군다면 오크킹님이 가만있지 않을 것입니다.")
+
+	# (44,30) 오크 주민 6 — 말을 알 때만
+	if (On(44, 30))
+		resident.assign(6)
+		rx.assign(44)
+		ry.assign(30)
+		if (Flag::IsSet("ORC_SPEECH"))
+			Say("오크 주민", "우리들은 에인션트 이블님을 정신적인 지도자로 생각하고 있습니다.")
+
+	# (35,29) 오크 청년 (주민 7)
+	if (On(35, 29))
+		resident.assign(7)
+		rx.assign(35)
+		ry.assign(29)
+		if (Flag::IsSet("ORC_SPEECH"))
+			Talk("로드안은 이 세계의 적입니다. 그리고 그를 따르는 당신도 적입니다.")
+		else
+			Talk("당신 앞에 있는 오크 청년은 당장이라도 달려들 듯이 당신에게 무어라 소리쳐 댔다.")
+
+	# (41,39) 오크 주민 8 — 말을 알 때만
+	if (On(41, 39))
+		resident.assign(8)
+		rx.assign(41)
+		ry.assign(39)
+		if (Flag::IsSet("ORC_SPEECH"))
+			Say("오크 주민", "우리 부족의 아키메이지는 코볼트족의 왕에게서 마법을 배웠습니다. 그라면 충분히 당신을 내쫓을 겁니다.")
+
+	# 공통 선택 — 2번이나 Esc 는 아무 일 없이 끝난다
+	if (Greater(resident, 0))
+		Select::Init()
+		Select::Add("당신 앞에 있는 오크족을 당신은 어떻게 할 것인가를 선택하시오.")
+		Select::Add("죽여 버린다")
+		Select::Add("그냥 살려 준다")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			# 12 §12.4 — 오크주민 1, 일행 선공. 도망치면 아무것도 바뀌지 않는다
+			Battle::Init()
+			Battle::RegisterEnemy(18, 1)
+			Battle::Start(BATTLE_NO_PRELUDE)
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				if (Equal(resident, 1))
+					Flag::Set("ORC_RESIDENT_1_DEAD")
+				if (Equal(resident, 2))
+					Flag::Set("ORC_RESIDENT_2_DEAD")
+				if (Equal(resident, 3))
+					Flag::Set("ORC_RESIDENT_3_DEAD")
+				if (Equal(resident, 4))
+					Flag::Set("ORC_RESIDENT_4_DEAD")
+				if (Equal(resident, 5))
+					Flag::Set("ORC_RESIDENT_5_DEAD")
+				if (Equal(resident, 6))
+					Flag::Set("ORC_RESIDENT_6_DEAD")
+				if (Equal(resident, 7))
+					Flag::Set("ORC_RESIDENT_7_DEAD")
+				if (Equal(resident, 8))
+					Flag::Set("ORC_RESIDENT_8_DEAD")
+				# 그 자리에 시체가 남는다
+				Map::ChangeTile(rx, ry, 34)
+				DisplayMap()
+
+####### 입구 ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	# (25,17) 오크킹 — 입구 번호 칸이지만 부딪혀도 아무 일이 없다 (부록 A.2). 전투는 방에 들어설 때 일어난다.
+	if (On(25, 17))
+		halt
+
+####### 이벤트 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# (24~26,45) 남쪽 출구 줄 → 가이아 테라 (82,48)
+	if (OnArea(24, 45, 26, 45))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E3_Ground2", 82, 48)
+		else
+			WarpPrevPos()
+
+	# (23~27,19) 아키메이지 일당 — 궁전 안 첫 줄, 이길 때까지. 대사는 오크 말을 알 때만
+	if (OnArea(23, 19, 27, 19))
+		if (Not(Flag::IsSet("ORC_ARCHMAGE_DEAD")))
+			Talk("당신 앞에는 어느새인가 매직유저들이 길을 막고 서 있었다.")
+			if (Flag::IsSet("ORC_SPEECH"))
+				Talk("그중에서 마법사 차림을 제대로 한 오크 하나가 당신에게 말을 했다.")
+				Say("오크 아키메이지", "나는 오크킹님을 위해 죽고 사는 아키메이지라고 한다. 나를 쓰러뜨리기 전에는 오크킹님을 만날 수가 없다.")
+			PressAnyKey()
+			# 12 §12.4 — 오크병사 3 · 오크매직유저 4 · 오크아키메이지 1, 적 선공. 도망치면 그 칸에 그대로 선다
+			Battle::Init()
+			Battle::RegisterEnemy(19, 3)
+			Battle::RegisterEnemy(20, 4)
+			Battle::RegisterEnemy(22, 1)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("ORC_ARCHMAGE_DEAD")
+				# (23,18) 에 서 있던 아키메이지가 사라진다
+				Map::ChangeTile(23, 18, 43)
+				DisplayMap()
+
+	# (24~27,16)·(24,17)·(27,17)·(24~27,18) 오크킹 일당 — 오크킹과 호위를 둘러싼 열 칸, 이길 때까지.
+	# 아키메이지 격파를 확인하지 않는다 (원작 그대로 — 부록 A.4). 대사는 오크 말을 알 때만
+	if (OnArea(24, 16, 27, 18))
+		if (Not(Flag::IsSet("ORC_KING_ROOM_CLEARED")))
+			Talk("당신이 오크킹에게 접근하자 모든 전투사들이 오크킹 주위를 막아섰다.")
+			if (Flag::IsSet("ORC_SPEECH"))
+				Talk("그러자 오크킹이 당신에게 말했다.")
+				Say("오크킹", "당신이 왜 나를 죽이려 하는지 모르겠지만 결과는 뻔한 일이다.")
+				Say("오크킹", "자! 한바탕 붙어보자!!")
+			PressAnyKey()
+			# 12 §12.4 — 오크전사 2 · 오크아키몽크 1 · 오크매직유저 2 · 오크킹 1, 적 선공
+			Battle::Init()
+			Battle::RegisterEnemy(21, 2)
+			Battle::RegisterEnemy(23, 1)
+			Battle::RegisterEnemy(20, 2)
+			Battle::RegisterEnemy(24, 1)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("ORC_KING_ROOM_CLEARED")
+				Flag::Set("ORC_KING_DEAD")
+				# 가이아 성주의 의뢰 — 받지 않았어도 곧바로 2단계
+				Variable::Set("GAEA_QUEST", 2)
+				# 문지기·안뜰 경비·아키메이지·주민의 기록이 모두 켜진다. 칸은 다음에 들어올 때 바뀐다 —
+				# 이 방문 동안에는 주민이 그대로 서 있다. 지금 바뀌는 칸은 (25,17)·(26,17) 뿐이다.
+				Flag::Set("ORC_GATE_OPEN")
+				Flag::Set("ORC_YARD_OPEN")
+				Flag::Set("ORC_ARCHMAGE_DEAD")
+				Flag::Set("ORC_RESIDENT_1_DEAD")
+				Flag::Set("ORC_RESIDENT_2_DEAD")
+				Flag::Set("ORC_RESIDENT_3_DEAD")
+				Flag::Set("ORC_RESIDENT_4_DEAD")
+				Flag::Set("ORC_RESIDENT_5_DEAD")
+				Flag::Set("ORC_RESIDENT_6_DEAD")
+				Flag::Set("ORC_RESIDENT_7_DEAD")
+				Flag::Set("ORC_RESIDENT_8_DEAD")
+				Map::ChangeTile(25, 17, 43)
+				Map::ChangeTile(26, 17, 43)
+				DisplayMap()
+				# 가이아 테라·오크 마을의 무작위 조우가 끝난다
+				Encounter::Enable(0)
+				Talk("당신은 오크족의 보스인 오크킹을 물리쳤다.")
+				# 죽지 않은 대원 전원 (의식불명 · 보조 일원 포함) 경험치 +15000
+				if (And(Player::IsAvailable(1), Equal(Player::GetAttribute(1, "dead"), 0)))
+					Player::AddAttribute(1, "exp", 15000)
+				if (And(Player::IsAvailable(2), Equal(Player::GetAttribute(2, "dead"), 0)))
+					Player::AddAttribute(2, "exp", 15000)
+				if (And(Player::IsAvailable(3), Equal(Player::GetAttribute(3, "dead"), 0)))
+					Player::AddAttribute(3, "exp", 15000)
+				if (And(Player::IsAvailable(4), Equal(Player::GetAttribute(4, "dead"), 0)))
+					Player::AddAttribute(4, "exp", 15000)
+				if (And(Player::IsAvailable(5), Equal(Player::GetAttribute(5, "dead"), 0)))
+					Player::AddAttribute(5, "exp", 15000)
+				if (And(Player::IsAvailable(6), Equal(Player::GetAttribute(6, "dead"), 0)))
+					Player::AddAttribute(6, "exp", 15000)
+				Notice("경험치 + 15000")
+			else
+				# 도망치면 궁전 밖 (25,21) 로 밀려난다
+				Party::Warp(25, 21)

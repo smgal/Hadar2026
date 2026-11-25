@@ -1,0 +1,11 @@
+name: lore_cm2_check
+description: lore2026_app 의 cm2 스크립트를 실행하지 않고 훑는 검사기 (문법 · 모르는 동사 · 인자 수 · 좌표 · 플래그 이름).
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  cm2_script:
+    path: ../../packages/cm2_script

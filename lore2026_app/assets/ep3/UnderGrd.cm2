@@ -1,0 +1,151 @@
+####### 하데스 테라 (E3_UnderGrd) — 80×70 · 필드형 ########
+# 로어 대륙 지하의 여섯 번째 테라. 로드안과 에인션트 이블의 투시가 닿지 않는다.
+# 근거: 기획서 제5장 5.5(X3) · 제6장 6.26 · 제9장 9.8 · 제12장 12.3 · 제14장 12 · 부록 A(#17 · #44)
+#       공략 3rd/src/maps/UnderGrd.md
+#
+# 들어오는 길 — 하데스 게이트 (21,33) → (31,21)
+# 나가는 길   — 없다. (46,48) 에서 크로매틱 크리스탈을 쓰면 빛의 지붕 (25,50) 으로 옮겨진다.
+#               빛의 지붕을 세운 뒤에는 크리스탈이 반응하지 않는다 (부록 A #44 의 의도).
+#
+# 밟는 사건은 없다. 이벤트 칸 (24,15) · (31,20) · (34,23) · (46,48) 과 바위로 그려진 숨은 길
+# (37,25)~(52,47) · (61,47)~(69,63) 은 모두 빈 칸이라 평범한 바닥처럼 지나간다 — 그래서
+# FLAG_EVENT 블록이 없다. 사람 · 푯말 · 입구 칸도 없다.
+#
+# 이 맵이 쓰는 기록
+#   ALLEGIANCE (변수, 부록 B)   1 = 충성 — 이 맵에 충성 루트로 오는 것은 결말 A 의 에필로그뿐이다
+#   DOME_STAGE (변수)           빛의 지붕의 단계. 0 아직 없다 · 1 공사 현장 · 2 빈 도시 · 3 주민 이주
+#                               (E3_Dome 과 episode.cm2 의 예약 2 · 3 이 함께 쓴다)
+#
+# 예약 — (46,48) 에서 크리스탈을 쓴 직후 Timer::Set(2, 20): 20분 뒤 episode.cm2 가 빈 도시를 세운다
+
+include("common/const.cm2")
+
+# ───────────────────────────── 맵에 들어온 직후 ─────────────────────────────
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("hades_terra")		# 하데스 테라 전용 곡 (제13장 13.11)
+	# 무작위 조우 — 불의 · 물의 · 바람의 · 땅의 정령 (6~9). 사라지는 조건이 없다.
+	Encounter::Clear()
+	Encounter::Add(6, 9)
+	Encounter::Enable(1)
+	# 마법 제한 없음 (제6장 6.1 「그 외」)
+
+	# ── 결말 A 의 에필로그 (충성 루트) ──
+	# 로드안이 땅속으로 떨어뜨린 에너지 공이 (31,21) 에서 (46,48) 까지 0.3초에 한 칸씩
+	# 대각선으로 날아간다 (제13장 13.9 · 부록 D, 소리 없음). 이어서 빛의 지붕의 장면으로.
+	# 로어성의 결말 A 스크립트가 LoadScript("E3_UnderGrd", 31, 21) 로 넘겨주면 여기가 받는다.
+	if (Equal(Variable::Get("ALLEGIANCE"), 1))
+		Encounter::Enable(0)
+		Music::Stop()
+		# 주인공 없이 화면만 흘러간다 — 일행 그림을 감추고, Party::Warp 로 카메라를 옮긴다
+		Party::Hide()
+		# (46,48) 에 빛의 지붕을 나타내는 성 그림 — 필드형 입구 54 (MYSTTAL2.PAS:664)
+		Map::ChangeTile(46, 48, 54)
+		Party::Warp(31, 21)
+		Actor::ShowSprite("에너지 공", 20, 31, 21)
+		DisplayMap()
+		# 로어성이 화면을 어둡게 한 채 넘겼다 — 에필로그는 이 FLAG_MAP 안에서 돌므로 여기서 걷는다
+		Screen::FadeIn(300)
+		# 에너지 공은 x·y 를 한 칸씩 목표 쪽으로 — 대각선으로 (46,36) 까지 간 뒤 곧장 아래로 (MYSTTAL2.PAS:667~673)
+		Party::Warp(32, 22)
+		Actor::ShowSprite("에너지 공", 20, 32, 22)
+		Wait(300)
+		Party::Warp(33, 23)
+		Actor::ShowSprite("에너지 공", 20, 33, 23)
+		Wait(300)
+		Party::Warp(34, 24)
+		Actor::ShowSprite("에너지 공", 20, 34, 24)
+		Wait(300)
+		Party::Warp(35, 25)
+		Actor::ShowSprite("에너지 공", 20, 35, 25)
+		Wait(300)
+		Party::Warp(36, 26)
+		Actor::ShowSprite("에너지 공", 20, 36, 26)
+		Wait(300)
+		Party::Warp(37, 27)
+		Actor::ShowSprite("에너지 공", 20, 37, 27)
+		Wait(300)
+		Party::Warp(38, 28)
+		Actor::ShowSprite("에너지 공", 20, 38, 28)
+		Wait(300)
+		Party::Warp(39, 29)
+		Actor::ShowSprite("에너지 공", 20, 39, 29)
+		Wait(300)
+		Party::Warp(40, 30)
+		Actor::ShowSprite("에너지 공", 20, 40, 30)
+		Wait(300)
+		Party::Warp(41, 31)
+		Actor::ShowSprite("에너지 공", 20, 41, 31)
+		Wait(300)
+		Party::Warp(42, 32)
+		Actor::ShowSprite("에너지 공", 20, 42, 32)
+		Wait(300)
+		Party::Warp(43, 33)
+		Actor::ShowSprite("에너지 공", 20, 43, 33)
+		Wait(300)
+		Party::Warp(44, 34)
+		Actor::ShowSprite("에너지 공", 20, 44, 34)
+		Wait(300)
+		Party::Warp(45, 35)
+		Actor::ShowSprite("에너지 공", 20, 45, 35)
+		Wait(300)
+		Party::Warp(46, 36)
+		Actor::ShowSprite("에너지 공", 20, 46, 36)
+		Wait(300)
+		Party::Warp(46, 37)
+		Actor::ShowSprite("에너지 공", 20, 46, 37)
+		Wait(300)
+		Party::Warp(46, 38)
+		Actor::ShowSprite("에너지 공", 20, 46, 38)
+		Wait(300)
+		Party::Warp(46, 39)
+		Actor::ShowSprite("에너지 공", 20, 46, 39)
+		Wait(300)
+		Party::Warp(46, 40)
+		Actor::ShowSprite("에너지 공", 20, 46, 40)
+		Wait(300)
+		Party::Warp(46, 41)
+		Actor::ShowSprite("에너지 공", 20, 46, 41)
+		Wait(300)
+		Party::Warp(46, 42)
+		Actor::ShowSprite("에너지 공", 20, 46, 42)
+		Wait(300)
+		Party::Warp(46, 43)
+		Actor::ShowSprite("에너지 공", 20, 46, 43)
+		Wait(300)
+		Party::Warp(46, 44)
+		Actor::ShowSprite("에너지 공", 20, 46, 44)
+		Wait(300)
+		Party::Warp(46, 45)
+		Actor::ShowSprite("에너지 공", 20, 46, 45)
+		Wait(300)
+		Party::Warp(46, 46)
+		Actor::ShowSprite("에너지 공", 20, 46, 46)
+		Wait(300)
+		Party::Warp(46, 47)
+		Actor::ShowSprite("에너지 공", 20, 46, 47)
+		Wait(300)
+		Party::Warp(46, 48)
+		Actor::ShowSprite("에너지 공", 20, 46, 48)
+		Wait(300)
+		LoadScript("E3_Dome", 26, 6)
+
+# ─────────────────────────── 이야기용 물건을 썼다 ───────────────────────────
+if (Equal(ScriptMode(), FLAG_ITEM))
+	# 크로매틱 크리스탈 — 정확히 (46,48) 에 서서 써야 한다. 옆 칸은 안 된다.
+	if (Equal(Item::Used(), "crystal.chromatic"))
+		if (And(On(46, 48), Equal(Variable::Get("DOME_STAGE"), 0)))
+			Talk("갑자기 당신의 위쪽에서 귀에 익은 음성이 들려왔다. 그 목소리의 주인공은 에인션트 이블이었다.")
+			Say("에인션트 이블", "역시 당신은 제가 생각했던 대로 정말 훌륭하십니다. 당신이 찾은 이곳이라면 아마 배리언트 피플즈의 사람들이 숨기에는 충분할 것입니다. 잠깐만 기다려 주십시오. 저의 염력으로 도시를 건설해 보겠습니다.")
+			PressAnyKey()
+			# 빛의 지붕의 공사 현장으로 — 20분 뒤 빈 도시(예약 2), 다시 30분 뒤 주민 이주(예약 3 은 2 가 건다)
+			Variable::Set("DOME_STAGE", 1)
+			Timer::Set(2, 20)
+			LoadScript("E3_Dome", 25, 50)
+		else
+			# 다른 칸이거나, 이미 빛의 지붕을 세운 뒤
+			Talk("크리스탈에는 아무런 반응이 없었다.")
+
+# (해결된 NEED) 일행 그림 감추기 — Party::Hide 로 주인공 없이 화면만 흘러간다(엔딩이 제목으로 돌아가며 다시 보인다).
+# (해결된 NEED) 에너지 공 그림 — 3부 스프라이트 20 을 배우로 세워 화면과 함께 옮긴다 (2026-11-16 원작자 확인).
+# (원작 확인) 성 그림은 필드형 입구 54, 에너지 공은 대각선으로 (46,36) 까지 15칸 뒤 아래로 12칸, 0.3초 간격
+#   (MYSTTAL2.PAS:664~673).

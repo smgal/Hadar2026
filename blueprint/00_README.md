@@ -15,7 +15,7 @@
 > **원작 방식(`assets/flag4ep1.cm2` + `L1_ep1d0~d5_1.cm2`, 2,441줄)이 이미 작동한다.**
 > 그래서 노선이 **sample-first + cm2** 로 바뀌었고, 선언적 콘텐츠 팩·인벤토리·저널·솔버는 **보류**되었다.
 >
-> - **여전히 정본**: [`_meta/GROUND_TRUTH.md`](_meta/GROUND_TRUTH.md)(코드 실측 부록 A~M) · [`_meta/DECISIONS.md`](_meta/DECISIONS.md)(D-01~D-31)
+> - **여전히 정본**: [`_meta/GROUND_TRUTH.md`](_meta/GROUND_TRUTH.md)(코드 실측 부록 A~M) · [`_meta/DECISIONS.md`](_meta/DECISIONS.md)(D-01~D-32)
 > - **1차 노선 기준이라 참고만**: [BP-01](01_executive_summary.md) 경영요약 · [BP-50](50_roadmap.md) 로드맵 · [BP-51](51_task_breakdown.md) 태스크
 > - **보류 노선의 설계**: BP-21~27(선언적 모델) · BP-31~34(서버·솔버·하네스) — 필요해질 때 꺼내 쓴다
 
@@ -102,7 +102,7 @@ Hadar2026 은 1990년대 한국 RPG **"또 다른 지식의 성전(Hadar)"** 의
 | [BP-33](33_validation_and_lint.md) | **검증 규칙 카탈로그** |
 | [BP-34](34_headless_sim_and_solver.md) | **시뮬레이터 · 솔버 · 선결 리팩터링** |
 | [BP-35](35_ci_and_build.md) | **빌드 산출물 · CI · 결정론** |
-| [BP-36](36_map_editor_extension.md) | 맵 에디터 확장 |
+| [BP-36](36_map_editor_extension.md) | 맵 에디터 확장 · **타일마다 AI 가 읽는 설명(타일 명세)** §11 (2026-11-09) |
 | [BP-37](37_prompt_contracts.md) | 프롬프트 원문 · 출력 스키마 · 검수 루브릭 |
 
 ### 4. 게임 변경 — "플레이가 어떻게 달라지는가"
@@ -138,7 +138,7 @@ Hadar2026 은 1990년대 한국 RPG **"또 다른 지식의 성전(Hadar)"** 의
 | 파일 | 역할 |
 |---|---|
 | [`_meta/GROUND_TRUTH.md`](_meta/GROUND_TRUTH.md) | **코드 실측 정본.** 부록 A~K 에 36개 항목 — 검증된 잠복 결함, 서술 정정, 집계 정정 |
-| [`_meta/DECISIONS.md`](_meta/DECISIONS.md) | **확정 결정 D-01~D-31.** 개정 이력(D-08a·D-20a·D-21a·D-29a) 포함, D-24 결번 |
+| [`_meta/DECISIONS.md`](_meta/DECISIONS.md) | **확정 결정 D-01~D-32.** 개정 이력(D-08a·D-20a·D-21a·D-29a) 포함, D-24 결번 |
 | [`_meta/OUTLINE.md`](_meta/OUTLINE.md) | 목차·배정표 |
 | [`_meta/REVIEW_RUBRIC.md`](_meta/REVIEW_RUBRIC.md) | 검수 7축 채점표 |
 | [`_meta/reviews/`](_meta/reviews/) | 장별 검수 보고서 |

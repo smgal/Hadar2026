@@ -1,0 +1,57 @@
+####### 제1부 용암의 대륙 (E1_Lava) — 50×50 필드 ########
+# 근거: 1st/05 §5.2 M6 · 1st/06 §6.2 · §6.13 · 1st/08 §8.2~8.3 · 1st/10 §9.2 · 1st/12 부록 B ·
+#       공략집 Walkthrough/1st/src/maps/Lava.md
+# 입구 둘: 임페리엄 마이너 (15,31), 이블 컨센트레이션 (34,14 — 처음 한 번 프로스트 드래곤 일당).
+# 도착 자리: 임페리엄 마이너에서 (15,32) · 이블 컨센트레이션에서 (34,15)
+
+include("common/const.cm2")
+variable(pos)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("ground")
+	# 원작 번호 33~49: 위습 … 히드라 (레벨 9~13)
+	Encounter::Clear()
+	Encounter::Add(33, 49)
+	Encounter::Enable(1)
+
+####### 입구 ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (On(15, 31))
+		Ask("IMPERIUM MINOR에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Imperium", 25, 45)
+		halt
+	# ---- 이블 컨센트레이션 — 처음 한 번 드래곤 6 + 프로스트 드래곤(2~6번째 자리 중 하나), 적 선공 ----
+	# 이겨야 들어간다. 도망치면 입구 앞에 남는다.
+	if (On(34, 14))
+		Ask("EVIL CONCENTRATION에 들어가기를 원합니까?")
+		if (Not(Equal(Select::Result(), 1)))
+			halt
+		if (Not(Flag::IsSet("EC_ENTRANCE_BATTLE")))
+			Say("프로스트 드래곤", "나는 EVIL CONCENTRATION 성의 입구를 지키는 임무를 맡고 있는 Frost Dragon이다. 내가 지키고 있는 한 너희들은 한 발자국도 들여놓지 않을 것이다.")
+			pos.assign(Add(2, Random(5)))
+			Battle::Init()
+			Battle::RegisterEnemy(54, 1)
+			if (Equal(pos, 2))
+				Battle::RegisterEnemy(69, 1)
+			Battle::RegisterEnemy(54, 1)
+			if (Equal(pos, 3))
+				Battle::RegisterEnemy(69, 1)
+			Battle::RegisterEnemy(54, 1)
+			if (Equal(pos, 4))
+				Battle::RegisterEnemy(69, 1)
+			Battle::RegisterEnemy(54, 1)
+			if (Equal(pos, 5))
+				Battle::RegisterEnemy(69, 1)
+			Battle::RegisterEnemy(54, 1)
+			if (Equal(pos, 6))
+				Battle::RegisterEnemy(69, 1)
+			Battle::RegisterEnemy(54, 1)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Not(Equal(Battle::Result(), BATTLERESULT_WIN)))
+				halt
+			Flag::Set("EC_ENTRANCE_BATTLE")
+		LoadScript("E1_EvilConc", 25, 45)

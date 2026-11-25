@@ -1,0 +1,193 @@
+####### 제1부 가이아 테라성 (E1_GaiaCastle) — 50×50 마을 ########
+# 근거: 1st/05 §5.2 M3·M5 · 1st/06 §6.2 · §6.8 · 1st/10 §6.1~6.2 · §11 · 1st/12 부록 B ·
+#       공략집 Walkthrough/1st/src/maps/GaiaCastle.md · 원작 칸 번호(maps.json)
+# 마을형 · 기본 바닥 44. 숨은 칸: 보물 창고의 단지 옆 다섯, 결계 (26,10)·(27,10), 스왐프 게이트 (24~29,5),
+# 남쪽 출구 줄 (25~28,46). 늪의 열쇠 = 워터 필드 의뢰 5 이상 (부록 B).
+# 도착 자리: 가이아 테라에서 (26,45) · 스왐프 게이트 동굴에서 (26,6)
+
+include("common/const.cm2")
+variable(temp)
+
+####### 맵에 들어올 때 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("town")
+
+####### 사람 ########
+
+if (Equal(ScriptMode(), FLAG_TALK))
+
+	# ---- 성주 (42,25) — 황금의 봉인과 퀘이크 (M3) ----
+	if (On(42, 25))
+		temp.assign(Variable::Get("GAIA_QUEST"))
+		if (Equal(temp, 0))
+			Say("가이아 테라 성주", "당신을 만나게 되어 영광이오.")
+			Say("가이아 테라 성주", "나는 LORE 대륙에서의 당신의 공훈을 높이 평가하며, 또한 LAST DITCH성을 구제한 것에 대해서도 감사를 표하오. LAST DITCH 성의 쌍둥이 성인 'VALIANT PEOPLES'는 Necromancer에 대한 강한 저항 때문에 그에 의해서 처참히 파괴되었소. 그런 후에 그는 'VALIANT PEOPLES'의 지하에다가 EVIL SEAL이라는 동굴을 구축하였소. 그리고 그는 EVIL SEAL의 어딘가에 이 대륙의 운명을 담고 있는 황금의 봉인을 숨겨 놓았소. 만약 그 봉인이 풀어진다면, 이 대륙은 봉인 속에서 나타난 괴물들에 의해서 황폐화될 것이오.")
+			Say("가이아 테라 성주", "한시바삐 EVIL SEAL로 가시오. 그리고 '황금의 봉인'을 찾으시오.")
+			Variable::Set("GAIA_QUEST", 1)
+			halt
+		if (Equal(temp, 1))
+			Say("가이아 테라 성주", "VALIANT PEOPLES에 있는 EVIL SEAL로 가서 황금의 봉인을 찾아오시오.")
+			Say("가이아 테라 성주", "지금 지체할 시간이 없소.")
+			halt
+		if (Equal(temp, 2))
+			Say("가이아 테라 성주", "오, 당신은 황금의 봉인을 찾았군요!")
+			Party::GiveExp(10000)
+			Notice("EXP + 10000")
+			Variable::Set("GAIA_QUEST", 3)
+			halt
+		if (Equal(temp, 3))
+			Say("가이아 테라 성주", "그러나 이 대륙에는 아직 위험한 장소가 많이 있소.")
+			Say("가이아 테라 성주", "여기로부터 북동쪽에 'QUAKE'라고 불리는 동굴이 있소. 만약 QUAKE마저 무너뜨리면, 이 대륙은 다시 평화롭게 될 것이오.")
+			Say("가이아 테라 성주", "QUAKE로 가서 보스인 ArchiGagoyle과 Zombie들을 물리쳐 주십시오.")
+			Variable::Set("GAIA_QUEST", 4)
+			halt
+		if (Equal(temp, 4))
+			Say("가이아 테라 성주", "QUAKE의 ArchiGagoyle을 물리치십시오.")
+			halt
+		if (Equal(temp, 5))
+			Say("가이아 테라 성주", "당신들은 위대한 영웅임에 틀림없군요.")
+			Party::GiveExp(40000)
+			Notice("EXP + 40000")
+			Say("가이아 테라 성주", "여기에 Water Key가 있소.")
+			Say("가이아 테라 성주", "이 열쇠는 WATER FIELD의 문을 열 것이오.")
+			Notice("물의 열쇠를 받았다")
+			Variable::Set("GAIA_QUEST", 6)
+			halt
+		Say("가이아 테라 성주", "WIVERN 동굴의 WATER FIELD의 문을 통하여 다음 대륙으로 가십시오.")
+		halt
+
+	# ---- 성 안 기사 여섯 ----
+	if (Or(OnArea(34, 24, 41, 24), OnArea(34, 27, 41, 27)))
+		if (Equal(Variable::Get("GAIA_QUEST"), 0))
+			Say("기사", "우리 성주님을 만나 보십시오.")
+		else
+			Say("기사", "당신의 성공을 빌겠습니다.")
+		halt
+
+	# ---- 시설 ----
+	if (Or(On(12, 11), Or(On(15, 12), On(12, 15))))
+		Shop::Training()
+		halt
+	if (Or(On(40, 37), Or(On(37, 39), On(41, 41))))
+		Shop::Grocery()
+		halt
+	if (Or(On(37, 10), Or(On(40, 12), On(41, 15))))
+		Shop::Weapon()
+		halt
+	if (Or(On(9, 39), Or(On(12, 41), On(16, 40))))
+		Shop::Hospital()
+		halt
+
+	# ---- 주민 ----
+	if (On(24, 38))
+		Say("주민", "EVIL SEAL의 어딘가에 '황금의 봉인'이 숨겨져 있다더군요.")
+		halt
+	if (On(23, 12))
+		Say("주민", "황금의 갑옷이 QUAKE 동굴 안에 숨겨져 있다는 소문이 떠돌고 있습니다.")
+		halt
+	if (On(28, 18))
+		Say("주민", "VALIANT PEOPLES 성은 Necromancer에 대한 강한 저항 때문에 그에 의해 쑥대밭이 되어 버렸습니다.")
+		halt
+	if (On(30, 31))
+		Say("주민", "VALIANT PEOPLES 최대의 사냥꾼인 Rigel은 성을 파괴시킨 적들을 물리치기 위해서 EVIL SEAL로 들어갔습니다.")
+		halt
+	if (On(34, 38))
+		Say("주민", "위쪽에는 SWAMP 대륙으로 통하는 문이 있지만 아무도 접근할 수가 없습니다.")
+		halt
+	if (On(38, 14))
+		Say("주민", "QUAKE 속에는 많은 비밀문이 있다고 들었습니다.")
+		halt
+	if (On(15, 42))
+		Say("주민", "WATER FIELD로 통하는 문에는 세 마리의 Wivern이 지키고 있습니다.")
+		halt
+	# 결계 안쪽 대기 통로 — 늪의 열쇠를 얻은 뒤에야 닿는다
+	if (On(26, 7))
+		Say("주민", "SWAMP 대륙으로 통하는 문에는 고르곤 세 자매가 살고 있소.")
+		halt
+
+####### 푯말 ########
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+	if (On(24, 26))
+		Talk("여기는 국왕의 보물 창고")
+		halt
+	Talk("여기는 'GAIA TERRA'성")
+	Talk("여러분을 환영합니다")
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 국왕의 보물 창고 — 문 없는 방. 단지 옆 칸 다섯에서 금화 5000씩 ----
+	if (On(10, 24))
+		if (Not(Flag::IsSet("GAIA_TREASURY_1")))
+			Flag::Set("GAIA_TREASURY_1")
+			Party::PlusGold(5000)
+			Notice("황금 + 5000")
+		halt
+	if (On(12, 26))
+		if (Not(Flag::IsSet("GAIA_TREASURY_2")))
+			Flag::Set("GAIA_TREASURY_2")
+			Party::PlusGold(5000)
+			Notice("황금 + 5000")
+		halt
+	if (On(15, 25))
+		if (Not(Flag::IsSet("GAIA_TREASURY_3")))
+			Flag::Set("GAIA_TREASURY_3")
+			Party::PlusGold(5000)
+			Notice("황금 + 5000")
+		halt
+	if (On(16, 23))
+		if (Not(Flag::IsSet("GAIA_TREASURY_4")))
+			Flag::Set("GAIA_TREASURY_4")
+			Party::PlusGold(5000)
+			Notice("황금 + 5000")
+		halt
+	if (On(18, 27))
+		if (Not(Flag::IsSet("GAIA_TREASURY_5")))
+			Flag::Set("GAIA_TREASURY_5")
+			Party::PlusGold(5000)
+			Notice("황금 + 5000")
+		halt
+
+	# ---- 결계 (26,10)·(27,10) — 늪의 열쇠가 없으면 밀려난다 (M5) ----
+	if (OnArea(26, 10, 27, 10))
+		if (Less(Variable::Get("WATERFIELD_QUEST"), 5))
+			Talk("알 수 없는 힘이 당신을 배척합니다.")
+			WarpPrevPos()
+		halt
+
+	# ---- 스왐프 게이트 (24~29,5) — 리메이크는 게이트에서도 열쇠를 검사한다 (부록 A #20) ----
+	if (OnArea(24, 5, 29, 5))
+		if (Less(Variable::Get("WATERFIELD_QUEST"), 5))
+			Talk("알 수 없는 힘이 당신을 배척합니다.")
+			WarpPrevPos()
+			halt
+		Ask("SWAMP GATE에 들어가기를 원합니까?")
+		if (Not(Equal(Select::Result(), 1)))
+			WarpPrevPos()
+			halt
+		# 일행이 게이트 안으로 걸어 올라간다
+		Party::Face(FACE_UP)
+		Party::Move(0, -1)
+		Wait(340)
+		Party::Move(0, -1)
+		if (Not(Flag::IsSet("SWAMP_GATE_VOICE")))
+			Flag::Set("SWAMP_GATE_VOICE")
+			Talk("SWAMP GATE로 들어가고 있는 당신에게 허공에서 갑자기 누군가가 말을 꺼낸다.")
+			Say("로드안", "나는 LORE 성의 성주 Lord Ahn이오.")
+			Say("로드안", "역시 내가 예상한 대로 당신들은 훌륭한 용사로 성장해 나가고 있소. 여태까지는 모험이 순조롭게 진행되었지만 이제부터는 완전한 적들의 소굴이오. 그래서 나도 직접적인 도움은 못 주더라도 여러 가지 조언을 해 주겠소.")
+			Say("로드안", "당신들은 식량을 많이 가지고 있소? 이 식량은 당신들을 회복시키기 위해 필요한 것이니 절대 바닥나게 해서는 안 되오. 왜냐하면 이 이후에 전개되는 모험에서는 식량을 파는 곳이 거의 없다고 생각해도 될 만큼 식량이 귀중하므로 낭패를 보는 일이 없도록 하시오.")
+			Say("로드안", "SWAMP의 대륙에서의 할 일을 요약하면 이렇소.")
+			Say("로드안", "스왐프 게이트와 통하는 SWAMP KEEP에는 많은 강한 괴물들이 버티고 있소. 하지만 그 전에 그 대륙에 있는 2개의 동굴 요새를 점령한 뒤에야 SWAMP KEEP의 중앙에 있는 라바 게이트를 작동시킬 수 있을 것이오. 그곳의 괴물들은 매우 힘든 상대일 것이오. 하지만 당신들의 능력이라면 충분히 가능할 것이오. 나는 당신들이 라바 게이트를 통과하려 할 때 다시 조언을 해 주겠소.")
+			Say("로드안", "그때까지 건투를 비는 바이오.")
+		LoadScript("E1_SwampGate", 81, 95)
+
+	# ---- 남쪽 출구 줄 (25~28,46) ----
+	if (OnArea(25, 46, 28, 46))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Gaia", 32, 82)
+		else
+			WarpPrevPos()

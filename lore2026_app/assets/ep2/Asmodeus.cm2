@@ -1,0 +1,164 @@
+####### 제2부 아스모데우스의 동굴 (E2_Asmodeus) — 50×50 동굴 (지하 세계 2) ########
+# 근거: 2nd/05 §5.2(3차 원정) · 2nd/06 §6.11 · 2nd/07 §7.2(마법 제한) · 2nd/08 §8.2~8.3 · 2nd/10 §9.1 · 2nd/12 부록 B ·
+#       공략집 Walkthrough/2nd/src/maps/Asmodeus.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥이 숨은 칸(0). 공간 이동·기화 이동·지형 변화가 막힌다. 레버 여섯이 가운데 블록 (24~27,21~28)의
+# 칸을 막힘(40)·통로(41)로 바꾼다 — 처음 당기면 「좌측」, 다시 당기면 「우측」. 들어올 때마다 모두 처음 상태.
+# 정답: 레버 1·2·3·5 를 한 번씩, 4·6 은 그대로(순서 무관). 들어오면 남 (25,44)·북 (25,7).
+# 나가면 y=6 → 지하 세계 2 (9,22) · y=45 → (14,44).
+
+include("common/const.cm2")
+variable(n)
+variable(left)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 53~61 (레벨 15~18)
+	Encounter::Clear()
+	Encounter::Add(53, 61)
+	Encounter::Enable(1)
+	Map::SetHandicap(HANDICAP_TELEPORT, 1)
+	Map::SetHandicap(HANDICAP_ETHEREAL, 1)
+	Map::SetHandicap(HANDICAP_TILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_BIGTILECHANGING, 1)
+	Flag::Reset("ASMODEUS_LEVER_1")
+	Flag::Reset("ASMODEUS_LEVER_2")
+	Flag::Reset("ASMODEUS_LEVER_3")
+	Flag::Reset("ASMODEUS_LEVER_4")
+	Flag::Reset("ASMODEUS_LEVER_5")
+	Flag::Reset("ASMODEUS_LEVER_6")
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 출구 ----
+	if (OnArea(1, 6, 50, 6))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E2_Underworld2", 9, 22)
+		else
+			WarpPrevPos()
+		halt
+	if (OnArea(1, 45, 50, 45))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E2_Underworld2", 14, 44)
+		else
+			WarpPrevPos()
+		halt
+
+	# ---- 아스모데우스 (25~26,9) ----
+	if (OnArea(25, 9, 26, 9))
+		if (Flag::IsSet("TRIP_ASMODEUS"))
+			halt
+		Talk("일행이 무언가에 홀린 듯 이 자리에 섰을 때 멀리서 희미한 형체가 여기로 다가옴을 알 수 있었다. 그의 모습은 근엄한 전사의 모습이었지만 왼손에는 방패가 아닌 마법의 지팡이가 쥐어져 있었다. 곧이어 그는 우리에게 말을 걸기 시작했다.")
+		Say("아스모데우스", "나의 명성은 익히 들어서 잘 알고 있겠지. 나는 세계 최고의 전투 마도사인 아스모데우스님이시다. 여기까지 침투해 오다니 굉장한 능력이군. 당신네들이 우리 편이었다면 상당히 도움이 되었을 텐데. 하지만 어쩔 수 없군. 여기를 당신네들의 무덤으로 만들 수밖에.")
+		Battle::Init()
+		Battle::RegisterEnemy(55, 1)
+		Battle::RegisterEnemy(56, 1)
+		Battle::RegisterEnemy(57, 1)
+		Battle::RegisterEnemy(58, 1)
+		Battle::RegisterEnemy(59, 1)
+		Battle::RegisterEnemy(69, 2)
+		Battle::RegisterEnemy(74, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Not(Equal(Battle::Result(), BATTLERESULT_WIN)))
+			Party::Warp(Party::PosX(), 10)
+			halt
+		Say("아스모데우스", "하지만 너의 실력으로도 메피스토펠레스님은 이기지 못할 게다. 그분은 불사불멸의 신적인 존재이니까.")
+		Talk("아스모데우스는 이 말을 마치고는 쓰러졌다.")
+		Flag::Set("TRIP_ASMODEUS")
+		halt
+
+	# ---- 레버 여섯 ----
+	n.assign(0)
+	if (On(14, 9))
+		n.assign(1)
+	if (On(14, 21))
+		n.assign(2)
+	if (On(14, 33))
+		n.assign(3)
+	if (On(37, 9))
+		n.assign(4)
+	if (On(37, 21))
+		n.assign(5)
+	if (On(37, 33))
+		n.assign(6)
+	if (Equal(n, 0))
+		halt
+	# 처음 당기면 좌측 — 표의 「40 이 되는 칸」은 막힘, 「41 이 되는 칸」은 통로. 다시 당기면 우측 — 반대로
+	left.assign(1)
+	if (Equal(n, 1))
+		if (Flag::IsSet("ASMODEUS_LEVER_1"))
+			left.assign(0)
+			Flag::Reset("ASMODEUS_LEVER_1")
+		else
+			Flag::Set("ASMODEUS_LEVER_1")
+	if (Equal(n, 2))
+		if (Flag::IsSet("ASMODEUS_LEVER_2"))
+			left.assign(0)
+			Flag::Reset("ASMODEUS_LEVER_2")
+		else
+			Flag::Set("ASMODEUS_LEVER_2")
+	if (Equal(n, 3))
+		if (Flag::IsSet("ASMODEUS_LEVER_3"))
+			left.assign(0)
+			Flag::Reset("ASMODEUS_LEVER_3")
+		else
+			Flag::Set("ASMODEUS_LEVER_3")
+	if (Equal(n, 4))
+		if (Flag::IsSet("ASMODEUS_LEVER_4"))
+			left.assign(0)
+			Flag::Reset("ASMODEUS_LEVER_4")
+		else
+			Flag::Set("ASMODEUS_LEVER_4")
+	if (Equal(n, 5))
+		if (Flag::IsSet("ASMODEUS_LEVER_5"))
+			left.assign(0)
+			Flag::Reset("ASMODEUS_LEVER_5")
+		else
+			Flag::Set("ASMODEUS_LEVER_5")
+	if (Equal(n, 6))
+		if (Flag::IsSet("ASMODEUS_LEVER_6"))
+			left.assign(0)
+			Flag::Reset("ASMODEUS_LEVER_6")
+		else
+			Flag::Set("ASMODEUS_LEVER_6")
+	if (Equal(left, 1))
+		Talk("일행은 레버를 좌측으로 밀었다.")
+	else
+		Talk("일행은 레버를 우측으로 밀었다.")
+	Talk("곧이어 굉음이 중앙에서 울려 나왔다.")
+	if (Equal(n, 1))
+		Map::ChangeTile(24, 23, Sub(41, left))
+		Map::ChangeTile(26, 24, Add(40, left))
+		Map::ChangeTile(26, 26, Add(40, left))
+		Map::ChangeTile(25, 28, Add(40, left))
+	if (Equal(n, 2))
+		Map::ChangeTile(26, 23, Sub(41, left))
+		Map::ChangeTile(26, 27, Sub(41, left))
+		Map::ChangeTile(25, 22, Add(40, left))
+		Map::ChangeTile(27, 26, Add(40, left))
+	if (Equal(n, 3))
+		Map::ChangeTile(24, 25, Sub(41, left))
+		Map::ChangeTile(26, 25, Sub(41, left))
+		Map::ChangeTile(26, 22, Add(40, left))
+		Map::ChangeTile(27, 24, Add(40, left))
+	if (Equal(n, 4))
+		Map::ChangeTile(26, 21, Sub(41, left))
+		Map::ChangeTile(25, 26, Sub(41, left))
+		Map::ChangeTile(27, 23, Add(40, left))
+		Map::ChangeTile(26, 28, Add(40, left))
+	if (Equal(n, 5))
+		Map::ChangeTile(25, 21, Sub(41, left))
+		Map::ChangeTile(25, 25, Sub(41, left))
+		Map::ChangeTile(25, 24, Add(40, left))
+		Map::ChangeTile(25, 27, Add(40, left))
+	if (Equal(n, 6))
+		Map::ChangeTile(25, 23, Sub(41, left))
+		Map::ChangeTile(27, 25, Sub(41, left))
+		Map::ChangeTile(24, 24, Add(40, left))
+		Map::ChangeTile(24, 26, Add(40, left))
+	DisplayMap()

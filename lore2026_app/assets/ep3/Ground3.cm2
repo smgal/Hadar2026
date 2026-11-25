@@ -1,0 +1,111 @@
+####### 제3부 — 아프로디테 테라 (Ground3, 필드형 100×100) #######
+# 근거: 기획서 05(M4·M5·L2) · 06(6.14) · 12(12.3·12.4) · 14(6.2 게이트 이동 · 7.1 · 11 충성 루트),
+#       공략 원고 Walkthrough/3rd/src/maps/Ground3.{md,json}
+#
+# 칸 종류 (maptool 로 확인):
+#   푯말   (35,33)
+#   입구   (69,29) 베스퍼성 · (81,15) 트롤 마을 · (81,76) 트롤의 비석
+#   이벤트 (13,11) 가이아 게이트
+#   숨은 칸 14개 (80,16)~(81,26) — 트롤 마을로 가는 산길. 사건이 없으므로 다루지 않는다
+#   (그냥 바닥처럼 걷는다 — 06 6.14)
+
+include("common/const.cm2")
+
+
+####### 맵에 들어왔다 #######
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("ground")                       # 필드형 공통 곡 (13.11)
+
+	# 무작위 조우: 트롤주민·트롤병사·트롤용사·트롤사냥꾼 — 트롤킹을 처치하면 사라진다 (12.3)
+	Encounter::Clear()
+	if (Flag::IsSet("TROLL_KING_DEAD"))
+		Encounter::Enable(0)
+	else
+		Encounter::Add(25, 28)
+		Encounter::Enable(1)
+
+
+####### 푯말 #######
+if (Equal(ScriptMode(), FLAG_SIGN))
+	# (35,33) 광산 푯말 — 이 대륙의 푯말은 이것 하나다
+	if (On(35, 33))
+		Talk("이 광산은 아직 개발 중이라 위험하므로")
+		Talk("출입을 금지함")
+
+
+####### 입구 #######
+if (Equal(ScriptMode(), FLAG_ENTER))
+	# (69,29) 베스퍼성 — 들어간 방향의 반대편 가장자리에서 시작한다 (06 6.15)
+	if (On(69, 29))
+		Ask("베스퍼성에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			if (Equal(Party::Faced(), FACE_RIGHT))
+				LoadScript("E3_Vesper", 6, 38)
+			if (Equal(Party::Faced(), FACE_LEFT))
+				LoadScript("E3_Vesper", 70, 38)
+			if (Equal(Party::Faced(), FACE_DOWN))
+				LoadScript("E3_Vesper", 38, 7)
+			if (Equal(Party::Faced(), FACE_UP))
+				LoadScript("E3_Vesper", 38, 69)
+
+	# (81,15) 트롤 마을 — 바로 아래 (81,16) 에서 위로 부딪혀 들어간다
+	if (On(81, 15))
+		Ask("트롤 마을에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E3_TrolTown", 25, 69)
+
+	# (81,76) 트롤의 비석 — 입구 칸이라 부딪혀서 읽는다. 트롤 글을 알면 트롤 말을 얻는다 (05 5.7)
+	if (On(81, 76))
+		if (Flag::IsSet("TROLL_SPEECH"))
+			Talk("당신 앞에는 반으로 쪼개어진 비석만 남아 있었다.")
+		else
+			if (Flag::IsSet("TROLL_SCRIPT"))
+				Talk("당신이 기묘한 비석 앞에 섰을 때 그것은 트롤 글로 적힌 주문이란 걸 알았다. 당신은 낮은 소리로 그 주문을 읊조렸다. 순간 비석이 둘로 쪼개어지며 에테르체의 형상이 나타났다. 그리고는 서서히 생체 플라즈마질의 트롤 형상으로 변해 갔다. 그것이 완전한 트롤의 형상으로 변하자 내게 무어라 알 수 없는 말을 지껄이더니 다시 당신의 모습으로 닮아 갔다. 당신의 모습으로 변한 플라즈마체의 기운은 서서히 당신의 몸속에 스며들어 갔다. 그 알 수 없는 존재와의 결합이 끝났을 때 당신은 그 존재가 지껄였던 말이 트롤족의 말이었음을 알게 되었다. 그리고 이제 당신이 트롤족의 말을 할 수 있다는 걸 깨닫게 되었다.")
+				Flag::Set("TROLL_SPEECH")
+			else
+				Talk("당신 앞에는 기묘한 도형이 새겨진 비석이 서 있었다.")
+
+
+####### 이벤트 칸 #######
+if (Equal(ScriptMode(), FLAG_EVENT))
+	# (13,11) 가이아 게이트 — 밟으면 묻지 않고 가이아 테라 (44,8) 로 돌아간다
+	if (On(13, 11))
+		Talk("당신이 이곳에 서자 새로운 풍경이 나타나기 시작했다.")
+		PressAnyKey()
+		LoadScript("E3_Ground2", 44, 8)
+
+
+####### 이야기용 물건을 썼다 #######
+if (Equal(ScriptMode(), FLAG_ITEM))
+	# 크리스탈 볼 (충성 루트 L2) — 원혼 봉인은 순서가 정해져 있고, 트롤의 원혼은 두 번째다
+	if (Equal(Item::Used(), "crystal.ball"))
+		if (GreaterEqual(Variable::Get("SPIRITS_SEALED"), 4))
+			Talk("크리스탈 볼 속에는 아무것도 떠오르지 않았다.")
+		else
+			if (And(Equal(Variable::Get("SPIRITS_SEALED"), 1), On(35, 34)))
+				# (35,34) 트롤의 원혼 — 61×1, 적 선공, 반복 (12.4)
+				Battle::Init()
+				Battle::RegisterEnemy(61, 1)
+				Battle::Start(Add(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE), BATTLE_REPEAT))
+				if (Equal(Battle::Result(), BATTLERESULT_WIN))
+					Talk("당신은 트롤의 원혼을 크리스탈 볼 속에 봉인시켰다.")
+					Variable::Set("SPIRITS_SEALED", 2)
+			else
+				# 지금 순서의 원혼이 있는 곳의 풍경(9×11칸)을 비춰 준다
+				Talk("당신은 수정 구슬을 통해 낯선 풍경을 보았다.")
+				# 봉인 수에 따라 다음 원혼이 있는 자리 — 가이아 (92,12) · 아프로디테 (35,34) · 이쉬도 (11,91) · 로어 대륙 (44,50)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 0))
+					Screen::ShowScenery("E3_Ground2", 92, 12)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 1))
+					Screen::ShowScenery("E3_Ground3", 35, 34)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 2))
+					Screen::ShowScenery("E3_Ground4", 11, 91)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 3))
+					Screen::ShowScenery("E3_Ground1", 44, 50)
+
+
+# (해결된 NEED — BATTLE_REPEAT 로 바꿨다) Battle::Start 의 「반복」 방식 (예: BATTLE_REPEAT) — 도망에 성공해도 같은 적과 곧바로
+#       다시 싸우고(다시 적 선공), 적은 다시 편성하지 않아 입힌 피해가 남는다 (12.4 표기 「반복」).
+#       반복문이 없어 스크립트로는 만들 수 없다. 이제 BATTLE_REPEAT 로 한다 (트롤의 원혼).
+# (해결된 NEED) 크리스탈 볼의 풍경 — Screen::ShowScenery 가 다음 원혼이 있는 자리의 9×11칸을 그 맵의 그림으로
+#       비춘다. 밤이고 달빛이 없으면 어둡게 그린다 (05 §5.4 L2).

@@ -1,0 +1,145 @@
+####### 제2부 베리알의 동굴 (E2_Belial) — 50×50 동굴 (지하 세계 1, 2차 원정) ########
+# 근거: 2nd/05 §5.2(2차 원정) · 2nd/06 §6.10 · 2nd/07 §7.2(맵별 마법 제한) · 2nd/08 §8.2~8.3 · 2nd/10 §8.4 ·
+#       2nd/12 부록 B · 공략집 Walkthrough/2nd/src/maps/Belial.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥 44. 밟는 칸(52): 호위대 (12,15), 가고일 (44,35), 오른팔 (29,14), 베리알 (25~26,10), 출구 줄 y=45.
+# 그 밖의 밟는 칸은 진행 방향으로 3칸 미끄러진다. 공간 이동·기화 이동·지형 변화가 막힌다(이동 구슬도).
+# 들어오면 (25,44), 나가면 지하 세계 1 (36,17).
+
+include("common/const.cm2")
+variable(f)
+variable(px)
+variable(py)
+variable(dx)
+variable(dy)
+variable(n)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 31~40 (레벨 8~10)
+	Encounter::Clear()
+	Encounter::Add(31, 40)
+	Encounter::Enable(1)
+	Map::SetHandicap(HANDICAP_TELEPORT, 1)
+	Map::SetHandicap(HANDICAP_ETHEREAL, 1)
+	Map::SetHandicap(HANDICAP_TILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_BIGTILECHANGING, 1)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 출구 줄 y=45 — 베리알을 처치했으면 입구를 무너뜨린다 ----
+	if (OnArea(1, 45, 50, 45))
+		Ask("여기서 나가기를 원합니까?")
+		if (Not(Equal(Select::Result(), 1)))
+			WarpPrevPos()
+			halt
+		if (Flag::IsSet("TRIP_BELIAL"))
+			Talk("일행은 베리알을 처치하고 무사히 동굴을 빠져나왔다. 하지만 거대하게 환생한 도마뱀 인간은 집요하게 일행에게 따라붙었다.")
+			Talk("@E인 녹스 그라브 ..@@")
+			Talk("일행은 '유독 가스' 마법을 동굴 안을 향해 사용했다.")
+			Talk("@E바스 포르 그라브 ..@@")
+			Talk("그리고 일행은 '초음파'를 이용하여 동굴 입구를 함몰시켰다.")
+			PressAnyKey()
+		LoadScript("E2_Underworld1", 36, 17)
+
+	# ---- 호위대 (12,15) — 요정 8, 이길 때까지. 도망치면 서쪽으로 한 칸 ----
+	if (On(12, 15))
+		if (Flag::IsSet("BELIAL_GUARD"))
+			halt
+		Say("베리알의 호위대", "당신이 여기를 지나가겠다고요? 그럼 우리들을 먼저 쓰러뜨리시지요.")
+		Battle::Init()
+		Battle::RegisterEnemy(35, 8)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("BELIAL_GUARD")
+		else
+			Party::Warp(11, 15)
+		halt
+
+	# ---- 가고일 (44,35) — 가고일 7, 이길 때까지. 도망치면 남쪽으로 한 칸 ----
+	if (On(44, 35))
+		if (Flag::IsSet("BELIAL_GARGOYLES"))
+			halt
+		Talk("일행이 앞으로 진행하려 했을 때 무언가 큰 물체와 마주치게 되었다. 그들은 눈을 번뜩이며 달려들었고 일행은 그 물체가 가고일들이라는 것을 알아챘다.")
+		Battle::Init()
+		Battle::RegisterEnemy(42, 7)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("BELIAL_GARGOYLES")
+		else
+			Party::Warp(44, 36)
+		halt
+
+	# ---- 베리알의 오른팔 (29,14) — 무형 괴물 5 + 사이클롭스 2 + 거대 사이클롭스, 반복 (1회) ----
+	if (On(29, 14))
+		if (Flag::IsSet("BELIAL_RIGHTARM"))
+			halt
+		Say("베리알의 오른팔", "내가 베리알님을 지키는 마지막 호위대이지.")
+		Say("베리알의 오른팔", "그 정도의 숫자로 여기까지 돌파해 오다니 조금은 존경할 만한 일이군. 나는 지금까지와는 격이 다르지. 바로 베리알님의 오른팔과 다름없는 존재이니까. 자, 덤벼라!!")
+		Battle::Init()
+		Battle::SetRepeatText("하지만 적은 끝까지 우리를 따라붙었다.")
+		Battle::RegisterEnemy(37, 5)
+		Battle::RegisterEnemy(47, 2)
+		Battle::RegisterVariant("giant_cyclops", 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, Add(BATTLE_NO_PRELUDE, BATTLE_REPEAT)))
+		Flag::Set("BELIAL_RIGHTARM")
+		halt
+
+	# ---- 베리알 (25~26,10) — 도마뱀 인간 4 + 베리알 → 부활한 도마뱀 인간 4 (일행 선공). 도망치면 입구 (25,44)로 ----
+	if (OnArea(25, 10, 26, 10))
+		if (Flag::IsSet("TRIP_BELIAL"))
+			halt
+		Say("베리알", "여기까지 잘도 왔군, {주인공}.")
+		Say("베리알", "너는 아마 나의 마법에 맥없이 쓰러질 것이다. 결국 그게 너의 운명이니까.")
+		Talk("@E오르트 일렘 .. 칼 젠 ..@@")
+		Talk("베리알은 소환 마법으로 주위의 도마뱀을 도마뱀 인간으로 소생시켰다.")
+		Battle::Init()
+		Battle::RegisterEnemy(59, 4)
+		Battle::RegisterEnemy(72, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Not(Equal(Battle::Result(), BATTLERESULT_WIN)))
+			Party::Warp(25, 44)
+			halt
+		Say("베리알", "으윽~~~ 하지만 내가 그리 쉽게 너에게 당할 것 같으냐!!")
+		Talk("베리알이 죽으면서 흘린 피가 도마뱀 인간의 시체로 스며들어 갔고 도마뱀 인간은 더욱 강하게 부활을 했다.")
+		# 베리알 처치는 여기서 기록된다 — 부활한 도마뱀 인간에게서 도망쳐도 처치는 남는다
+		Flag::Set("TRIP_BELIAL")
+		Battle::Init()
+		Battle::RegisterVariant("revived_lizard_man", 4)
+		Battle::Start(BATTLE_NO_PRELUDE)
+		if (Not(Equal(Battle::Result(), BATTLERESULT_WIN)))
+			Party::Warp(25, 44)
+		halt
+
+	# ---- 그 밖의 밟는 칸 — 진행 방향으로 3칸 미끄러진다 (부록 A #29 의 리메이크 규칙) ----
+	# 사이의 벽은 넘는다(원작의 지름길이 그것을 전제로 놓여 있다). 3칸 앞에 설 수 없으면 그 앞 — 2칸, 그것도 안 되면
+	# 1칸 — 에서 멈춘다. 내려선 칸의 사건은 일어난다: 또 미끄럼 칸이면 이어서 미끄러지고, 가고일 칸이면 가고일이 나온다.
+	px.assign(Party::PosX())
+	py.assign(Party::PosY())
+	f.assign(Party::Faced())
+	dx.assign(0)
+	dy.assign(0)
+	if (Equal(f, FACE_UP))
+		dy.assign(-1)
+	if (Equal(f, FACE_DOWN))
+		dy.assign(1)
+	if (Equal(f, FACE_LEFT))
+		dx.assign(-1)
+	if (Equal(f, FACE_RIGHT))
+		dx.assign(1)
+	n.assign(0)
+	if (Map::IsPassable(Add(px, dx), Add(py, dy)))
+		n.assign(1)
+	if (Map::IsPassable(Add(px, Mul(dx, 2)), Add(py, Mul(dy, 2))))
+		n.assign(2)
+	if (Map::IsPassable(Add(px, Mul(dx, 3)), Add(py, Mul(dy, 3))))
+		n.assign(3)
+	if (Greater(n, 0))
+		Party::Warp(Add(px, Mul(dx, n)), Add(py, Mul(dy, n)))
+		Event::StepAgain()
+
+# (해결된 NEED) 이동 구슬 — HANDICAP_TELEPORT 가 공간 이동과 함께 막는다 (메뉴가 구슬을 쓰기 전에 본다).
+# (해결된 NEED) 미끄러져 내려선 칸의 사건 — Event::StepAgain 으로 내려선 칸을 다시 밟는다 (또 미끄럼 칸이면 이어서 미끄러진다).

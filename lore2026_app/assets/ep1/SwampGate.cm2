@@ -1,0 +1,110 @@
+####### 제1부 스왐프 게이트 동굴 (E1_SwampGate) — 100×100 동굴 (원작 den4 의 남동 구역) ########
+# 근거: 1st/05 §5.2 M5 · 1st/06 §6.2 · §6.12 · 1st/08 §8.2 · 1st/10 §8 · 1st/12 부록 B ·
+#       공략집 Walkthrough/1st/src/maps/SwampGate.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥 42 · 무작위 조우 없음. 가라앉는 피라미드 (76~86,71~81)의 둘레 40칸이 밟는 칸(52)이다.
+# 고르곤 줄 (80~82,68)은 밟는 칸, 북쪽 문 (80~82,67)은 입구 칸(54), 남쪽 출구 (80~82,96)는 숨은 칸.
+# 도착 자리: 가이아 테라성에서 (81,95) · 스왐프 킵에서 (81,68)
+
+include("common/const.cm2")
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	Encounter::Clear()
+	Encounter::Enable(0)
+
+####### 입구 — 북쪽 문 → 스왐프 킵 ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (OnArea(80, 67, 82, 67))
+		Ask("SWAMP KEEP에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_SwampKeep", 25, 6)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 남쪽 출구 (80~82,96) ----
+	if (OnArea(80, 96, 82, 96))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_GaiaCastle", 26, 6)
+		else
+			WarpPrevPos()
+		halt
+
+	# ---- 고르곤 세 자매 (80~82,68) — 이기기 전까지 이 줄을 지날 때마다. 적 선공 (1st/08 §8.2) ----
+	# 스테노·에우리알레는 저항·방어 255 라 염력 말고는 통하지 않는다(부록 A D13).
+	if (OnArea(80, 68, 82, 68))
+		if (Flag::IsSet("GORGONS_DEFEATED"))
+			halt
+		Say("고르곤 세 자매", "우리들의 영역을 침범하는 자는 가만두지 않겠다!!!")
+		Battle::Init()
+		Battle::RegisterEnemy(50, 1)
+		Battle::RegisterEnemy(51, 1)
+		Battle::RegisterEnemy(52, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Talk("당신들은 Gorgon을 물리쳤다.")
+			Flag::Set("GORGONS_DEFEATED")
+		else
+			# 메두사(등록 3번째)를 쓰러뜨리고 도망쳤으면 그 칸에 선다 — 그대로 북쪽 문으로 갈 수 있다 (부록 A D13)
+			if (Not(Equal(Battle::EnemyDown(3), 1)))
+				WarpPrevPos()
+		halt
+
+	# ---- 가라앉는 피라미드 — 둘레 칸을 하나라도 밟으면 (81,77)로 끌려가 예언서를 읽는다 ----
+	# 원작은 기록이 없어 동굴에 들어올 때마다 다시 일어난다(부록 A D19 미정 — 원작대로 두었다).
+	# 끝나면 둘레는 평범한 바닥(41), 안쪽 벽은 그대로, 꼭대기 (81,76)은 물(48)이 된다 (공략집 리메이크 메모).
+	if (OnArea(76, 71, 86, 81))
+		Talk("알 수 없는 힘이 당신을 당기는 걸 느꼈다.")
+		Screen::FadeOut()
+		Map::ChangeTileArea(80, 71, 82, 71, 41)
+		Map::ChangeTileArea(79, 72, 80, 72, 41)
+		Map::ChangeTileArea(82, 72, 83, 72, 41)
+		Map::ChangeTileArea(78, 73, 79, 73, 41)
+		Map::ChangeTileArea(83, 73, 84, 73, 41)
+		Map::ChangeTileArea(77, 74, 78, 74, 41)
+		Map::ChangeTileArea(84, 74, 85, 74, 41)
+		Map::ChangeTileArea(76, 75, 77, 75, 41)
+		Map::ChangeTileArea(85, 75, 86, 75, 41)
+		Map::ChangeTile(76, 76, 41)
+		Map::ChangeTile(86, 76, 41)
+		Map::ChangeTileArea(76, 77, 77, 77, 41)
+		Map::ChangeTileArea(85, 77, 86, 77, 41)
+		Map::ChangeTileArea(77, 78, 78, 78, 41)
+		Map::ChangeTileArea(84, 78, 85, 78, 41)
+		Map::ChangeTileArea(78, 79, 79, 79, 41)
+		Map::ChangeTileArea(83, 79, 84, 79, 41)
+		Map::ChangeTileArea(79, 80, 80, 80, 41)
+		Map::ChangeTileArea(82, 80, 83, 80, 41)
+		Map::ChangeTileArea(80, 81, 82, 81, 41)
+		Party::Warp(81, 77)
+		Party::Face(FACE_UP)
+		Screen::FadeIn()
+		Notice("여기에는 기묘한 피라미드가 있었다")
+		Map::ChangeTile(81, 76, 48)
+		DisplayMap()
+		Notice("갑자기 피라미드가 아래로 가라앉기 시작했다")
+		Talk("그 물속에서 당신은 한 시대의 운명을 바라다보고 있었다. 당신은 왜 하필이면 당신이 이 세계에 뛰어들어 단신으로 악과 싸워야 하는 이유를 아는가?")
+		Talk("여기서 당신은 Lord Ahn, Ancient Evil, Necromancer의 관계를 기술한 예언서를 발견하여 읽기 시작했다.")
+		PressAnyKey()
+		SetHeader("CHAPTER 1")
+		Talk("이 세상에는 두 개의 개념이 필요하다.")
+		Talk("그것은 바로 선과 악이다.")
+		Talk("전자의 상징은 Lord Ahn이고, 후자의 상징은 Ancient Evil이다.")
+		PressAnyKey()
+		SetHeader("CHAPTER 2")
+		Talk("만약 당신이 황야에서 Ancient Evil을 만나더라도 두려워하지 말라. 그는 비록 악의 표상이지만 Necromancer가 행하는 악과는 다른 표현임을 명심하라. 만약 세상에 '선'만이 있고 이런 '악'은 존재하지 않는다면 누구도 선의 중요성을 인식하지 못한 채 보편적인 진리로만 인식되어 가는 시대가 올 것이며 선으로 둘러싸인 생활에 대한 고마움을 망각하는 시대가 우리 앞에 도래하는 때가 결국 올 것이다. 그런 때가 오기 전에 사람들이 이런 선의 소중함을 느끼고 스스로 지키려고 노력하게 만들 하나의 개념이 필요하게 되었는데 이것이 바로 태초에 생겨난 악의 개념이었다. 하지만 일부러 뭇사람들에게 비난을 사면서까지 악을 대표해 줄 만한 자는 나타나지 않았다. 이에 스스로를 악의 집대성으로 불러 주기를 요구하는 한 현자가 있었으니 본명은 알 수 없지만 그가 바로 Ancient Evil이라고 칭하는 자였다. 선에 의해 보호되어 너무나도 평화로운 생활을 해 왔던 사람들은 이제 새로운 마음을 갖고 그에게 대항하는 자세를 취하게 되었다. 하지만 그는 실제로 사람들에게 해를 입히지 않았으며 그의 본심은 선에 있다는 걸 알아 두기 바란다.")
+		PressAnyKey()
+		SetHeader("CHAPTER 3")
+		Talk("위에서 기술한 Ancient Evil이 의미하는 악과는 달리 Necromancer는 진정한 악의 의미를 알지 못한다. 그것으로 인해 Ancient Evil은 그를 벌하려 하는 것이다. 하지만 육체가 없어진 Ancient Evil의 능력으로는 그에게 대항하기가 어렵다고 단정하고는 그의 강력한 마력으로 미래의 역사를 뒤틀어 운명적으로 Necromancer에 대항하여야 하는 한 희생물을 창조해 냈으니.. ..그는 바로 당신인 것이다.")
+		PressAnyKey()
+		SetHeader("CHAPTER 4")
+		Talk("Necromancer에게 대항할 수 있는 단 두 명의 존재는 바로 Lord Ahn과 그의 대립자이며 깊은 관계를 가진 Ancient Evil이다.")
+		Talk("그들은 모두 Semi-God라는 계급의 인물들이며 보통의 사람들은 상대하기조차 어려운 인물들이며 능력 또한 인간을 초월하는 것뿐이다. 그러므로 만약 당신이 Necromancer를 응징하려고 한다면 먼저 당신 자신이 Semi-God가 되어야만 될 것이다.")
+		PressAnyKey()
+		SetHeader("")
+		halt

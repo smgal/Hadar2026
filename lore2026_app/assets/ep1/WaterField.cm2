@@ -1,0 +1,140 @@
+####### 제1부 워터 필드 (E1_WaterField) — 50×75 마을 ########
+# 근거: 1st/04 §4.3(로어 헌터) · 1st/05 §5.2 M4 · §5.3 S10 · 1st/06 §6.2 · §6.9 · 1st/10 §7.1~7.2 ·
+#       1st/12 부록 B · 공략집 Walkthrough/1st/src/maps/WaterField.md · 원작 칸 번호(maps.json)
+# 마을형 · 기본 바닥 27. 해자(y 47~48)로 남북이 갈린다 — 순간 이동 줄 y=46 → (x,50), y=49 → (x,45).
+# 북문 (25~26,7)은 입구 칸(22) → 와이번 동굴. 남쪽 출구 줄 (24~27,71)은 숨은 칸.
+# 도착 자리: 와이번 동굴에서 (26,8) · 물의 대륙에서 (25,70)
+
+include("common/const.cm2")
+variable(temp)
+variable(px)
+
+####### 맵에 들어올 때 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("town")
+	if (Flag::IsSet("LOREHUNTER_JOINED"))
+		Map::ChangeTile(40, 56, 44)
+
+####### 사람 ########
+
+if (Equal(ScriptMode(), FLAG_TALK))
+
+	# ---- 국왕 (25,18) — 히드라와 휴즈 드래곤 (M4) ----
+	if (On(25, 18))
+		temp.assign(Variable::Get("WATERFIELD_QUEST"))
+		if (Equal(temp, 0))
+			if (Not(Flag::IsSet("WATERFIELD_KING_GREETED")))
+				Say("워터 필드 국왕", "여기는 WATER FIELD라는 성이오. 이곳이 당신이 마지막으로 거칠 우리 편의 성이오.")
+				Say("워터 필드 국왕", "차원의 틈을 통해 Necromancer가 내려오던 날 이 대륙은 거의 전부가 바다로 가라앉았소. 하지만 그때에 살아남은 사람들은 아직 가라앉지 않은 이곳에 찾아와서 이 성을 건립했소. 그리고는 공이 컸던 나를 왕으로 추대했던 것이오.")
+				Say("워터 필드 국왕", "당신도 생각하고 있다시피 이 대륙은 거의 물로 덮여 있소. 하지만 이곳처럼 물이 차지 않은 두 곳에 Necromancer는 이미 이 대륙의 지배를 위한 동굴을 만들었소. 그 두 곳의 적들은 여타의 대륙과는 비교가 안 될 정도의 거대한 적들이 많이 있소.")
+				Say("워터 필드 국왕", "우리로서는 더 이상 손을 쓸 수가 없소. 이곳 사람들의 마지막 희망인 이곳이 적들에게 점령된다면 WIVERN 동굴로 이어지는 워터 게이트를 통해 다른 대륙도 하나둘씩 점령되어 갈 것이오.")
+				Flag::Set("WATERFIELD_KING_GREETED")
+				halt
+			# 단계 0 은 내력만 말하고 1 로 — 다음에 말을 걸면 의뢰 (M4)
+			Variable::Set("WATERFIELD_QUEST", 1)
+			temp.assign(1)
+		if (Equal(temp, 1))
+			Say("워터 필드 국왕", "먼저, 여기서 남서쪽의 어느 섬에 있는 동굴인 NOTICE에 가서 보스인 Hidra를 물리쳐 주십시오.")
+			halt
+		if (Equal(temp, 2))
+			Say("워터 필드 국왕", "Hidra를 물리치다니... 대단한 능력이오.")
+			Party::GiveExp(150000)
+			Notice("EXP + 150000")
+			Say("워터 필드 국왕", "이제는 소문으로만 듣던 당신들의 능력을 믿을 수 있겠소.")
+			Variable::Set("WATERFIELD_QUEST", 3)
+			halt
+		if (Equal(temp, 3))
+			Say("워터 필드 국왕", "이번에는 대륙의 동쪽에 있는 LOCKUP 동굴 속의 Huge Dragon을 물리쳐 주시오.")
+			halt
+		if (Equal(temp, 4))
+			Say("워터 필드 국왕", "역시 위대한 영웅이오!!")
+			Party::GiveExp(300000)
+			Notice("EXP + 300000")
+			Say("워터 필드 국왕", "여기에 Swamp Key가 있소.")
+			Notice("늪의 열쇠를 받았다")
+			Variable::Set("WATERFIELD_QUEST", 5)
+			halt
+		Say("워터 필드 국왕", "Swamp Key는 GAIA TERRA의 스왐프 게이트를 여는 데 사용되오. 거기서 늪의 대륙으로 가시오. 늪의 대륙은 완전한 적들의 소굴이므로 매우 주의하시오.")
+		halt
+
+	# ---- 로어 헌터 (40,56) — 합류 제의. 「기다리시오」를 고르면 다음에 다시 (S10) ----
+	if (On(40, 56))
+		Say("로어 헌터", "나는 LORE 특공대의 대장인 Lore Hunter라고 하오. 여기서의 적들과는 이제 대항하기가 혼자서는 무리라고 판단했소. 그래서 나는 여태껏 여기서 새로운 영웅들을 기다리고 있었소.")
+		Say("로어 헌터", "내가 당신의 일행에 끼게 되는 걸 어떻게 생각하오?")
+		Select::Init()
+		Select::Add("어떻게 하겠습니까?")
+		Select::Add("우리도 그러기를 바라오")
+		Select::Add("몸이 완전히 회복될 때까지 기다리시오")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			Party::JoinReplace("lore_hunter")
+			if (Equal(Party::Joined(), 1))
+				Flag::Set("LOREHUNTER_JOINED")
+				Map::ChangeTile(40, 56, 44)
+				DisplayMap()
+		halt
+
+	# ---- 시설 ----
+	if (Or(On(36, 32), Or(On(38, 33), On(39, 35))))
+		Shop::Training()
+		halt
+	if (Or(On(17, 57), Or(On(12, 59), On(11, 55))))
+		Shop::Grocery()
+		halt
+	if (Or(On(11, 30), Or(On(11, 32), On(13, 34))))
+		Shop::Weapon()
+		halt
+	if (Or(On(33, 60), Or(On(35, 54), On(41, 58))))
+		Shop::Hospital()
+		halt
+
+	# ---- 주민 ----
+	if (On(11, 16))
+		Say("주민", "NOTICE 동굴의 Hidra는 머리가 셋이나 달렸다더군요.")
+		halt
+	if (On(14, 18))
+		Say("주민", "NOTICE 동굴은 혼란스러운 미로라서 항상 주위를 염두에 두셔야 합니다.")
+		halt
+	if (On(24, 22))
+		Say("주민", "LOCKUP 동굴은 미로로 구성된 동굴이오.")
+		halt
+	if (On(27, 22))
+		Say("주민", "LOCKUP 속의 Minotaur는 Necromancer의 부하는 아닙니다.")
+		halt
+	if (On(24, 69))
+		Say("주민", "LOCKUP의 보스인 Huge Dragon은 아주 거대한 용이라는데, 그것의 꼬리 또한 강력한 무기라서 조심해야 할 것이오.")
+		halt
+	if (On(37, 16))
+		Say("주민", "고르곤 세 자매의 힘은 Necromancer의 힘과 필적하지만 중대한 약점이 하나 있소.")
+		halt
+	if (On(40, 18))
+		Say("주민", "Stheno와 Euryale는 거의 불멸의 생명체입니다.")
+		halt
+
+####### 입구 — 북문 (25~26,7) → 와이번 동굴 ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (OnArea(25, 7, 26, 7))
+		Ask("WIVERN에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Wivern", 20, 9)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	# 해자의 순간 이동 줄 — 한 방향씩 두 줄
+	if (OnArea(24, 46, 27, 46))
+		px.assign(Party::PosX())
+		Party::Warp(px, 50)
+		halt
+	if (OnArea(24, 49, 27, 49))
+		px.assign(Party::PosX())
+		Party::Warp(px, 45)
+		halt
+	if (OnArea(24, 71, 27, 71))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Water", 74, 20)
+		else
+			WarpPrevPos()

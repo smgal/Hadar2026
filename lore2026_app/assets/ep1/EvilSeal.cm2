@@ -1,0 +1,171 @@
+####### 제1부 이블 실 (E1_EvilSeal) — 50×75 동굴 ########
+# 근거: 1st/04 §4.3(리겔) · 1st/05 §5.2 M3 · §5.3 S8 · §5.4(퍼즐) · 1st/06 §6.10 · 1st/07 §7.4(절벽) ·
+#       1st/10 §6.3 · §11(이블 실 푯말) · 1st/12 부록 B · 공략집 Walkthrough/1st/src/maps/EvilSeal.md
+# 동굴형 · 기본 바닥이 검은 숨은 칸(0)이라 숨은 칸이 낭떠러지로 보인다. 낭떠러지: 입구 방 북쪽 띠 (5~46,58~61),
+# 문 세로 칸 x=12·19·26·33·40 (y 50~57), 기둥 길 x=13·18·23·29·34·39 (y 10~23).
+# 리겔 (12,48)과 출구 줄 y=71 은 밟는 칸(52). 들어오면 (25,70), 나가면 배리언트 피플즈 (39,7).
+
+include("common/const.cm2")
+variable(px)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 17~21: 블러드 뱃·자이언트 랫·스켈레톤·켈피·게이저 (레벨 5~6)
+	Encounter::Clear()
+	Encounter::Add(17, 21)
+	Encounter::Enable(1)
+	# 봉인을 찾았으면 받침 (18,9)는 비어 있다 (부록 B.3)
+	if (GreaterEqual(Variable::Get("GAIA_QUEST"), 2))
+		Map::ChangeTile(18, 9, 0)
+	# 리겔과 마주친 뒤에는 그 자리가 비어 있다
+	if (Flag::IsSet("RIGEL_MET"))
+		Map::ChangeTile(12, 48, 44)
+	# 문 줄 (y 49~50) 은 공간 이동으로 건너뛰지 못한다 — 첫 수수께끼를 지킨다 (공략집 리메이크 메모).
+	# 원작은 (26,51) 에서 북쪽 3 → (26,48) 로 건너뛸 수 있었다. 기화 이동은 문짝이 막힘이라 원래 넘지 못한다
+	Map::SetMagicBarrier(1, 49, 50, 50)
+
+####### 푯말 ########
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+	if (On(24, 68))
+		Talk("X는 7")
+		halt
+	if (On(27, 68))
+		Talk("Y는 9")
+		halt
+	if (On(25, 63))
+		Talk("바른 문의 번호는 X + Y")
+		halt
+	# 문 번호 — 각 문 세로 칸의 바로 동쪽, 서쪽부터 13~17
+	if (On(13, 56))
+		Talk("문의 번호는 '13'")
+		halt
+	if (On(20, 56))
+		Talk("문의 번호는 '14'")
+		halt
+	if (On(27, 56))
+		Talk("문의 번호는 '15'")
+		halt
+	if (On(34, 56))
+		Talk("문의 번호는 '16'")
+		halt
+	if (On(41, 56))
+		Talk("문의 번호는 '17'")
+		halt
+	if (On(26, 42))
+		Talk("Z는 2 * Y + X")
+		halt
+	if (On(26, 33))
+		Talk("패스코드 x 패스코드는 Z라면")
+		Talk("패스코드는 무엇인가?")
+		halt
+	# 패스코드 번호 — 각 기둥 길 바로 아래, 서쪽부터 4~9
+	if (On(13, 29))
+		Talk("패스코드는 '4'")
+		halt
+	if (On(18, 29))
+		Talk("패스코드는 '5'")
+		halt
+	if (On(23, 29))
+		Talk("패스코드는 '6'")
+		halt
+	if (On(29, 29))
+		Talk("패스코드는 '7'")
+		halt
+	if (On(34, 29))
+		Talk("패스코드는 '8'")
+		halt
+	if (On(39, 29))
+		Talk("패스코드는 '9'")
+		halt
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 출구 줄 y=71 ----
+	if (OnArea(1, 71, 50, 71))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Valiant", 39, 7)
+		else
+			WarpPrevPos()
+		halt
+
+	# ---- 리겔 (12,48) — 한 번 (S8) ----
+	if (On(12, 48))
+		if (Flag::IsSet("RIGEL_MET"))
+			halt
+		Talk("일행들은 심한 부상 때문에 거의 몸을 가누지 못하는 한 남자와 마주쳤다.")
+		Say("리겔", "나는 VALIANT PEOPLES의 용사였던 Rigel이오. 내가 동굴 속에서 적들을 막아 내는 동안 지각 변동으로 인해 이런 절벽이 군데군데 생겼소. 나는 이제 너무 지치고 많은 상처를 입어서 혼자 힘으로는 이곳을 빠져나갈 수가 없소.")
+		Say("리겔", "나를 도와주시오.")
+		Select::Init()
+		Select::Add("어떻게 하겠습니까?")
+		Select::Add("좋소, 같이 모험을 합시다")
+		Select::Add("식량과 치료는 해결해 주겠소")
+		Select::Add("당신을 도와줄 시간이 없소")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			Party::JoinReplace("rigel")
+			if (Not(Equal(Party::Joined(), 1)))
+				# 교체할 사람 고르기를 취소했다 — 리겔은 그 자리에 남는다
+				WarpPrevPos()
+				halt
+			# 심한 부상 — HP 1 로 합류한다 (1st/04 §4.3)
+			Player::ChangeAttribute(Party::JoinedSeat(), "hp", 1)
+		if (Equal(Select::Result(), 2))
+			# 주인공의 마력을 모두 쓰고 식량 5 를 나눠 준다 (S8)
+			Player::ChangeAttribute(1, "mp", 0)
+			Party::PlusFood(-5)
+			Talk("일행은 그에게 치료 마법을 사용하여 상처를 모두 치료한 후 그가 이곳을 빠져나갈 수 있을 정도의 식량을 나누어 주었다. 그러자 Rigel이란 그 용사는 우리의 무기에 신의 축복을 내려 주고는 자신의 길을 떠났다.")
+			# 신의 축복 — 무기를 든 대원마다 행운 판정 두 번을 모두 통과하면 무기 공격력 ×1.2. 무기를 바꾸면 끝난다
+			Party::BlessWeapons()
+		if (Equal(Select::Result(), 0))
+			WarpPrevPos()
+			halt
+		Flag::Set("RIGEL_MET")
+		Map::ChangeTile(12, 48, 44)
+		DisplayMap()
+		halt
+
+	# ---- 낭떠러지 — 공중 부상이 없으면 제자리로 (1st/07 §7.4). 아래 퍼즐 칸도 모두 낭떠러지 위다 ----
+	if (Not(Equal(Party::CheckIf(CHECKIF_LEVITATION), 1)))
+		Talk("일행들은 절벽으로 떨어질 뻔했다.")
+		WarpPrevPos()
+		halt
+
+	# ---- 다섯 개의 문 — 북쪽으로 걸어 맨 위 칸 (x,50)에 들어설 때만 판정. 정답은 16번 문 x=33 ----
+	if (OnArea(12, 50, 40, 50))
+		if (Not(Equal(Party::Faced(), FACE_UP)))
+			halt
+		if (On(33, 50))
+			Talk("여기는 옳은 문이었다.")
+			Map::ChangeTile(33, 49, 0)
+			DisplayMap()
+		else
+			Talk("당신은 바보군요, 다시 생각하십시오.")
+			Party::Warp(25, 70)
+		halt
+
+	# ---- 여섯 기둥 길의 꼭대기 (x,10) — 정답은 패스코드 5, x=18 ----
+	if (OnArea(13, 10, 39, 10))
+		px.assign(Party::PosX())
+		if (Equal(px, 18))
+			# 의도: 의뢰를 받은 뒤에만 봉인이 나온다 (원작은 의뢰 전에도 나왔다 — 부록 A #11)
+			if (Equal(Variable::Get("GAIA_QUEST"), 1))
+				Notice("당신은 황금의 봉인을 찾았다!!")
+				Talk("그러므로 당신의 임무는 성공했다. 이제는 GAIA TERRA로 돌아가라.")
+				Variable::Set("GAIA_QUEST", 2)
+				Map::ChangeTile(18, 9, 0)
+				DisplayMap()
+			halt
+		# 틀린 길 — 그 길의 (x,10)~(x,23) 이 모두 독의 늪(49)이 된다
+		Map::ChangeTileArea(px, 10, px, 23, 49)
+		DisplayMap()
+		halt
+
+# (해결된 NEED) 리겔의 「신의 축복」 — Party::BlessWeapons 가 대원마다 행운 판정 두 번(0~19 < 행운)을 하고 둘 다
+#       통과하면 그 무기의 공격력을 ×1.2 로 한다 (1st/05 S8). 무기를 바꾸거나 내려놓으면 끝난다.
+# (해결된 NEED) 문 줄(y 49~50)을 넘는 공간 이동 — FLAG_MAP 의 Map::SetMagicBarrier 가 막는다.

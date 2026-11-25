@@ -1,0 +1,140 @@
+####### 제1부 임페리엄 마이너 (E1_Imperium) — 50×50 요새 ########
+# 근거: 1st/05 §5.2 M6 · 1st/06 §6.2 · §6.13 · 1st/08 §8.2 · 1st/10 §9 · 1st/12 부록 B ·
+#       공략집 Walkthrough/1st/src/maps/Imperium.md · 원작 칸 번호(maps.json)
+# 요새형 · 기본 바닥 40 · 무작위 조우 없음. 가운데 성소는 걸어서 들어갈 수 없다 — 공간 이동이나 지형 변화(부록 A D10).
+# 밟는 칸(52): 데스 나이트 (25,18), 문지기 줄 (24~26,25), 남쪽 출구 (23~27,46). 그 밖의 숨은 칸 70곳은 레이스 칸.
+# 입구 칸(54): 북쪽 게이트 (24~26,5) → 스왐프 킵, 성소의 입구 (25,23) → 라스트 셸터.
+# 도착 자리: 라바 게이트에서 (25,6) · 용암의 대륙에서 (25,45) · 라스트 셸터에서 (25,24)
+
+include("common/const.cm2")
+variable(pos)
+variable(kind)
+variable(px)
+variable(py)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("keep")
+	Encounter::Clear()
+	Encounter::Enable(0)
+	if (Flag::IsSet("DEATH_KNIGHT_DEAD"))
+		Map::ChangeTile(25, 18, 46)
+	if (Flag::IsSet("IMPERIUM_GROUP"))
+		Map::ChangeTileArea(24, 25, 26, 25, 46)
+
+####### 입구 ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (OnArea(24, 5, 26, 5))
+		Ask("SWAMP KEEP에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_SwampKeep", 25, 20)
+		halt
+	if (On(25, 23))
+		Ask("LAST SHELTER에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_LastShelter", 25, 45)
+		halt
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	px.assign(Party::PosX())
+	py.assign(Party::PosY())
+
+	# ---- 데스 나이트 (25,18) — 선택 전투. 레이스 4 + 데스 나이트(1~5번째 자리 중 하나), 적 선공 ----
+	if (On(25, 18))
+		if (Flag::IsSet("DEATH_KNIGHT_DEAD"))
+			halt
+		Say("데스 나이트", "나는 이 요새의 Wraith를 조종하는 죽음의 기사 Death Knight이다. 나에게 도전하다니 가소로운 것들. 으하하....")
+		pos.assign(Random(5))
+		Battle::Init()
+		if (Equal(pos, 0))
+			Battle::RegisterEnemy(63, 1)
+		else
+			Battle::RegisterEnemy(60, 1)
+		if (Equal(pos, 1))
+			Battle::RegisterEnemy(63, 1)
+		else
+			Battle::RegisterEnemy(60, 1)
+		if (Equal(pos, 2))
+			Battle::RegisterEnemy(63, 1)
+		else
+			Battle::RegisterEnemy(60, 1)
+		if (Equal(pos, 3))
+			Battle::RegisterEnemy(63, 1)
+		else
+			Battle::RegisterEnemy(60, 1)
+		if (Equal(pos, 4))
+			Battle::RegisterEnemy(63, 1)
+		else
+			Battle::RegisterEnemy(60, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("DEATH_KNIGHT_DEAD")
+			Map::ChangeTile(25, 18, 46)
+			DisplayMap()
+		halt
+
+	# ---- 성소 문지기 (24~26,25) — 라스트 셸터로 가는 유일한 줄. 일행 선공 ----
+	if (OnArea(24, 25, 26, 25))
+		if (Flag::IsSet("IMPERIUM_GROUP"))
+			halt
+		Battle::Init()
+		Battle::RegisterEnemy(61, 1)
+		Battle::RegisterEnemy(58, 1)
+		Battle::RegisterEnemy(56, 1)
+		Battle::RegisterEnemy(55, 1)
+		Battle::RegisterEnemy(60, 1)
+		Battle::Start(BATTLE_NO_PRELUDE)
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("IMPERIUM_GROUP")
+			Map::ChangeTileArea(24, 25, 26, 25, 46)
+			DisplayMap()
+		halt
+
+	# ---- 남쪽 출구 (23~27,46) — 메가 로보를 쓰러뜨릴 때까지 나갈 때마다. 적 선공 ----
+	# 졸개 여섯은 스프라이트·와이번·그림 데스·그리핀·이블 소울 중 한 종류. 의도: 이겨야 나간다 (부록 A #10)
+	if (OnArea(23, 46, 27, 46))
+		Ask("여기서 나가기를 원합니까?")
+		if (Not(Equal(Select::Result(), 1)))
+			WarpPrevPos()
+			halt
+		if (Not(Flag::IsSet("IMPERIUM_EXIT_BATTLE")))
+			Say("적의 우두머리", "{주인공}, 나의 힘을 보여 주겠다.")
+			kind.assign(Random(5))
+			Battle::Init()
+			if (Equal(kind, 0))
+				Battle::RegisterEnemy(35, 6)
+			if (Equal(kind, 1))
+				Battle::RegisterEnemy(43, 6)
+			if (Equal(kind, 2))
+				Battle::RegisterEnemy(44, 6)
+			if (Equal(kind, 3))
+				Battle::RegisterEnemy(45, 6)
+			if (Equal(kind, 4))
+				Battle::RegisterEnemy(46, 6)
+			Battle::RegisterEnemy(66, 1)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			# 메가 로보(등록 7번째)를 쓰러뜨렸으면 다시 나오지 않는다 — 도망쳤으면 이번에는 나가지 못한다
+			if (Equal(Battle::EnemyDown(7), 1))
+				Flag::Set("IMPERIUM_EXIT_BATTLE")
+			if (Not(Equal(Battle::Result(), BATTLERESULT_WIN)))
+				WarpPrevPos()
+				halt
+			Flag::Set("IMPERIUM_EXIT_BATTLE")
+		LoadScript("E1_Lava", 15, 32)
+
+	# ---- 바깥 벌판의 레이스 칸 — 데스 나이트를 쓰러뜨리기 전까지 레이스 5, 적 선공 ----
+	# 의도: 이겼을 때만 칸이 사라진다 (원작은 도망쳐도 사라졌다 — 부록 A #27)
+	if (Flag::IsSet("DEATH_KNIGHT_DEAD"))
+		halt
+	Battle::Init()
+	Battle::RegisterEnemy(60, 5)
+	Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+	if (Equal(Battle::Result(), BATTLERESULT_WIN))
+		Map::ChangeTile(px, py, 40)
+		DisplayMap()
+	else
+		WarpPrevPos()

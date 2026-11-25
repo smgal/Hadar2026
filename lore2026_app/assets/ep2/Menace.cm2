@@ -1,0 +1,110 @@
+####### 제2부 메너스 (E2_Menace) — 50×50 동굴 ########
+# 근거: 2nd/05 §5.2(메너스 조사 · 월식과 지하 세계 원정) · 2nd/06 §6.2 · §6.7 · 2nd/07 §7.2(이벤트 패배 전투) · 2nd/10 §4 ·
+#       2nd/12 부록 B.3 · 공략집 Walkthrough/2nd/src/maps/Menace.md · 원작 칸 번호(maps.json)
+# 동굴형 · 늘 어둡다 · 보물·푯말·사람 없음. 단계에 따라 맵을 고친다(부록 B.3):
+#   단계 1·3: 입구 안쪽 (25~26,43)을 숨은 칸으로 · 단계 9: 1차 절벽 구멍 20칸 · 단계 12: 2차 절벽 구멍 13칸 ·
+#   단계 15: 입구에 들어서자마자 지하 세계 2 (10,92)로.
+# 들어오면 (26,44), 나가면 로어 대륙 (18,89). 지하 세계에서 돌아오면 (26,10)·(13,10).
+
+include("common/const.cm2")
+variable(stage)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	Encounter::Clear()
+	Encounter::Enable(0)
+	stage.assign(Variable::Get("LORD_STAGE"))
+	if (Or(Equal(stage, 1), Equal(stage, 3)))
+		Map::ChangeTileArea(25, 43, 26, 43, 0)
+	# 원정에서 돌아오면 그 자리에서 로드안 단계가 10·13 으로 올라 구멍이 다시 열리지 않는다
+	if (Equal(stage, 9))
+		Map::ChangeTileArea(24, 9, 27, 9, 0)
+		Map::ChangeTileArea(23, 10, 28, 11, 0)
+		Map::ChangeTileArea(24, 12, 27, 12, 0)
+	if (Equal(stage, 12))
+		Map::ChangeTileArea(12, 10, 14, 10, 0)
+		Map::ChangeTileArea(11, 11, 15, 11, 0)
+		Map::ChangeTileArea(12, 12, 14, 12, 0)
+	# ---- 3차 월식 — 입구 자체가 통로가 되어 곧바로 빨려 들어간다 ----
+	if (And(Equal(stage, 15), Not(Flag::IsSet("TRIP_ARRIVED"))))
+		Screen::FadeIn()
+		Talk("당신이 메너스의 입구에 들어서자마자 저항할 수 없는 강한 힘이 일행을 빨아들이기 시작했다. 순간 당신은 메너스의 입구 자체가 커다란 통로로 변해 있음을 알아챘다.")
+		Talk("한참 후에 당신은 정신이 들었고 여기가 지하 세계임을 알아차렸다.")
+		PressAnyKey()
+		LoadScript("E2_Underworld2", 10, 92)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	stage.assign(Variable::Get("LORD_STAGE"))
+
+	# ---- 출구 줄 (25~26,45) ----
+	if (OnArea(25, 45, 26, 45))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E2_Lore", 18, 89)
+		else
+			WarpPrevPos()
+		halt
+
+	# ---- 입구 안쪽 (25~26,43) ----
+	if (OnArea(25, 43, 26, 43))
+		# 1차 조사 — 밟는 것만으로 끝난다(알림 문구 없음, 부록 A D6)
+		if (Equal(stage, 1))
+			Variable::Set("LORD_STAGE", 2)
+			Map::ChangeTileArea(25, 43, 26, 43, 44)
+			halt
+		if (Not(Equal(stage, 3)))
+			halt
+		# 2차 조사 — 붉은 달과 악마 사냥꾼 (이벤트 패배 전투, 2nd/07 §7.2)
+		Map::ChangeTileArea(25, 43, 26, 43, 44)
+		Talk("당신이 메너스에 들어오자마자 어떤 사람의 시체가 놓여 있었다. 그 시체는 형체를 알아볼 수 없을 정도로 피투성이가 되어 있었고 그의 등에는 커다란 독화살이 예리하게 관통해 있었다.")
+		Talk("동굴 입구에서는 때마침 초승달이 비치고 있었고 그 달빛은 그 시체에서 흘러나와 고인 피에 비쳐서 붉게 물들었다.")
+		Talk("순간 당신은 알비레오의 예언의 구절이 떠올랐다. 그것은 바로 이런 것이었다.")
+		Notice("'메너스의 달이 붉게 물들 때 어둠의 영혼이 나타나 세계의 종말을 예고한다.'")
+		Talk("당신이 조금 더 안쪽으로 들어갔을 때 누군가가 당신을 지켜보고 있다는 느낌이 들었다.")
+		Party::Face(FACE_UP)
+		Party::Move(0, -1)
+		Party::Move(0, -1)
+		Say("악마 사냥꾼", "드디어 만났군, {주인공}.")
+		Say("악마 사냥꾼", "나는 네크로만서님이 너에게 당한 후 그 복수를 하기 위해 몇 년을 기다렸다. 그리고 나의 병사들도 가지게 되었지. 나는 너를 이곳으로 끌어들이기 위해 계속 이곳에서 살인을 저질렀지. 결국 걸려들었군. 아~하~하~하~~~")
+		# 해골 병사 7 + 악마 사냥꾼 — 이길 수 없는 전투 (2nd/07 §7.2). 도망에 성공해도 같은 적과 계속(BATTLE_REPEAT),
+		# 이기면 새 일당이 다시 덤벼 온다(BATTLE_RENEW). 져도 게임 오버가 아니다 — 일행이 쓰러져야 끝난다.
+		Battle::Init()
+		Battle::SetRepeatText("하지만 너무 많은 적들에게 포위되어 도망갈 수가 없었다.")
+		Battle::SetRenewText("@B악마 사냥꾼@@ : 그러나 나는 그렇게 쉽게 죽지는 않는다. 다시 나의 공격을 받아라!")
+		Battle::RegisterEnemy(19, 7)
+		Battle::RegisterVariant("devil_hunter_boss", 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, Add(BATTLE_NO_PRELUDE, Add(BATTLE_REPEAT, Add(BATTLE_RENEW, BATTLE_LOSE_OK)))))
+		# ---- 레드 안타레스의 구원 ----
+		Talk("당신이 악마 사냥꾼에게 기습을 받아서 거의 다 죽게 되었을 때 갑자기 낯익은 목소리가 먼 곳에서 들려왔다.")
+		Say("레드 안타레스", "{주인공}. 나는 레드 안타레스일세.")
+		Say("레드 안타레스", "당신도 실력이 많이 줄었군. 이런 조무래기들에게 당하다니. 그럼 약간의 도움을 주도록 하지. 잘 보게나.")
+		Screen::Flash()
+		Talk("레드 안타레스는 '차원 이탈'을 모든 적에게 사용했다.")
+		Talk("악마 사냥꾼의 일당은 모두 의식을 잃었다.")
+		Party::ReviveFallen()
+		Say("레드 안타레스", "나는 언제나 당신 주위에서 당신에게 도움을 주도록 하겠네. 그리고 내가 알아낸 바로는 다크 메이지는 존재한다네. 이제부터가 다크 메이지와의 결전이 시작되는 걸세. 그럼 다음에 또 보도록 하세.")
+		Variable::Set("LORD_STAGE", 4)
+		halt
+
+	# ---- 절벽의 구멍 — 1차 (단계 9) → 지하 세계 1 (51,51) / 2차 (단계 12) → 지하 세계 1 (14,24) ----
+	if (OnArea(23, 9, 28, 12))
+		if (Equal(stage, 9))
+			Talk("일행이 절벽에 서자마자 위압적인 힘이 일행을 끌어당기기 시작했고 결국 일행은 그 힘을 버티지 못하고 의문의 구멍 속으로 빠져들고 말았다.")
+			Talk("한참 후에 일행이 깨어나서 본 것은 지상의 세계와 다름없는 세상이었다. 다만 다른 것이 있다면 인공의 태양이 지상의 태양과 같이 나타났다가 사라졌다 하는 것뿐이었다.")
+			PressAnyKey()
+			LoadScript("E2_Underworld1", 51, 51)
+		halt
+	if (OnArea(11, 10, 15, 12))
+		if (Equal(stage, 12))
+			Talk("일행은 절벽 앞으로 섰고, 저번과 같이 어떤 강한 힘에 의해서 구멍 속으로 빨려 들어갔다.")
+			Talk("일행이 깨어나 보니 저번과는 조금 다른 곳으로 이동되었음을 알 수 있었다.")
+			PressAnyKey()
+			LoadScript("E2_Underworld1", 14, 24)
+		halt
+
+# (해결) 악마 사냥꾼 일당은 「이겨도 새 일당이 다시 덤벼 온다」 — BATTLE_RENEW 로 일행이 쓰러질 때까지 계속된다.
+#       세 번까지 펼쳐 쓰고 세 번을 다 이기면 레드 안타레스가 나타나던 임시 처리를 걷었다.

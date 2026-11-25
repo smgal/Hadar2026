@@ -1,0 +1,161 @@
+####### 로어 대륙 (Ground1) — 필드 ########
+# 근거: 기획서 05 §5.3 M2 · §5.4 L2 · §5.5 X7 · §5.6 S2 · 06 §6.4 · 12 §12.4 · 13 §13.9 · 14 §4·§11·§12.2 ·
+#       15 부록 A #5·#27·D3·D5 · 18 부록 D.10, 공략 원고 Ground1.md/json
+# 필드형 · 기본 바닥 41 · 무작위 조우 없음 · 마법 제한 없음
+# 도착 자리: 로어성(674년·795년)에서 (20,12) · 라스트디치성에서 (77,57) · 메너스에서 (18,89)
+#            · 임페리엄 마이너성(에인션트 이블의 공간 이동)에서 (20,12) · 빛의 지붕에서 (80,80) · 795년 도착 (58,79)
+# 반역 루트의 재회 · 로드안군의 포위(13연전)는 걷던 자리에서 일어난다 — episode.cm2 의 FLAG_TIMER 4·5번.
+#
+# 조건에 인자 없는 함수 하나만 쓰면 엔진이 부르지 않고 늘 참으로 본다 — 그런 자리는 And(...) 로 감싼다.
+
+include("common/const.cm2")
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("ground")
+	# 795년 도착 — 반역 루트 13연전에서 지면 episode.cm2 가 795년 1월 19일 09:00 으로 맞추고 화면을 닫은 채
+	# 이 맵 (58,79) 로 보낸다 (X7). 글 한 줄 뒤에 낯선 로어 대륙이 드러난다 (13 §13.9)
+	if (And(Greater(Time::Year(), 699), Not(Flag::IsSet("GROUND1_795_ARRIVED"))))
+		Flag::Set("GROUND1_795_ARRIVED")
+		Talk("얼마나 아득한 순간이 지났을까...")
+		PressAnyKey()
+		Screen::FadeIn()
+		Talk("당신은 문득 정신을 차렸다. 그리고 당신이 본 것은 뭔가 낯선 듯한 로어 대륙의 모습이었다.")
+		Talk("당신의 귓가에서 귀에 익은 목소리가 울려 퍼졌다.")
+		Say("알비레오", "나는 당신을 이런 운명으로 끌어들였던 알비레오라는 예언자이오. 물론 당신은 나를 알겠지요. 나는 이곳의 존재가 아니라서 이곳의 역사에 관여할 자격은 없소. 하지만 당신의 위급한 상황을 보고는 참을 수가 없어서 차원 이탈 마법으로 당신을 795년으로 오게 했소.")
+		Say("알비레오", "이미 로어 세계는 당신을 잊혀진 인물로 평가할 정도의 세월이 지났소. 결코 당신을 알아볼 사람은 이곳에 없을 거요. 세상의 최강자였던 로드안은 이제 기력이 많이 약해져서 지금 당신의 맞수로서 충분하리라 생각하오. 이제 당신은 별 제약 없이 로어성으로 들어갈 수 있을 거요.")
+		Say("알비레오", "거기서 최후의 결전을 벌여 진정한 정의를 실현하시오. 행운을 빌겠소.")
+	else
+		# 다른 맵에서 화면을 어둡게 한 채 넘어왔으면 걷는다. 막이 없으면 아무 일도 없다
+		Screen::FadeIn(0)
+
+####### 입구 ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+
+	# (20,11) 로어성 — 699년까지는 로어성, 700년 이후(795년)에는 로어성(795년)
+	if (On(20, 11))
+		Ask("로어성에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			if (Less(Time::Year(), 700))
+				LoadScript("E3_Lore", 51, 94)
+			else
+				LoadScript("E3_Dark", 51, 94)
+
+	# (76,57) 라스트디치성 — 795년에는 이방인이라며 쫓겨난다 (묻지 않고 문장만 나온다)
+	if (On(76, 57))
+		if (Greater(Time::Year(), 699))
+			Talk("당신이 라스트디치성으로 들어가려 했지만 그곳 주민으로 등록되지 않은 이방인이란 이유로 쫓겨났다.")
+		else
+			Ask("라스트디치성에 들어가기를 원합니까?")
+			if (Equal(Select::Result(), 1))
+				LoadScript("E3_LastDtch", 38, 69)
+
+	# (17,89) 메너스 금광 — 795년에는 입구가 무너져 들어갈 수 없다
+	if (On(17, 89))
+		if (Greater(Time::Year(), 699))
+			Talk("당신이 메너스로 들어가려 했지만 이미 이곳은 폐광이 된 데다가 입구마저 함몰되어 도저히 들어갈 수가 없었다.")
+		else
+			Ask("메너스에 들어가기를 원합니까?")
+			if (Equal(Select::Result(), 1))
+				LoadScript("E3_Menace", 25, 44)
+
+####### 이벤트 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# (30,20) 여자 강도 폴록스 일당 — 갈림길 안쪽의 숨은 칸, 1회 (S2).
+	# 고르기 전에 기록하므로 돈을 주거나 도망치면 다시 나타나지 않는다. 지친 여행자(TRAVELER_MET)와는 다른 기록이다
+	if (On(30, 20))
+		if (Not(Flag::IsSet("POLLUX_AMBUSH_DONE")))
+			Flag::Set("POLLUX_AMBUSH_DONE")
+			Talk("당신이 길을 가던 도중에 갑자기 강도가 나타났다. 그리고 제일 앞에 있는 여자 강도가 말을 꺼냈다.")
+			Say("폴록스", "이런 곳에 겁도 없이 돌아다니다니, 하하하.")
+			Say("폴록스", "우리 7명의 능력을 당해 내지 못할 것 같으면 순순히 가진 돈을 다 내놓아라.")
+			Select::Init()
+			Select::Add("")
+			Select::Add("가진 돈을 모두 준다")
+			Select::Add("선제공격을 가한다")
+			Select::Run()
+			if (Equal(Select::Result(), 1))
+				# 금화가 0 이 된다
+				Party::PlusGold(Sub(0, Party::Gold()))
+				Talk("당신은 강도에게 모든 돈을 빼앗겼다.")
+			else
+				# 12 §12.4 — 17 폴록스 ×1 · 16 강도 ×6, 일행 선공. 지면 게임 오버, 도망치면 사건은 그대로 끝난다
+				Battle::Init()
+				Battle::RegisterEnemy(17, 1)
+				Battle::RegisterEnemy(16, 6)
+				Battle::Start(BATTLE_NO_PRELUDE)
+				if (Equal(Battle::Result(), BATTLERESULT_WIN))
+					# 패배 후 동행 제의 — 암살자, 레벨 5, 여성
+					Say("폴록스", "윽!! 나의 패배를 인정하겠다. 나는 원래 암살자로 일하던 폴록스라고 한다. 수련을 목적으로 당신과 동행하고 싶다. 당신은 어떤가?")
+					Select::Init()
+					Select::Add("")
+					Select::Add("좋소, 허락하겠소")
+					Select::Add("그렇게는 안 되오")
+					Select::Run()
+					if (Equal(Select::Result(), 1))
+						if (And(Party::HasFreeSeat()))
+							Party::Join("pollux")
+							if (And(Party::Joined()))
+								Flag::Set("JOINED_POLLUX")
+						else
+							Say("폴록스", "벌써 사람이 모두 채워져 있군. 다음 기회를 기다리지.")
+
+	# (84,86) 하데스 게이트 입구 — 평범한 땅처럼 보이는 숨은 칸. 699년까지만 반응한다. 루트와 관계없이 열려 있다
+	if (On(84, 86))
+		if (Less(Time::Year(), 700))
+			Ask("하데스 게이트에 들어가기를 원합니까?")
+			if (Equal(Select::Result(), 1))
+				LoadScript("E3_HdsGate", 25, 10)
+
+	# (82,9) 북쪽 곶 끝의 숨은 이벤트 칸 — 원작에 처리가 없다. 밟아도 아무 일이 없다 (부록 A.4)
+
+####### 이야기용 물건 ########
+
+if (Equal(ScriptMode(), FLAG_ITEM))
+
+	# 크리스탈 볼 — 충성 루트의 원혼 봉인 (순서 고정: 오크 → 트롤 → 코볼트 → 드라콘)
+	if (Equal(Item::Used(), "crystal.ball"))
+		if (GreaterEqual(Variable::Get("SPIRITS_SEALED"), 4))
+			Talk("크리스탈 볼 속에는 아무것도 떠오르지 않았다.")
+		else
+			# 4번째: 드라콘의 원혼 — 이 맵 (44,50), 남쪽 길 동쪽 산 사이의 평지.
+			# 그 자리에 서서 쓰면 곧바로 전투다 (다음 한 걸음 뒤에 판정하던 것은 버그 — 부록 A #27).
+			if (And(Equal(Variable::Get("SPIRITS_SEALED"), 3), On(44, 50)))
+				# 12 §12.4 — 63 드라콘의 원혼 ×1, 적 선공, 반복
+				Battle::Init()
+				Battle::RegisterEnemy(63, 1)
+				Battle::Start(Add(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE), BATTLE_REPEAT))
+				if (Equal(Battle::Result(), BATTLERESULT_WIN))
+					# 네 번째 봉인 — 단계 11. 로드안에게 돌아가면 엔딩 A
+					Variable::Add("SPIRITS_SEALED")
+					Variable::Set("MAIN_STAGE", 11)
+					Talk("당신은 드라콘의 원혼을 크리스탈 볼 속에 봉인시켰다.")
+			else
+				# 다른 자리 (또는 다음 원혼이 다른 대륙에 있을 때) — 그 장소의 풍경을 비춰 준다
+				Talk("당신은 수정 구슬을 통해 낯선 풍경을 보았다.")
+				# 봉인 수에 따라 다음 원혼이 있는 자리 — 가이아 (92,12) · 아프로디테 (35,34) · 이쉬도 (11,91) · 로어 대륙 (44,50)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 0))
+					Screen::ShowScenery("E3_Ground2", 92, 12)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 1))
+					Screen::ShowScenery("E3_Ground3", 35, 34)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 2))
+					Screen::ShowScenery("E3_Ground4", 11, 91)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 3))
+					Screen::ShowScenery("E3_Ground1", 44, 50)
+
+	# 크로매틱 크리스탈 — 하데스 테라 (46,48) 이 아니면 반응이 없다 (09 §9.8)
+	if (Equal(Item::Used(), "crystal.chromatic"))
+		Talk("크리스탈에는 아무런 반응이 없었다.")
+
+# (해결된 NEED — BATTLE_REPEAT 로 바꿨다) BATTLE_REPEAT (Battle::Start 값) — 「반복」 전투. 도망에 성공해도 같은 적(피해 유지)과 곧바로 다시,
+#       다시 적 선공으로 싸운다 (12 §12.4 드라콘의 원혼). 이제 BATTLE_REPEAT 로 한다.
+# (해결된 NEED) 크리스탈 볼의 풍경 — Screen::ShowScenery 가 다음 원혼이 있는 자리의 9×11칸을 그 맵의 그림으로
+#       비춘다. 밤이고 달빛이 없으면 어둡게 그린다 (05 §5.4 L2).
+# (원작 확인) 입구 확인 문구의 장소 이름 — 「로어성」·「라스트디치성」·「메너스」·「하데스 게이트」(MYSTENT.PAS:18·42·58,
+#       MYSTSPEC.PAS:259). 문구 틀은 「…에 들어가기를 원합니까?」(MYSTSUB.PAS:1773, 띄어쓰기만 고쳤다).
+# (원작 확인) 폴록스의 첫 선택 창 — 1번(돈을 준다)이 아니면 취소해도 전투다(MYSTSPEC.PAS:186~193). (84,86) 에서
+#       「아니오」를 고르면 아무 일 없이 그 칸에 선다(MYSTSPEC.PAS:257~265). 지금 스크립트와 같다.

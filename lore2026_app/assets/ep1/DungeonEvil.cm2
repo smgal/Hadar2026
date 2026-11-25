@@ -1,0 +1,123 @@
+####### 제1부 던전 오브 이블 (E1_DungeonEvil) — 50×50 동굴 (원작 k_den2 의 남쪽 구역) ########
+# 근거: 1st/05 §5.2 M6 · 1st/06 §6.2 · §6.13 · 1st/07 §7.2(반신반인) · §7.4(마법 방해) · 1st/08 §8.2 · 1st/10 §9.3 ·
+#       1st/12 부록 B · 공략집 Walkthrough/1st/src/maps/DungeonEvil.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥 41 · 무작위 조우 없음. 숨은 칸: 판저 바이퍼 줄 (24~27,43), 숨은 문 (15,34)·(36,34),
+# 레버 (5,34)·(46,34), 남쪽 출구 (24~27,46). 네크로만서의 방 입구는 용암 한가운데 (25~26,27).
+# 들어오면 (25,45), 나가면 이블 컨센트레이션 (25,45).
+
+include("common/const.cm2")
+variable(px)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	Encounter::Clear()
+	Encounter::Enable(0)
+	# 이 동굴의 악의 힘이 투시·천리안·지형 변화·공간 이동을 방해한다 (1st/07 §7.4)
+	Map::SetHandicap(HANDICAP_SEETHROUGH, 1)
+	Map::SetHandicap(HANDICAP_CLAIRVOYANCE, 1)
+	Map::SetHandicap(HANDICAP_TILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_BIGTILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_TELEPORT, 1)
+	# 다시 들어올 때 (부록 B.3 — 원작은 레버 기록만 남았다, 부록 A #29)
+	if (Flag::IsSet("PANZER_VIPER_DEAD"))
+		Map::ChangeTileArea(24, 43, 27, 43, 41)
+	if (Flag::IsSet("DUNGEON_LEVER_L"))
+		Map::ChangeTileArea(11, 34, 14, 34, 42)
+	if (Flag::IsSet("DUNGEON_LEVER_R"))
+		Map::ChangeTileArea(37, 34, 40, 34, 42)
+	if (And(Flag::IsSet("DUNGEON_LEVER_L"), Flag::IsSet("DUNGEON_LEVER_R")))
+		Map::ChangeTileArea(25, 27, 26, 27, 54)
+
+####### 입구 — 네크로만서의 방 (25~26,27) ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (OnArea(25, 27, 26, 27))
+		# 입구의 기사 — 데스 나이트 5 + 블랙 나이트, 일행 선공. 이길 때까지. 도망치면 (25,45)로
+		Say("기사", "두말이 필요 없다. 덤벼라!!")
+		Battle::Init()
+		Battle::RegisterEnemy(63, 5)
+		Battle::RegisterEnemy(72, 1)
+		Battle::Start(BATTLE_NO_PRELUDE)
+		if (Not(Equal(Battle::Result(), BATTLERESULT_WIN)))
+			Party::Warp(25, 45)
+			halt
+		LoadScript("E1_Chamber", 25, 19)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	px.assign(Party::PosX())
+
+	# ---- 남쪽 출구 (24~27,46) ----
+	if (OnArea(24, 46, 27, 46))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_EvilConc", 25, 45)
+		else
+			WarpPrevPos()
+		halt
+
+	# ---- 판저 바이퍼 (24~27,43) — 한 번. 메가 로보 4 + 판저 바이퍼, 적 선공. 이기면 로드안·에인션트 이블 ----
+	if (OnArea(24, 43, 27, 43))
+		if (Flag::IsSet("PANZER_VIPER_DEAD"))
+			halt
+		Talk("금속으로 된 어떤 적이 나타났다.")
+		Say("판저 바이퍼", "여기까지 잘도 왔구나. 나의 임무는 너희 같은 쓰레기들 때문에 Necromancer님이 수고하시지 않도록 미리 처단해 버리는 것이다.")
+		Battle::Init()
+		Battle::RegisterEnemy(66, 4)
+		Battle::RegisterEnemy(71, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Not(Equal(Battle::Result(), BATTLERESULT_WIN)))
+			Party::Warp(px, 44)
+			halt
+		Flag::Set("PANZER_VIPER_DEAD")
+		Map::ChangeTileArea(24, 43, 27, 43, 41)
+		DisplayMap()
+		Talk("당신이 적을 물리치자 조금 후에 이상하리만큼 편안한 기운이 일행을 감쌌다.")
+		PressAnyKey()
+		# 로드안과 에인션트 이블이 나타난다 — 원작은 지도 칸을 검게 지우고 두 이름(1부 적 68 · 67)만 띄운 채
+		# 화자 이름 없이 회색 글씨로 말한다. 말이 끝나면 일행 전원이 반신반인이 된다 (LORESPEC.PAS:2048~2065)
+		Battle::Init()
+		Battle::RegisterEnemy(68)
+		Battle::RegisterEnemy(67)
+		Battle::ShowEnemyNames()
+		Talk("매우 수고하시는군요. {주인공}, 당신이 Necromancer에게 가기 전에 한 가지 일러두고자 하오.")
+		Talk("이곳에는 비밀스러운 문이 두 군데 있소. 지금은 보이지가 않지만 양쪽의 벽을 살피다 보면 숨겨진 문 안에 레버가 각각 하나씩 있소. 그걸 모두 작동시키면 용암의 중앙에서 Necromancer의 방으로 통하는 입구가 보일 것이오. 여기까지만 내가 알려 줄 수가 있는 부분이오. 마지막으로 당신의 건투를 빌겠소.")
+		PressAnyKey()
+		Party::PromoteDemigod()
+		Battle::HideEnemyNames()
+		Notice("일행 전원이 반신반인이 되었다")
+		halt
+
+	# ---- 숨은 문 (15,34)·(36,34) — 밟으면 바깥쪽 벽 네 칸이 레버 방으로 가는 통로가 된다 ----
+	if (On(15, 34))
+		Map::ChangeTileArea(11, 34, 14, 34, 42)
+		DisplayMap()
+		halt
+	if (On(36, 34))
+		Map::ChangeTileArea(37, 34, 40, 34, 42)
+		DisplayMap()
+		halt
+
+	# ---- 두 레버 (5,34)·(46,34) — 둘 다 당기면 용암 한가운데 (25~26,27)에 입구 ----
+	if (Or(On(5, 34), On(46, 34)))
+		if (On(5, 34))
+			if (Flag::IsSet("DUNGEON_LEVER_L"))
+				halt
+			Flag::Set("DUNGEON_LEVER_L")
+		else
+			if (Flag::IsSet("DUNGEON_LEVER_R"))
+				halt
+			Flag::Set("DUNGEON_LEVER_R")
+		Talk("당신이 레버를 당기자 철컥하는 소리가 동굴에 울려 퍼졌다.")
+		Talk("곧이어 기계 작동하는 큰 소리가 들렸다.")
+		if (And(Flag::IsSet("DUNGEON_LEVER_L"), Flag::IsSet("DUNGEON_LEVER_R")))
+			Map::ChangeTileArea(25, 27, 26, 27, 54)
+			Screen::Flash()
+			DisplayMap()
+		halt
+
+# (원작 확인) 반신반인 승격 — 지도 칸에 로드안(68) · 에인션트 이블(67)의 이름만 띄우고(Battle::ShowEnemyNames) 화자 없이
+#       말한 뒤 계급을 바꾼다. 섬광은 원작에 없다 (LORESPEC.PAS:2048~2065).

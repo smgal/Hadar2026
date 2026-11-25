@@ -24,6 +24,7 @@
 | `B4-battle-view/` | Flutter 전투 view 신규 작성 (model 무변경) |
 | `P0-foundation/` | 실재 버그 백로그 (선행 구간 아님) |
 | `deferred/` | **보류** — 선언적 콘텐츠 팩·무거운 생성 파이프라인 노선 (26건) |
+| `proposals/` | **아이디어 정리** — 조사·논의만 하고 착수 판정 전인 일. BOARD 에 올리지 않는다. 지금은 이어진 세계 지도(seamless world) 1건 |
 | `templates/ISSUE.md` | 새 이슈 서식 |
 
 ## 처음 읽는 사람 (대화 세션을 새로 시작한 경우)

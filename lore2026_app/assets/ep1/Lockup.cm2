@@ -1,0 +1,139 @@
+####### 제1부 록업 (E1_Lockup) — 50×100 동굴 ########
+# 근거: 1st/04 §4.3(스피카) · 1st/05 §5.2 M4 · §5.3 S12 · 1st/06 §6.11 · 1st/07 §7.4(초능력 해금·독심 합류) ·
+#       1st/08 §8.1~8.4 · 1st/10 §7.4 · 1st/12 부록 B · 공략집 Walkthrough/1st/src/maps/Lockup.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥 43. 호수(물위를 걸음)와 통로 양 끝의 막힌 칸(기화 이동·지형 변화·공간 이동)을 넘어야 미로에 든다.
+# 보이는 밟는 칸(52): 미노타우로스 앞 (22,41), 스피카 (37,31), 출구 줄 (23~26,95). 휴즈 드래곤 줄 (31,9~13)은 숨은 칸.
+# 들어오면 (25,94), 나가면 물의 대륙 (96,43).
+
+include("common/const.cm2")
+variable(r)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 30~32: 헤들리스·머드맨·헬 캣 (레벨 8)
+	Encounter::Clear()
+	Encounter::Add(30, 32)
+	Encounter::Enable(1)
+	if (Flag::IsSet("LOCKUP_MINOTAUR"))
+		Map::ChangeTile(22, 41, 44)
+	if (Party::Has("spica"))
+		Map::ChangeTile(37, 31, 44)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 출구 줄 (23~26,95) ----
+	if (OnArea(23, 95, 26, 95))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Water", 96, 43)
+		else
+			WarpPrevPos()
+		halt
+
+	# ---- 미노타우로스 — (22,41)을 밟으면 바로 서쪽 (21,41)이 숨은 칸이 되고, 거기서 한 번 싸운다 ----
+	if (On(22, 41))
+		if (Not(Flag::IsSet("LOCKUP_MINOTAUR")))
+			Map::ChangeTile(22, 41, 44)
+			Map::ChangeTile(21, 41, 0)
+		halt
+	if (On(21, 41))
+		if (Flag::IsSet("LOCKUP_MINOTAUR"))
+			halt
+		Flag::Set("LOCKUP_MINOTAUR")
+		Map::ChangeTile(21, 41, 44)
+		if (Equal(Party::Torch(), 0))
+			Party::SetTorch(1)
+		Notice("미로 속에서 소를 닮은 괴물이 나타났다")
+		Battle::Init()
+		Battle::RegisterEnemy(53, 1)
+		# 이기든 도망치든 다시 나오지 않는다
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		halt
+
+	# ---- 스피카 (37,31) (S12) ----
+	if (On(37, 31))
+		if (Party::Has("spica"))
+			halt
+		if (Not(Flag::IsSet("SPICA_TAUGHT")))
+			Talk("여기에는 어떤 여자가 수도하고 있었다.")
+			Say("스피카", "나는 이곳 LOCKUP이 적들에게 점령되기 전부터 여기서 수도하고 있는 Spica란 사람입니다. 오랜 수도 끝에 나는 초자연력의 존재와 사용법을 알게 되었습니다. 대충 요약하면 이렇습니다.")
+			Talk("투시 : 변화의 여지가 있는 지역을 탐지")
+			Talk("예언 : 다음의 할 일을 알아냄")
+			Talk("독심 : 남의 마음을 자기 쪽으로 끌어들임")
+			Talk("천리안 : 능력에 따라 먼 곳의 광경을 봄")
+			Talk("염력 : 주위 환경 조절에 의한 공격")
+			Say("스피카", "이것으로 Necromancer에게 도전하십시오. 또한 그도 초자연력의 존재를 알고 있고 사용할 줄 안다는 걸 염두에 두고 사용하십시오.")
+			Flag::Set("SPICA_TAUGHT")
+			Party::Unlock("esp")
+			halt
+		# 제의에 한 번 답했으면 더 할 말이 없다
+		if (Flag::IsSet("SPICA_OFFER_DONE"))
+			halt
+		if (Not(Equal(Party::CheckIf(CHECKIF_MINDCONTROL), 1)))
+			Say("스피카", "지체할 시간이 없습니다. 신속히 행동을 취하십시오.")
+			halt
+		# 원작: 일행 중 초능력 레벨 5 이상 → 제안: 초자연력 기술치 40 이상 (1st/07 §7.4)
+		if (Not(Equal(Party::HasEsp(40), 1)))
+			Say("스피카", "당신이 나의 마음을 읽으려 하지만 아직 당신의 능력으로는 나의 마음을 끌어낼 수는 없습니다.")
+			halt
+		Say("스피카", "갑자기 Necromancer에게 대항하고픈 결의가 생기는군요. 나도 당신들을 도와 그를 무찌르겠습니다.")
+		Select::Init()
+		Select::Add("어떻게 하겠습니까?")
+		Select::Add("저도 원했던 바입니다")
+		Select::Add("말씀은 고맙지만 사양하겠습니다")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			Party::JoinReplace("spica")
+			# 교체할 사람 고르기를 취소하면 다음에 다시 제의한다 (원작은 그때도 끝냈다 — 부록 A #24)
+			if (Equal(Party::Joined(), 1))
+				Flag::Set("SPICA_OFFER_DONE")
+				Map::ChangeTile(37, 31, 44)
+				DisplayMap()
+		if (Equal(Select::Result(), 2))
+			Flag::Set("SPICA_OFFER_DONE")
+		halt
+
+	# ---- 휴즈 드래곤의 거처 (31,9~13) — 워터 필드 의뢰 단계 4 미만 (M4) ----
+	# 일행이 동쪽으로 6칸, 남쪽 y=13 까지 끌려가 (37,13)에 선다. 휴즈 드래곤 + 드래곤의 꼬리 +
+	# 헤들리스·머드맨·헬 캣(30~32) 중 무작위 5. 일곱 모두 쓰러뜨려야 이긴다. 도망치면 입구 (25,94)로.
+	if (OnArea(31, 9, 31, 13))
+		if (GreaterEqual(Variable::Get("WATERFIELD_QUEST"), 4))
+			halt
+		if (Equal(Party::Torch(), 0))
+			Party::SetTorch(1)
+		Notice("당신은 여기가 Huge Dragon의 거처임을 느꼈다")
+		Party::Face(FACE_RIGHT)
+		Party::Move(1, 0)
+		Party::Move(1, 0)
+		Party::Move(1, 0)
+		Party::Move(1, 0)
+		Party::Move(1, 0)
+		Party::Move(1, 0)
+		Party::Warp(37, 13)
+		Party::Face(FACE_UP)
+		Battle::Init()
+		Battle::RegisterVariant("huge_dragon", 1)
+		Battle::RegisterVariant("dragon_tail", 1)
+		r.assign(Add(30, Random(3)))
+		Battle::RegisterEnemy(r, 1)
+		r.assign(Add(30, Random(3)))
+		Battle::RegisterEnemy(r, 1)
+		r.assign(Add(30, Random(3)))
+		Battle::RegisterEnemy(r, 1)
+		r.assign(Add(30, Random(3)))
+		Battle::RegisterEnemy(r, 1)
+		r.assign(Add(30, Random(3)))
+		Battle::RegisterEnemy(r, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Talk("당신들은 Huge Dragon을 물리쳤다.")
+			Notice("그리고 당신은 이 임무에 성공했다.")
+			Talk("다시 WATER FIELD의 군주에게로 돌아가라.")
+			Variable::Set("WATERFIELD_QUEST", 4)
+		else
+			Party::Warp(25, 94)
+		halt

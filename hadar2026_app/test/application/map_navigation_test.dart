@@ -31,7 +31,7 @@ class _FakeAssets implements AssetSource {
 String _mapJson({int width = 3, int height = 1}) {
   final size = width * height;
   // Six layers, in the order HDMapLoader reads them
-  // (0 tile, 1 unused, 2 obj0, 3 obj1, 4 shadow, 5 event region).
+  // (0 tile, 1 decor, 2 obj0, 3 obj1, 4 shadow, 5 event region).
   final data = List<int>.filled(size * 6, 0);
   for (var i = 0; i < size; i++) {
     data[i] = 10; // ixTile 10 -> HDTileAction.move

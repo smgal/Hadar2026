@@ -1,0 +1,118 @@
+####### 제1부 스왐프 킵 (E1_SwampKeep) — 50×50 요새 ########
+# 근거: 1st/05 §5.2 M5·M6 · 1st/06 §6.2 · §6.12 · 1st/08 §8.2 · 1st/10 §8.3 · 1st/12 부록 B ·
+#       공략집 Walkthrough/1st/src/maps/SwampKeep.md · 원작 칸 번호(maps.json)
+# 요새형 · 기본 바닥 40 · 무작위 조우 없음. 밟는 칸(52): 리퍼 칸 77곳, 게이트 앞 (25,20), 남쪽 출구 (23~27,46).
+# 입구 칸(54): 북쪽 입구 (24~26,5) → 스왐프 게이트 동굴, 라바 게이트 (25,19) → 임페리엄 마이너.
+# 라바 게이트는 기둥 울타리 안이라 지형 변화로 울타리를 터야 닿는다(부록 A D9).
+# 두 봉인: 이블 갓은 EVILGOD_SEAL 이 홀수, 머디는 MUDDY_SEAL.
+# 도착 자리: 스왐프 게이트 동굴에서 (25,6) · 늪의 대륙에서 (25,45) · 임페리엄 마이너에서 (25,20)
+
+include("common/const.cm2")
+variable(seals)
+variable(n)
+variable(px)
+variable(py)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("keep")
+	Encounter::Clear()
+	Encounter::Enable(0)
+
+####### 입구 ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+
+	# ---- 북쪽 입구 (24~26,5) → 스왐프 게이트 동굴 ----
+	if (OnArea(24, 5, 26, 5))
+		Ask("SWAMP GATE에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_SwampGate", 81, 68)
+		halt
+
+	# ---- 라바 게이트 (25,19) → 임페리엄 마이너 (M6) ----
+	if (On(25, 19))
+		Ask("IMPERIUM MINOR에 들어가기를 원합니까?")
+		if (Not(Equal(Select::Result(), 1)))
+			halt
+		seals.assign(0)
+		if (Equal(Mod(Variable::Get("EVILGOD_SEAL"), 2), 1))
+			seals.add(1)
+		if (Flag::IsSet("MUDDY_SEAL"))
+			seals.add(1)
+		if (Less(seals, 2))
+			Talk("라바 게이트는 작동되지 않았다.")
+			halt
+		# 게이트 경비 — 둘 다 쓰러뜨릴 때까지. 적 선공.
+		# 의도: 이겨야 통과한다 (원작은 도망쳐도 통과했다 — 부록 A #10)
+		if (Not(Flag::IsSet("LAVAGATE_GUARDS_DONE")))
+			Battle::Init()
+			Battle::RegisterEnemy(65, 1)
+			Battle::RegisterEnemy(64, 1)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Not(Equal(Battle::Result(), BATTLERESULT_WIN)))
+				halt
+			Flag::Set("LAVAGATE_GUARDS_DONE")
+		if (Not(Flag::IsSet("LAVAGATE_LORDAHN")))
+			Flag::Set("LAVAGATE_LORDAHN")
+			Say("로드안", "역시 당신들은 나의 예상대로 마지막 대륙까지 무난하게 왔군요. 이번에 가게 될 LAVA 대륙은 이 세계에 있는 모든 대륙 중에서 가장 작은 대륙이오. 적의 요새도 또한 2개밖에 없는 곳이오. 하지만 이번에 도착할 IMPERIUM MINOR나 마지막으로 거칠 EVIL CONCENTRATION은 말 그대로 악의 집결지인 것이오. 거기에는 최강의 괴물들과 Necromancer의 심복들로 가득 차 있는 곳이지만 IMPERIUM MINOR의 지하에는 마지막으로 살아남은 사람들의 도시가 있소. 원래 거기는 Ancient Evil이 전에 세운 악의 동굴이었지만 Necromancer의 침략으로 지상의 도시가 함락되자 그곳의 사람들은 모두 거기로 피난했던 것이고 거기는 Ancient Evil의 영적인 힘으로 보호되고 있어서 적들이 침략을 하지 못하는 이유가 되지요. 그러므로 모든 도움과 물자는 거기서 받도록 하시오.")
+			Say("로드안", "그러면, 나는 당신이 Necromancer와 상대하게 될 때 다시 Ancient Evil과 같이 나타나겠소.")
+		LoadScript("E1_Imperium", 25, 6)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 게이트 앞 (25,20) — 두 봉인 전에는 남쪽으로 밀려난다 ----
+	if (On(25, 20))
+		seals.assign(0)
+		if (Equal(Mod(Variable::Get("EVILGOD_SEAL"), 2), 1))
+			seals.add(1)
+		if (Flag::IsSet("MUDDY_SEAL"))
+			seals.add(1)
+		if (Less(seals, 2))
+			Talk("당신은 아직 라바 게이트를 열 수가 없다.")
+			Talk("아직 당신은 이 대륙의 동굴 속에 존재하는 2개의 봉인을 풀지 못했기 때문이다.")
+			Party::Warp(25, 21)
+		halt
+
+	# ---- 남쪽 출구 (23~27,46) — 경비가 남아 있으면 경비 둘 + 스프라이트 5. 적 선공 ----
+	# 의도: 이겨야 통과한다 (원작은 결과와 관계없이 나갔다 — 부록 A #10)
+	if (OnArea(23, 46, 27, 46))
+		Ask("여기서 나가기를 원합니까?")
+		if (Not(Equal(Select::Result(), 1)))
+			WarpPrevPos()
+			halt
+		if (Not(Flag::IsSet("SWAMPKEEP_GUARDS_DONE")))
+			Battle::Init()
+			Battle::RegisterEnemy(55, 1)
+			Battle::RegisterEnemy(56, 1)
+			Battle::RegisterEnemy(35, 5)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Not(Equal(Battle::Result(), BATTLERESULT_WIN)))
+				WarpPrevPos()
+				halt
+			Flag::Set("SWAMPKEEP_GUARDS_DONE")
+		LoadScript("E1_Swamp", 48, 36)
+
+	# ---- 리퍼 칸 — 그 밖의 밟는 칸 모두. 리퍼(58) 3~6, 적 선공. 싸운 칸은 바닥이 된다 ----
+	# 의도: 이겼을 때만 칸이 사라진다 (원작은 도망쳐도 사라졌다 — 부록 A #27)
+	n.assign(Add(3, Random(4)))
+	Battle::Init()
+	Battle::RegisterEnemy(58, n)
+	Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+	if (Equal(Battle::Result(), BATTLERESULT_WIN))
+		px.assign(Party::PosX())
+		py.assign(Party::PosY())
+		# 숨은 칸(0)이었으면 바닥 40, 보이는 칸(52)이었으면 같은 그림의 바닥 46 (LORESPEC.PAS:1812~1813)
+		if (Map::IsTile(px, py, 0))
+			Map::ChangeTile(px, py, 40)
+		else
+			Map::ChangeTile(px, py, 46)
+		DisplayMap()
+	else
+		WarpPrevPos()
+
+# (결정) 걸어서는 라바 게이트에 닿지 못한다(기둥 세 줄 + 울타리, 지형 변화 필요) — 원작 맵 그대로 둔다 (부록 A D9, 2026-11-16 원작자 결정).
+# (원작 확인) 리퍼 칸이 사라진 뒤 — 숨은 칸(0)은 40, 보이는 칸(52)은 46 (LORESPEC.PAS:1812~1813).

@@ -1,0 +1,115 @@
+####### 제2부 흉성의 단서 (E2_Clue) — 50×50 동굴 (피라미드 안) ########
+# 근거: 2nd/05 §5.2(피라미드와 두 동굴) · 2nd/06 §6.9 · 2nd/08 §8.3 · 2nd/10 §7.3 · §11 · 2nd/12 부록 B ·
+#       공략집 Walkthrough/2nd/src/maps/Clue.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥이 숨은 칸(0). 가운데 호수 (18~33,18~33), 네 모서리의 레버(52)와 그것을 둘러싼 낭떠러지 고리(숨은 칸).
+# 레버 넷을 모두 당기면 (25~26,18~27) 길과 (25~26,28) 입구가 드러난다. 당긴 레버는 켜진 채로 두고, 다시 들어와도
+# 길을 연 채로 둔다 (부록 B.3 — 원작은 토글이고 다시 들어오면 닫혔다, 부록 A #23).
+# 들어오면 (25,44), 나가면 피라미드 (149,66).
+
+include("common/const.cm2")
+variable(who)
+variable(finder)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 25~39 (레벨 7~10)
+	Encounter::Clear()
+	Encounter::Add(25, 39)
+	Encounter::Enable(1)
+	if (And(And(Flag::IsSet("CLUE_LEVER_1"), Flag::IsSet("CLUE_LEVER_2")), And(Flag::IsSet("CLUE_LEVER_3"), Flag::IsSet("CLUE_LEVER_4"))))
+		Map::ChangeTileArea(25, 18, 26, 27, 43)
+		Map::ChangeTileArea(25, 28, 26, 28, 54)
+		if (And(Flag::IsSet("CLUE_ENTRANCE_SEEN"), Not(Flag::IsSet("TABLET_CLUE"))))
+			Map::ChangeTileArea(25, 25, 26, 25, 0)
+
+####### 푯말 ########
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+	Talk("당신이 지하 세계로 통하는 입구를 열고 싶다면 동굴 속의 4개의 레버를 모두 당겨 주십시오.")
+
+####### 무너진 입구 (25~26,28) ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (OnArea(25, 28, 26, 28))
+		Talk("당신은 이 동굴에 들어가려고 했지만 동굴의 입구는 어떠한 강한 힘에 의해 무너져 있었고 일행들의 힘으로는 도저히 들어갈 방도가 없었다. 결국 일행은 들어가기를 포기했다.")
+		if (Not(Flag::IsSet("TABLET_CLUE")))
+			Flag::Set("CLUE_ENTRANCE_SEEN")
+			Map::ChangeTileArea(25, 25, 26, 25, 0)
+		halt
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	if (OnArea(25, 45, 26, 45))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E2_Pyramid", 149, 66)
+		else
+			WarpPrevPos()
+		halt
+
+	# ---- 석판 조각 (25~26,25) — 무너진 입구를 조사한 뒤 ----
+	if (OnArea(25, 25, 26, 25))
+		if (Or(Flag::IsSet("TABLET_CLUE"), Not(Flag::IsSet("CLUE_ENTRANCE_SEEN"))))
+			halt
+		Flag::Set("TABLET_CLUE")
+		Map::ChangeTileArea(25, 25, 26, 25, 43)
+		# 발견하는 사람 — 2~5번 중 행동할 수 있는 마지막 대원. 없으면 주인공 (DARKSPEC.PAS:1660~1688).
+		#   원작 반복문은 exist(person) 을 보는 오타라 빈 자리를 고르기도 한다 — 의도대로 마지막 대원을 고른다
+		who.assign(1)
+		if (Player::CanAct(2))
+			who.assign(2)
+		if (Player::CanAct(3))
+			who.assign(3)
+		if (Player::CanAct(4))
+			who.assign(4)
+		if (Player::CanAct(5))
+			who.assign(5)
+		if (Equal(who, 1))
+			Talk("당신은 무심코 발아래에서 반짝이는 도자기의 조각을 보았다. 그것을 자세히 조사해 보니 어떤 석판의 조각이었다. 거기에는 알 수 없는 고대어가 잔뜩 쓰여 있었다. 당장은 읽을 수가 없었지만 가져가기로 했다.")
+			halt
+		finder.assign(Player::GetName(who))
+		Talk(JoinString("갑자기 일행의 제일 뒤에 있던 ", Josa(finder, "이/가"), " 뭔가를 발견하고 일행을 불러 세웠다."))
+		Say(finder, "잠깐, 자네들 여기를 보게.")
+		if (Equal(Player::GetAttribute(who, "gender"), 1))
+			Talk("그녀가 말했다.")
+		else
+			Talk("그가 말했다.")
+		Say(finder, "방금 내가 뒤따라오다가 땅속에 반쯤 묻힌 석판을 발견했다네. 이것 보게나. 어떤 글자가 쓰여 있군. 고대어인 것 같은데 어쨌든 가져가도록 하지.")
+		halt
+
+	# ---- 레버 넷 — (39,38) (12,38) (12,13) (39,13). 낭떠러지 고리 안이라 공중 부상(또는 비행 부츠)이 필요하다 ----
+	if (Or(Or(On(39, 38), On(12, 38)), Or(On(12, 13), On(39, 13))))
+		if (On(39, 38))
+			if (Flag::IsSet("CLUE_LEVER_1"))
+				halt
+			Flag::Set("CLUE_LEVER_1")
+		if (On(12, 38))
+			if (Flag::IsSet("CLUE_LEVER_2"))
+				halt
+			Flag::Set("CLUE_LEVER_2")
+		if (On(12, 13))
+			if (Flag::IsSet("CLUE_LEVER_3"))
+				halt
+			Flag::Set("CLUE_LEVER_3")
+		if (On(39, 13))
+			if (Flag::IsSet("CLUE_LEVER_4"))
+				halt
+			Flag::Set("CLUE_LEVER_4")
+		Talk("당신은 그곳의 레버를 당겼다.")
+		Talk("그러자 갑자기 호수 쪽에서 괴음이 들렸다.")
+		if (And(And(Flag::IsSet("CLUE_LEVER_1"), Flag::IsSet("CLUE_LEVER_2")), And(Flag::IsSet("CLUE_LEVER_3"), Flag::IsSet("CLUE_LEVER_4"))))
+			Map::ChangeTileArea(25, 18, 26, 27, 43)
+			Map::ChangeTileArea(25, 28, 26, 28, 54)
+			Screen::Flash()
+			DisplayMap()
+		halt
+
+	# ---- 낭떠러지 고리 — 공중 부상이 없으면 물러난다 ----
+	if (Not(Equal(Party::CheckIf(CHECKIF_LEVITATION), 1)))
+		Talk("일행은 낭떠러지로 떨어질 뻔했다.")
+		WarpPrevPos()
+
+# (원작 확인) 석판 조각은 행동할 수 있는 마지막 대원이 발견하고 이름·대명사(그/그녀)를 넣어 말한다 (DARKSPEC.PAS:1660~1688).

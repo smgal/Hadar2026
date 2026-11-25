@@ -1,0 +1,57 @@
+import 'dart:async';
+import 'map_script_context.dart';
+
+abstract class HDMapScript {
+  final HDMapScriptContext game = const HDMapScriptContext();
+
+  String get mapName;
+
+  void onPrepare();
+  void onLoad(String prevMap, int fromX, int fromY);
+  void onUnload();
+
+  /// Return `true` if this script handled the event at (tx, ty). When
+  /// `false`, the dispatcher falls through to the next event source
+  /// (cm2 → static JSON). This is the same contract for [onTalk],
+  /// [onSign], [onEvent], and [onEnter].
+  Future<bool> onEvent(int eventId);
+
+  Future<void> onPostEvent(int eventId);
+  Future<bool> onEnter(int eventId);
+  Future<bool> onSign(int eventId);
+  Future<bool> onTalk(int eventId);
+
+  // Coordinate of the target tile (the tile being interacted with or stepped on)
+  int tx = 0;
+  int ty = 0;
+
+  // Helper Methods for Scripts
+  Future<void> talk(String text) async {
+    await game.addLog(text, isDialogue: true);
+  }
+
+  /// Shows [text] in a fixed-size popup window that closes on Enter/Esc.
+  /// Prefer this for signs and other one-shot messages where the player
+  /// just needs to read and dismiss — the console-based [talk] is for
+  /// dialogue flow that can paginate and combine with menus.
+  Future<void> message(String text) async {
+    await game.showMessageWindow(text);
+  }
+
+  bool isFlagSet(int index) {
+    // Requires implementation in GameModel / State
+    return false;
+  }
+
+  void setFlag(int index) {
+    // Requires implementation in GameModel / State
+  }
+
+  bool isOn(int x, int y) {
+    return tx == x && ty == y;
+  }
+
+  bool isArea(int x1, int y1, int x2, int y2) {
+    return tx >= x1 && tx <= x2 && ty >= y1 && ty <= y2;
+  }
+}

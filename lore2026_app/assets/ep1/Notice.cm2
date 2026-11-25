@@ -1,0 +1,162 @@
+####### 제1부 노티스 (E1_Notice) — 100×100 동굴 (원작 den4 의 서쪽·북쪽 구역) ########
+# 근거: 1st/04 §4.3(레드 안타레스) · 1st/05 §5.2 M4 · §5.3 S11 · 1st/06 §6.11 · 1st/07 §7.4(특수 마법 해금·독심 합류) ·
+#       1st/08 §8.1~8.3 · 1st/10 §7.3 · §11(노티스 푯말) · 1st/12 부록 B ·
+#       공략집 Walkthrough/1st/src/maps/Notice.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥 41. 입구 구역과 본 미로는 걸어서 이어지지 않는다 — (8~10,80) 이 본 미로 북쪽 (x,6)으로 보내는 한 방향 연결.
+# 보이는 밟는 칸(52): 순간 이동 줄 (8~10,80), 되돌이 칸 (72,19~21), 길 바뀜 줄 (67~69,44), 레드 안타레스 (75,52), 출구 줄 (55~57,95).
+# 히드라 줄 (22,63~66)은 숨은 칸. 들어오면 (56,94), 나가면 물의 대륙 (23,63).
+
+include("common/const.cm2")
+variable(px)
+variable(py)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 23~28: 슬라임·락맨·코볼트·미라·악마 사냥꾼·크레이지 원 (레벨 6~7)
+	Encounter::Clear()
+	Encounter::Add(23, 28)
+	Encounter::Enable(1)
+
+####### 푯말 ########
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+	if (On(68, 47))
+		Talk("하! 하! 하! 너는 우리에게 속았다")
+		halt
+	if (On(58, 53))
+		Talk("이 게임을 만든 사람")
+		Talk(": 동아 대학교 전기 공학과")
+		Talk("92학번 안영기")
+		halt
+	if (On(51, 30))
+		Talk("오른쪽 : Hidra의 보물 창고")
+		Talk("왼쪽 : Hidra가 있는 방")
+		halt
+	if (On(66, 13))
+		Talk("일찌감치 이곳 탐험을 포기해라")
+		halt
+	if (On(9, 28))
+		Talk("위쪽이 진짜 보물 창고임")
+		halt
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 출구 줄 (55~57,95) ----
+	if (OnArea(55, 95, 57, 95))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Water", 23, 63)
+		else
+			WarpPrevPos()
+		halt
+
+	# ---- 입구 구역 → 본 미로 북쪽 (한 방향) ----
+	if (OnArea(8, 80, 10, 80))
+		px.assign(Party::PosX())
+		Party::Warp(px, 6)
+		halt
+
+	# ---- 되돌이 칸 (72,19~21) — 세 칸이 모두 바닥이 되고 일행은 7칸 위로 (동굴에 있는 동안 한 번) ----
+	if (OnArea(72, 19, 72, 21))
+		py.assign(Sub(Party::PosY(), 7))
+		Map::ChangeTileArea(72, 19, 72, 21, 44)
+		Party::Warp(72, py)
+		halt
+
+	# ---- 길 바뀜 줄 (67~69,44) ↔ 되돌림 줄 (67~69,38). 동쪽 방은 되돌림 줄로만 나간다 ----
+	if (OnArea(67, 44, 69, 44))
+		Map::ChangeTileArea(67, 44, 69, 44, 44)
+		Map::ChangeTileArea(67, 38, 69, 38, 52)
+		DisplayMap()
+		halt
+	if (OnArea(67, 38, 69, 38))
+		Map::ChangeTileArea(67, 38, 69, 38, 44)
+		Map::ChangeTileArea(67, 44, 69, 44, 52)
+		Party::Warp(56, 93)
+		halt
+
+	# ---- 레드 안타레스의 영 (75,52) (S11) ----
+	if (On(75, 52))
+		if (Not(Flag::IsSet("RED_ANTARES_TAUGHT")))
+			# 첫 만남 — 나선 벽 (71~82,47~57) 의 기둥(40)이 모두 용암이 된다. 나선의 바닥 길은 그대로
+			Map::ChangeTileArea(71, 47, 82, 47, 50)
+			Map::ChangeTileArea(71, 49, 80, 49, 50)
+			Map::ChangeTile(82, 49, 50)
+			Map::ChangeTile(71, 51, 50)
+			Map::ChangeTileArea(73, 51, 80, 51, 50)
+			Map::ChangeTile(82, 51, 50)
+			Map::ChangeTile(71, 53, 50)
+			Map::ChangeTileArea(73, 53, 80, 53, 50)
+			Map::ChangeTile(82, 53, 50)
+			Map::ChangeTileArea(71, 55, 80, 55, 50)
+			Map::ChangeTile(82, 55, 50)
+			Map::ChangeTileArea(71, 57, 82, 57, 50)
+			Map::ChangeTile(71, 50, 50)
+			Map::ChangeTile(71, 52, 50)
+			Map::ChangeTile(71, 54, 50)
+			Map::ChangeTile(80, 52, 50)
+			Map::ChangeTile(82, 48, 50)
+			Map::ChangeTile(82, 50, 50)
+			Map::ChangeTile(82, 52, 50)
+			Map::ChangeTile(82, 54, 50)
+			Map::ChangeTile(82, 56, 50)
+			Screen::Flash()
+			DisplayMap()
+			Talk("갑자기 주위가 용암으로 변하면서 한 영혼이 당신 앞에 나타났다.")
+			Say("레드 안타레스", "나는 고대의 강력한 마법사였던 Red Antares의 영이오.")
+			Say("레드 안타레스", "한때 나는 이 세계의 모든 지역을 통괄하는 마법을 가지고 이 세계를 통치했지만 내가 죽고 난 뒤로는 여러 지역으로 나의 마법이 분산되어 제대로 힘을 발휘하지 못하는 것 같소. 당신들이 Necromancer에 대항하려 한다는 걸 알고 있소. 나는 그가 이 동굴을 요새화시킬 때 이미 그의 마법 능력을 지켜보았기 때문에 그의 능력을 알 수 있었소. 그러나 그의 능력에 비교해 볼 때 당신들의 마법 능력은 상당히 저조하오. 그래서 당신들을 위해 나의 마법 중 '간접 공격'이란 기법을 전해 주겠소.")
+			Say("레드 안타레스", "만약 당신들의 마법 능력이 도달한다면 다음의 마법을 사용할 수 있을 것이오.")
+			Talk("1. 독 - 적을 중독시킴")
+			Talk("2. 기술 무력화 - 적의 특수 공격 능력 제거")
+			Talk("3. 방어 무력화 - 적의 방어력 감소")
+			Talk("4. 능력 저하 - 적의 모든 능력 감소")
+			Talk("5. 마법 불능 - 적의 마법 능력 제거")
+			Talk("6. 탈 초인화 - 적의 초자연력 제거")
+			Say("레드 안타레스", "이 여섯 가지의 마법은 사용하기 까다롭고 직접적인 공격은 아니지만 큰 도움을 줄 것이오. 하지만 사실 이 마법들을 모두 동원하더라도 Necromancer를 만나기조차 어려울 것이오. 그래서 당신들은 초자연력 또한 익혀야만 그에게 대항할 수 있을 것이오.")
+			Flag::Set("RED_ANTARES_TAUGHT")
+			Party::Unlock("special_magic")
+			halt
+		# 다시 왔을 때 — 독심 상태면 합류 제의. 합류는 한 번 (원작은 합류 검사가 늘 거짓이었다 — 부록 A #1)
+		if (Or(Flag::IsSet("RED_ANTARES_JOINED"), Not(Equal(Party::CheckIf(CHECKIF_MINDCONTROL), 1))))
+			Say("레드 안타레스", "나는 다시 영혼의 세계로 돌아가야겠소.")
+			halt
+		Say("레드 안타레스", "다시 생각해 보니 나도 직접 Necromancer에 도전하고픈 마음이 생겼소. 비록 육체적인 힘은 전혀 없는 영이지만 당신들과 같이 모험을 하고 싶소. 당신들의 생각은 어떻소?")
+		Select::Init()
+		Select::Add("어떻게 하겠습니까?")
+		Select::Add("당신의 제의를 받아들이겠소")
+		Select::Add("당신이 전해 준 마법만으로도 족하오")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			Party::JoinReplace("red_antares")
+			if (Equal(Party::Joined(), 1))
+				Flag::Set("RED_ANTARES_JOINED")
+		halt
+
+	# ---- 히드라 (22,63~66) — 워터 필드 의뢰 단계 2 미만. 머리 셋, 일행 선공 (M4) ----
+	if (OnArea(22, 63, 22, 66))
+		if (GreaterEqual(Variable::Get("WATERFIELD_QUEST"), 2))
+			halt
+		# 보스 사건은 횃불이 0 이면 1 로 켜고 시작한다 (1st/08 §8.2)
+		if (Equal(Party::Torch(), 0))
+			Party::SetTorch(1)
+		Notice("당신은 보스인 Hidra를 만났다.")
+		Battle::Init()
+		Battle::RegisterVariant("hydra_head", 1)
+		Battle::RegisterVariant("hydra_head_2", 1)
+		Battle::RegisterVariant("hydra_head", 1)
+		Battle::Start(BATTLE_NO_PRELUDE)
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Talk("당신들은 Hidra를 물리쳤다.")
+			Notice("그리고 당신은 이 임무에 성공했다.")
+			Talk("다시 WATER FIELD의 군주에게로 돌아가라.")
+			Variable::Set("WATERFIELD_QUEST", 2)
+			Party::Warp(56, 93)
+		else
+			# 도망치면 동쪽으로 한 칸 (공략집)
+			py.assign(Party::PosY())
+			Party::Warp(23, py)
+		halt

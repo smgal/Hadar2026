@@ -1,0 +1,87 @@
+####### 제2부 레굴루스의 오두막 (E2_Regulus) — 50×50 마을 ########
+# 근거: 2nd/05 §5.3 · 2nd/06 §6.6 · 2nd/07 §7.2(독심 합류) · 2nd/10 §6 · 2nd/12 부록 B ·
+#       공략집 Walkthrough/2nd/src/maps/Regulus.md · 원작 칸 번호(maps.json)
+# 마을형 · 기본 바닥 47. 상자 위의 쪽지 (18,30)은 밟는 칸(19). 테두리 (x=5, x=46, y=6, y=45)는 숨은 칸 — 나가는 길.
+# 레굴루스는 돌아오는 날 정오 이후(그 뒤의 날은 시각과 무관) 오두막에 들어오면 (40,13)에 있다(부록 A #18).
+# 들어오면 (25,40), 나가면 로어 대륙 (82,10).
+
+include("common/const.cm2")
+variable(back)
+variable(m)
+variable(d)
+
+####### 맵에 들어올 때 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("town")
+	if (And(Greater(Variable::Get("REGULUS_RETURN_DAY"), 0), Not(Flag::IsSet("JOINED_REGULUS"))))
+		back.assign(0)
+		if (Flag::IsSet("REGULUS_BACK"))
+			back.assign(1)
+		if (Greater(Time::DayNumber(), Variable::Get("REGULUS_RETURN_DAY")))
+			back.assign(1)
+		if (And(Equal(Time::DayNumber(), Variable::Get("REGULUS_RETURN_DAY")), GreaterEqual(Time::Hour(), 12)))
+			back.assign(1)
+		if (Equal(back, 1))
+			Flag::Set("REGULUS_BACK")
+			Map::ChangeTile(40, 13, 53)
+
+####### 사람 — 레굴루스 (40,13) ########
+
+if (Equal(ScriptMode(), FLAG_TALK))
+	if (On(40, 13))
+		if (Not(Flag::IsSet("REGULUS_MET")))
+			Say("레굴루스", "아니! {주인공}.")
+			Say("레굴루스", "정말 오래간만이군. 여기에는 무슨 일인가?")
+			Answer("나는 지니어스 기가 남긴 쪽지를 보고 당신을 찾아왔다네. 그가 말하기로 자네가 그가 있는 위치를 안다고 해서 말일세.")
+			Say("레굴루스", "지니어스 기가 있는 곳을 알고 싶다는 것이군. 내가 이번에 약초를 구해 왔을 때 잠시 라스트디치에 약초를 팔기 위해 들렀었지. 그때 무기 상점 근처에 있는 지니어스 기를 만났었다네.")
+			Say("레굴루스", "그는 얼마 후에 긴 여행을 떠난다고 하던데 빨리 가 보면 만날 수 있을 걸세.")
+			Say("레굴루스", "아참, 그리고 내가 이번에는 해독 약초를 많이 캤다네. 자네에게도 몇 개 주지. 여행에 도움이 될 걸세.")
+			Item::Give("item.antidote_herb", 5)
+			Notice("일행은 약간의 해독 약초를 그에게 받았다.")
+			Flag::Set("REGULUS_MET")
+			halt
+		if (Not(Equal(Party::CheckIf(CHECKIF_MINDCONTROL), 1)))
+			Say("레굴루스", "자네가 약초를 더 원한다면 라스트디치의 병원에 가 보게. 그곳에 내가 약초를 팔았다네.")
+			halt
+		Say("레굴루스", "잠깐! {주인공}!")
+		Say("레굴루스", "자네의 모습을 보니 갑자기 예전의 그때처럼 정의를 위해 싸워 보고 싶군. 사실 이런 약초나 캐러 다니는 일은 나에게 맞지 않다네. 이제는 이 일에도 지쳐 버렸고... 나를 모험에 참가시켜 주게.")
+		Select::Init()
+		Select::Add("어떻게 하겠습니까?")
+		Select::Add("나 역시 자네의 도움이 필요했다네")
+		Select::Add("자네가 일부러 나서지 않아도 될 일이네")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			if (Not(Equal(Party::HasFreeSeat(), 1)))
+				Say("레굴루스", "나도 당신의 일행에 참가하고 싶지만 벌써 사람이 모두 채워져 있군. 미안하게 됐네.")
+				halt
+			Party::Join("regulus")
+			Flag::Set("JOINED_REGULUS")
+			Map::ChangeTile(40, 13, 47)
+			DisplayMap()
+		halt
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 상자 위의 쪽지 (18,30) — 처음 읽은 날 + 10일이 돌아오는 날 ----
+	if (On(18, 30))
+		if (Flag::IsSet("REGULUS_MET"))
+			halt
+		if (Equal(Variable::Get("REGULUS_RETURN_DAY"), 0))
+			Variable::Set("REGULUS_RETURN_DAY", Add(Time::DayNumber(), 10))
+			Variable::Set("REGULUS_RETURN_MONTH", Time::MonthAfter(10))
+			Variable::Set("REGULUS_RETURN_DATE", Time::DayAfter(10))
+		m.assign(Variable::Get("REGULUS_RETURN_MONTH"))
+		d.assign(Variable::Get("REGULUS_RETURN_DATE"))
+		Talk("당신은 상자를 뒤지던 중 그 위에 놓여 있는 쪽지를 발견했다. 그것은 레굴루스가 쓴 것임을 알 수가 있었다.")
+		Talk("@F저는 지금 약초를 찾으러 다른 대륙에 가 있습니다. 제가 돌아오기로 되어 있는 날은 {$m}월 {$d}일이므로 그때 찾아오십시오.@@")
+		halt
+
+	# ---- 테두리 — 나가기 ----
+	Ask("여기서 나가기를 원합니까?")
+	if (Equal(Select::Result(), 1))
+		LoadScript("E2_Lore", 82, 10)
+	else
+		WarpPrevPos()

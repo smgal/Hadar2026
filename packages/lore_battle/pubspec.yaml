@@ -1,0 +1,13 @@
+name: lore_battle
+description: >-
+  Standalone battle model for the Lore trilogy. A fork of hd_battle: the
+  same skeleton, with the Part 3 rule system and one enemy table per part.
+  Pure Dart, no Flutter, no view.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dev_dependencies:
+  test: ^1.24.0

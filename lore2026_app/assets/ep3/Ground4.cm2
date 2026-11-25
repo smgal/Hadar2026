@@ -1,0 +1,127 @@
+####### 제3부 — 이쉬도 테라 (Ground4, 필드형 100×100) #######
+# 근거: 기획서 05(M7·L2) · 06(6.17·6.18·6.19·6.28) · 12(12.3·12.4) · 14(8.1 · 8.4 탈출 · 11 충성 루트),
+#       공략 원고 Walkthrough/3rd/src/maps/Ground4.{md,json}
+#
+# 칸 종류 (maptool 로 확인):
+#   입구   (82,16) 코볼트성 · (20,39) 에인션트 이블의 신전 · (48,57) 오두막 · (26,16) 발할라 전당
+#   이벤트 (48,35) 가이아 게이트
+#   이 맵에는 푯말이 없다 (FLAG_SIGN 없음)
+#   도착 위치는 (48,36) — 가이아 테라성 북쪽 게이트가 여기로 보낸다
+
+include("common/const.cm2")
+
+
+####### 맵에 들어왔다 #######
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("ground4")                      # 이쉬도 테라 전용 곡 (13.11)
+
+	# 코볼트성 탈출 — 로드안의 봉인 (14 8.4 「탈출 — 로드안의 봉인」)
+	# 성 밖으로 나오는 순간의 장면이다. 코볼트성 쪽 스크립트가 이미 KOBOLD_SEALED 를 켰으면
+	# 여기서는 아무 일도 없다 — 켜지 않은 채 보냈을 때만 이쪽에서 장면을 내고 기록한다.
+	# (코볼트킹이 달아난 뒤 성을 나오는 길은 탈출뿐이다)
+	if (And(Flag::IsSet("KOBOLD_KING_FLED"), Not(Flag::IsSet("KOBOLD_SEALED"))))
+		Talk("당신이 성 밖으로 탈출하자 허공에서 로드안의 음성이 들려왔다.")
+		Say("로드안", "당신은 빨리 이곳을 나가시오. 나의 선의 봉인으로 악마의 힘을 빌린 코볼트킹을 막겠소. 아마 그는 다시는 이 성을 벗어나지 못할 거요.")
+		Talk("말이 채 끝나기도 전에 코볼트성 주위에는 구형의 결계가 형성되었고 곧이어 기의 파문이 일렁이기 시작했다.")
+		Flag::Set("KOBOLD_SEALED")
+
+	# 무작위 조우: 코볼트병사·코볼트투사·코볼트매직유저 — 코볼트성을 봉인하면 사라진다 (12.3)
+	Encounter::Clear()
+	if (Flag::IsSet("KOBOLD_SEALED"))
+		Encounter::Enable(0)
+	else
+		Encounter::Add(35, 37)
+		Encounter::Enable(1)
+
+
+####### 입구 #######
+if (Equal(ScriptMode(), FLAG_ENTER))
+	# (82,16) 코볼트성 — 코볼트킹이 달아난 뒤(= 봉인 후)에는 들어갈 수 없다
+	# 확인 문구의 이름은 원작대로 「코볼트 마을」이다 (06 6.17)
+	if (On(82, 16))
+		if (Or(Flag::IsSet("KOBOLD_KING_FLED"), Flag::IsSet("KOBOLD_SEALED")))
+			Talk("당신은 코볼트킹을 가둬 놓기 위해 만든 로드안의 결계 때문에 안으로 들어갈 수 없었다.")
+		else
+			Ask("코볼트 마을에 들어가기를 원합니까?")
+			if (Equal(Select::Result(), 1))
+				LoadScript("E3_Kobold", 6, 30)
+
+	# (20,39) 에인션트 이블의 신전 — 들어간 방향의 반대편 가장자리에서 시작한다 (06 6.18)
+	if (On(20, 39))
+		Ask("에인션트 이블 신전에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			if (Equal(Party::Faced(), FACE_RIGHT))
+				LoadScript("E3_Ancient", 6, 15)
+			if (Equal(Party::Faced(), FACE_LEFT))
+				LoadScript("E3_Ancient", 14, 15)
+			if (Equal(Party::Faced(), FACE_DOWN))
+				LoadScript("E3_Ancient", 10, 7)
+			if (Equal(Party::Faced(), FACE_UP))
+				LoadScript("E3_Ancient", 10, 24)
+
+	# (48,57) 오두막 — 들어간 방향의 반대편 가장자리에서 시작한다 (06 6.19)
+	if (On(48, 57))
+		Ask("오두막집에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			if (Equal(Party::Faced(), FACE_RIGHT))
+				LoadScript("E3_Hut", 6, 15)
+			if (Equal(Party::Faced(), FACE_LEFT))
+				LoadScript("E3_Hut", 25, 15)
+			if (Equal(Party::Faced(), FACE_DOWN))
+				LoadScript("E3_Hut", 15, 7)
+			if (Equal(Party::Faced(), FACE_UP))
+				LoadScript("E3_Hut", 15, 24)
+
+	# (26,16) 발할라 전당 — 원작 미구현 지역. 제작자 메모만 나온다 (06 6.28)
+	if (On(26, 16))
+		Talk("여기는 '발하라 전당'.")
+		Talk("시간 관계상 제작을 하지 못했음.")
+		Talk("제작자 씀.")
+
+
+####### 이벤트 칸 #######
+if (Equal(ScriptMode(), FLAG_EVENT))
+	# (48,35) 가이아 게이트 — 밟으면 묻지 않고 가이아 테라성 북쪽 대기실 (26,7) 로 돌아간다
+	if (On(48, 35))
+		# 묻지 않고 0.3초 페이드 아웃 뒤 가이아 테라로 (MYSTSPEC.PAS:972~975)
+		Screen::FadeOut(300)
+		LoadScript("E3_Gaea", 26, 7)
+
+
+####### 이야기용 물건을 썼다 #######
+if (Equal(ScriptMode(), FLAG_ITEM))
+	# 크리스탈 볼 (충성 루트 L2) — 원혼 봉인은 순서가 정해져 있고, 코볼트의 원혼은 세 번째다
+	if (Equal(Item::Used(), "crystal.ball"))
+		if (GreaterEqual(Variable::Get("SPIRITS_SEALED"), 4))
+			Talk("크리스탈 볼 속에는 아무것도 떠오르지 않았다.")
+		else
+			if (And(Equal(Variable::Get("SPIRITS_SEALED"), 2), On(11, 91)))
+				# (11,91) 코볼트의 원혼 — 62×1, 적 선공, 반복 (12.4)
+				Battle::Init()
+				Battle::RegisterEnemy(62, 1)
+				Battle::Start(Add(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE), BATTLE_REPEAT))
+				if (Equal(Battle::Result(), BATTLERESULT_WIN))
+					Talk("당신은 코볼트의 원혼을 크리스탈 볼 속에 봉인시켰다.")
+					Variable::Set("SPIRITS_SEALED", 3)
+			else
+				# 지금 순서의 원혼이 있는 곳의 풍경(9×11칸)을 비춰 준다
+				Talk("당신은 수정 구슬을 통해 낯선 풍경을 보았다.")
+				# 봉인 수에 따라 다음 원혼이 있는 자리 — 가이아 (92,12) · 아프로디테 (35,34) · 이쉬도 (11,91) · 로어 대륙 (44,50)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 0))
+					Screen::ShowScenery("E3_Ground2", 92, 12)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 1))
+					Screen::ShowScenery("E3_Ground3", 35, 34)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 2))
+					Screen::ShowScenery("E3_Ground4", 11, 91)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 3))
+					Screen::ShowScenery("E3_Ground1", 44, 50)
+
+
+# (해결된 NEED — BATTLE_REPEAT 로 바꿨다) Battle::Start 의 「반복」 방식 (예: BATTLE_REPEAT) — 도망에 성공해도 같은 적과 곧바로
+#       다시 싸우고(다시 적 선공), 적은 다시 편성하지 않아 입힌 피해가 남는다 (12.4 표기 「반복」).
+#       반복문이 없어 스크립트로는 만들 수 없다. 이제 BATTLE_REPEAT 로 한다 (코볼트의 원혼).
+# (해결된 NEED) 크리스탈 볼의 풍경 — Screen::ShowScenery 가 다음 원혼이 있는 자리의 9×11칸을 그 맵의 그림으로
+#       비춘다. 밤이고 달빛이 없으면 어둡게 그린다 (05 §5.4 L2).
+# (원작 확인) 입구 확인 문구의 장소 이름 — 「코볼트 마을」·「에인션트이블 신전」·「오두막집」(MYSTENT.PAS:247·258·282).
+#       신전은 다른 곳의 표기에 맞춰 「에인션트 이블 신전」으로 띄어 썼다.
+# (원작 확인) (48,35) 가이아 게이트 — 묻지 않고 Screen_Fade_Out(300) 뒤 옮긴다(MYSTSPEC.PAS:972~975).

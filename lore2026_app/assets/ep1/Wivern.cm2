@@ -1,0 +1,70 @@
+####### 제1부 와이번 동굴 (E1_Wivern) — 40×40 동굴 ########
+# 근거: 1st/05 §5.2 M4 · 1st/06 §6.2 · §6.10 · 1st/08 §8.2~8.3 · 1st/10 §6.5 · 1st/12 부록 B ·
+#       공략집 Walkthrough/1st/src/maps/Wivern.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥 41. 와이번 줄 (17~24,10)과 출구 줄 (19~22,36)은 숨은 칸, 워터 게이트 (20,8)·(21,8)은 입구 칸(54).
+# 들어오면 (20,35), 나가면 가이아 테라 (44,8). 워터 필드에서 오면 게이트 바로 아래 (20,9).
+
+include("common/const.cm2")
+variable(left)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 28~32: 크레이지 원·오우거·헤들리스·머드맨·헬 캣 (레벨 7~8)
+	Encounter::Clear()
+	Encounter::Add(28, 32)
+	Encounter::Enable(1)
+	# 와이번 줄 (17~24,10) 은 이동 마법으로 건너뛰지 못한다 — 걸어서 지나가며 와이번과 마주쳐야 한다
+	# (공략집 리메이크 메모: 원작은 (20,12) 에서 북쪽으로 기화 이동하면 싸우지 않고 (20,10) 에 내려섰다)
+	Map::SetMagicBarrier(17, 10, 24, 10)
+
+####### 입구 — 워터 게이트 ########
+# 의도된 사양: 물의 열쇠(가이아 의뢰 6)가 있어야 열린다(부록 A #4). 원작은 검사하지 않아 열쇠가 없을 때의 문구가 없다.
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (OnArea(20, 8, 21, 8))
+		if (Less(Variable::Get("GAIA_QUEST"), 6))
+			Talk("문이 굳게 잠겨 있다. 이 문을 열 열쇠가 필요하다.")
+			halt
+		Ask("WATER FIELD에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_WaterField", 26, 8)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 와이번 줄 (17~24,10) — 게이트로 가는 유일한 줄. 남은 수만큼 싸운다, 적 선공 (M4) ----
+	if (OnArea(17, 10, 24, 10))
+		left.assign(Sub(3, Variable::Get("WIVERNS_KILLED")))
+		if (LessEqual(left, 0))
+			Talk("여기에는 Wivern의 시체만이 있다.")
+			halt
+		if (Equal(left, 3))
+			Notice("당신은 세 마리의 Wivern과 마주쳤다.")
+		if (Equal(left, 2))
+			Notice("당신은 두 마리의 Wivern과 마주쳤다.")
+		if (Equal(left, 1))
+			Notice("당신은 한 마리의 Wivern과 마주쳤다.")
+		Battle::Init()
+		Battle::RegisterEnemy(43, left)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Variable::Set("WIVERNS_KILLED", 3)
+		else
+			# 쓰러뜨린 수만큼 기억한다 — 돌아오면 남은 와이번만 나온다 (1st/05 M4)
+			Variable::Set("WIVERNS_KILLED", Add(Variable::Get("WIVERNS_KILLED"), Battle::Downed()))
+			# 도망치면 한 칸 밀려난다 (1st/08 §8.2 — 원작은 그 칸에 서서 게이트로 곧장 갈 수 있었다, 부록 A #21)
+			WarpPrevPos()
+		halt
+
+	# ---- 출구 줄 (19~22,36) ----
+	if (OnArea(19, 36, 22, 36))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Gaia", 44, 8)
+		else
+			WarpPrevPos()
+
+# (해결된 NEED) 와이번 줄을 건너뛰는 기화 이동·공간 이동 — FLAG_MAP 의 Map::SetMagicBarrier 가 막는다.

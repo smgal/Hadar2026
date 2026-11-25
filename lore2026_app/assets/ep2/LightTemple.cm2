@@ -1,0 +1,65 @@
+####### 제2부 빛의 사원 (E2_LightTemple) — 50×50 동굴 (지하 세계 1) ########
+# 근거: 2nd/05 §5.2(1차 원정 — 빛의 사원) · 2nd/06 §6.2 · §6.10 · 2nd/07 §7.2(어두운 곳) · 2nd/10 §8.2 · 2nd/12 부록 B ·
+#       공략집 Walkthrough/2nd/src/maps/LightTemple.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥 41 · 무작위 조우 없음. 어둠의 미로 (y 7~32)의 바닥(52)은 밟을 때마다 횃불이 0 이 된다(입구 줄 (24~27,7) 제외).
+# 전당 (16~35,32~45)은 항상 밝다. 숨은 칸: y=34 줄, 메시지 (25~26,43).
+# 아르발레스트 (11,39)는 벽 칸 — 메시지를 본 뒤 열린다(사원을 나가면 다시 벽, 부록 B.3).
+# 들어오면 (25,7), 나가면 지하 세계 1 (89,93).
+
+include("common/const.cm2")
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	Encounter::Clear()
+	Encounter::Enable(0)
+	Map::SetLightArea(16, 32, 35, 45)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 출구 (24~27,1~6) ----
+	if (OnArea(24, 1, 27, 6))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E2_Underworld1", 89, 93)
+		else
+			WarpPrevPos()
+		halt
+
+	# ---- 빈 사원 (y=34) — 한 번 ----
+	if (OnArea(16, 34, 35, 34))
+		if (Not(Flag::IsSet("TEMPLE_EMPTY")))
+			Flag::Set("TEMPLE_EMPTY")
+			Talk("일행이 사원 안으로 들어왔을 때는 이미 어둠의 추종자들이라고 불리는 사람들은 사라진 후였다.")
+		halt
+
+	# ---- 어둠의 추종자의 메시지 (25~26,43) — 밟을 때마다 전문, 경험치는 한 번. (11,39)가 열린다 ----
+	if (OnArea(25, 43, 26, 43))
+		Talk("그곳에는 소위 어둠의 추종자들이 우리 일행에게 보내는 메시지가 있었다.")
+		Say("어둠의 추종자", "당신들이 우리 어둠의 추종자들을 쫓고 있다는 것을 알고 있다. 하지만 그 정도의 실력으로는 우리에게 대항하지조차 못한다는 것을 알 것이다. 우리들은 너희들의 움직임을 낱낱이 파악하고 있다. 이미 실리안 카미너스는 우리들이 안전한 곳으로 옮겨 놓았지. 하지만 너희들은 우리에게 적극 협조해야만 할 것이다. 우리들은 신에 의해 선택되어진 사람들이고 이 세상은 너무나 더럽혀져 있지. 이 세상을 다시 깨끗하게 하기 위해서는 매우 거대한 힘이 필요하겠지. 그래서 우리가 선택한 것은 바로 실리안 카미너스라는 악의 집합체인 것이다. 우리들은 새로운 세상을 위해서는 악의 힘이라도 사양하지 않는다. 당신도 우리의 뜻을 알았다면 이제 포기하고 우리들의 의지를 따르기를 바라는 바이다.")
+		if (Not(Flag::IsSet("TEMPLE_MESSAGE_READ")))
+			Flag::Set("TEMPLE_MESSAGE_READ")
+			Party::GiveExp(100000)
+			Notice("경험치 + 100000")
+		Flag::Set("TRIP_TEMPLE")
+		if (Not(Flag::IsSet("ARBALEST")))
+			Map::ChangeTile(11, 39, 52)
+		halt
+
+	# ---- 아르발레스트 (11,39) — 막힌 방이라 전당 (18,40)에서 서쪽 7칸 공간 이동으로 ----
+	if (On(11, 39))
+		if (Not(Flag::IsSet("ARBALEST")))
+			Flag::Set("ARBALEST")
+			Talk("일행은 여기서 대궁 아르발레스트를 발견하였다.")
+			Item::Give("weapon.arbalest", 1)
+			Notice("아르발레스트를 배낭에 넣었다")
+		halt
+
+	# ---- 어둠의 미로 (y 7~32) — 한 걸음마다 횃불이 꺼진다 ----
+	if (OnArea(1, 7, 50, 32))
+		if (Not(OnArea(24, 7, 27, 7)))
+			Party::SetTorch(0)
+		halt

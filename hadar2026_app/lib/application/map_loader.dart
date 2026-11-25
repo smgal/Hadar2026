@@ -29,15 +29,16 @@ class HDMapLoader {
     for (int y = 0; y < map.height; y++) {
       for (int x = 0; x < map.width; x++) {
         int index = y * map.width + x;
-        // Layers
-        // 0: tile
-        // 1: ?
-        // 2: obj0
-        // 3: obj1
-        // 4: shadow
+        // Layers (five-layer layout, BP-36 R-36-57)
+        // 0: tile    L1 ground
+        // 1: decor   L2 floor decor (walked over)
+        // 2: obj0    L3 object (blocks)
+        // 3: obj1    L4 top object (blocks, checked first)
+        // 4: shadow  L5 light/shadow
         // 5: event region
 
         map.data[index].ixTile = _getLayerData(rawData, 0, index, size);
+        map.data[index].ixDecor = _getLayerData(rawData, 1, index, size);
         map.data[index].ixObj0 = _getLayerData(rawData, 2, index, size);
         map.data[index].ixObj1 = _getLayerData(rawData, 3, index, size);
         map.data[index].shadow = _getLayerData(rawData, 4, index, size);

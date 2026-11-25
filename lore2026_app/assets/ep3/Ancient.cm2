@@ -1,0 +1,120 @@
+####### 제3부 — 에인션트 이블의 신전 (Ancient, 마을형 20×30) #######
+# 근거: 기획서 05(S9·5.7) · 06(6.1 마법 제한 · 6.18) · 12(12.4) · 14(8.2) · 16(B.2·B.3),
+#       공략 원고 Walkthrough/3rd/src/maps/Ancient.{md,json}
+#
+# 칸 종류 (maptool 로 확인):
+#   사람   (10,17)·(11,17) 드라코니안 신도 2명
+#   입구   (10,23) 코볼트 글 기둥 — 입구 번호라 부딪혀서 읽는다
+#   숨은 칸 (10,13)·(11,13) 무덤 앞 결계 · (10,12)·(11,12) 에인션트 이블의 무덤
+#   이벤트 — 가장자리 네 줄 x=5 · x=16 · y=6 · y=25 (출구)
+#   이 맵에는 푯말이 없다 (FLAG_SIGN 없음)
+#
+# 빈 바닥은 44 (이 맵의 default).
+
+include("common/const.cm2")
+
+
+####### 맵에 들어왔다 #######
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("town")                         # 마을형 공통 곡 (13.11)
+
+	# 맵별 마법 제한 (06 6.1) — 주시자의 눈·수정 구슬만 된다
+	Map::SetHandicap(HANDICAP_TILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_BIGTILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_ETHEREAL, 1)
+	Map::SetHandicap(HANDICAP_TELEPORT, 1)
+
+	# 부록 B.3 — 신도를 처치했으면 통로가 열려 있다
+	if (Flag::IsSet("ANCIENT_DEVOTEES_DEAD"))
+		Map::ChangeTile(10, 17, 44)
+		Map::ChangeTile(11, 17, 44)
+	# 부록 B.3 — 코볼트성의 말하는 해골을 본 뒤 신전에 들어오면 무덤 앞 결계가 사라져 있다
+	if (Flag::IsSet("KOBOLD_SKULL_WARNED"))
+		Map::ChangeTile(10, 13, 44)
+		Map::ChangeTile(11, 13, 44)
+
+
+####### 말을 걸었다 #######
+if (Equal(ScriptMode(), FLAG_TALK))
+	# (10,17)·(11,17) 드라코니안 신도 2명 — 처치하면 안쪽 통로가 열린다
+	if (Or(On(10, 17), On(11, 17)))
+		Talk("신전 입구인 듯한 곳에 신자인 것 같은 드라코니안 두 명이 서 있었다. 당신들을 보고 뭐라고 알 수 없는 말을 서로 지껄이더니 서투른 인간의 말로 당신에게 말했다.")
+		Say("드라코니안 신도", "여기는 에인션트 이블님의 신전을 모시고 있는 신전입니다. 그리고 우리 둘은 이곳을 관리하는 신도들입니다. 어떤 일로 여기에 오셨습니까?")
+		Select::Init()
+		Select::Add("")
+		Select::Add("당신들을 죽이러 왔소")
+		Select::Add("에인션트 이블을 만나러 왔소")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			# 드라코니안 신도(드라코니안 능력치) 2, 일행 선공. 도망치면 그 자리에 남는다
+			Battle::Init()
+			Battle::RegisterEnemy(48, 2)
+			Enemy::ChangeAttribute(1, "name", "드라코니안 신도")
+			Enemy::ChangeAttribute(2, "name", "드라코니안 신도")
+			Battle::Start(BATTLE_NO_PRELUDE)
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("ANCIENT_DEVOTEES_DEAD")
+				Map::ChangeTile(10, 17, 44)
+				Map::ChangeTile(11, 17, 44)
+				DisplayMap()
+		else
+			if (Equal(Select::Result(), 2))
+				Say("드라코니안 신도", "하지만 그분은 벌써 몇백 년 전에 돌아가셨습니다. 지금은 그분의 말씀만 남아 우리들을 올바르게 지도하고 계십니다.")
+
+
+####### 입구 칸 #######
+if (Equal(ScriptMode(), FLAG_ENTER))
+	# (10,23) 코볼트 글 기둥 — 코볼트 글을 알면 읽는 순간 코볼트 말을 알게 된다 (05 5.7)
+	# 이미 코볼트 말을 알면 아무 일도 없다
+	if (On(10, 23))
+		if (Not(Flag::IsSet("KOBOLD_SPEECH")))
+			if (Flag::IsSet("KOBOLD_SCRIPT"))
+				Talk("당신은 코볼트 글로 되어 있는 기둥을 보았다. 그리고 그곳에 적힌 글을 읽자 당신의 머릿속을 꽉 채우는 무언가를 느꼈다.")
+				Flag::Set("KOBOLD_SPEECH")
+			else
+				Talk("당신 앞에는 처음 보는 문자가 적힌 기둥이 서 있었다.")
+
+
+####### 이벤트 칸 #######
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	####### 무덤 #######
+	# (10,13)·(11,13) 무덤 앞 결계 — 밟으면 언제나 한 칸 아래로 밀려난다
+	# (결계는 맵에 들어올 때 KOBOLD_SKULL_WARNED 를 보고 걷는다. 걷힌 뒤에는 그냥 바닥이다)
+	if (Or(On(10, 13), On(11, 13)))
+		Talk("당신은 무덤 앞으로 발을 내디디려 했지만 어떤 힘에 의해 더 이상 들어갈 수가 없었다.")
+		WarpPrevPos()
+
+	# (10,12)·(11,12) 에인션트 이블의 무덤 — 첫 방문 때 행동 가능한 대원 전원(보조 일원 포함) 경험치 +500000
+	if (Or(On(10, 12), On(11, 12)))
+		Talk("Rest In Peace ----------")
+		Talk("에인션트 이블")
+		Talk("348년 가을, 여기에 잠들다")
+		if (Not(Flag::IsSet("ANCIENT_TOMB_VISITED")))
+			Flag::Set("ANCIENT_TOMB_VISITED")
+			Party::GiveExp(500000)
+			# Party::GiveExp 는 1~5번까지다. 보조 일원(6번)은 따로 준다 (05 S9)
+			if (Player::CanAct(6))
+				Player::AddAttribute(6, "exp", 500000)
+			Notice("경험치 + 500000")
+
+	####### 가장자리 네 줄 — 출구 #######
+	# 필드 (20,39) 에서 나간 방향으로 한 칸 옮긴 자리에 선다.
+	# 동쪽으로 나가면 필드 (21,39) 의 물 칸 위다 (원작 그대로 — 06 6.18)
+	if (Or(OnArea(5, 6, 16, 6), OnArea(5, 25, 16, 25), OnArea(5, 7, 5, 24), OnArea(16, 7, 16, 24)))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			# 북쪽 가장자리 y=6
+			if (OnArea(5, 6, 16, 6))
+				LoadScript("E3_Ground4", 20, 38)
+			# 남쪽 가장자리 y=25
+			if (OnArea(5, 25, 16, 25))
+				LoadScript("E3_Ground4", 20, 40)
+			# 서쪽 가장자리 x=5
+			if (OnArea(5, 7, 5, 24))
+				LoadScript("E3_Ground4", 19, 39)
+			# 동쪽 가장자리 x=16
+			if (OnArea(16, 7, 16, 24))
+				LoadScript("E3_Ground4", 21, 39)
+		else
+			WarpPrevPos()

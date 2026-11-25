@@ -1,0 +1,64 @@
+####### 제1부 라스트 셸터 (E1_LastShelter) — 50×50 마을 (임페리엄 마이너 지하 도시) ########
+# 근거: 1st/05 §5.3 S15 · 1st/06 §6.2 · §6.13 · 1st/10 §9.1 · 1st/12 부록 B ·
+#       공략집 Walkthrough/1st/src/maps/LastShelter.md · 원작 칸 번호(maps.json)
+# 마을형 · 기본 바닥 47. 시설 이름판 (22,23) EXP.·(27,23) ARMS·(22,37) CURE·(27,37) FOOD는 벽 그림이다.
+# 남쪽 출구 줄 (23~26,46)은 숨은 칸. 들어오면 (25,45), 나가면 임페리엄 마이너 성소 (25,24).
+
+include("common/const.cm2")
+
+####### 맵에 들어올 때 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("town")
+	if (Flag::IsSet("CREATOR_MET"))
+		Map::ChangeTile(33, 10, 47)
+
+####### 사람 ########
+
+if (Equal(ScriptMode(), FLAG_TALK))
+	if (Or(On(11, 22), On(14, 24)))
+		Shop::Training()
+		halt
+	if (Or(On(33, 35), Or(On(35, 37), On(41, 38))))
+		Shop::Grocery()
+		halt
+	if (Or(On(33, 21), Or(On(37, 24), On(40, 23))))
+		Shop::Weapon()
+		halt
+	if (Or(On(15, 36), Or(On(11, 38), On(14, 40))))
+		Shop::Hospital()
+		halt
+	if (On(17, 15))
+		Say("주민", "Ancient Evil은 우리의 구세주였습니다.")
+		halt
+	if (On(18, 10))
+		Say("주민", "이 세상을 이렇게 불행하게 한 자는 바로 안영기라는 프로그래머입니다.")
+		halt
+	if (On(20, 13))
+		Say("주민", "우리는 여태껏 당신들이 오기를 기다렸습니다.")
+		halt
+	if (On(27, 8))
+		Say("주민", "Ancient Evil은 결코 평판과 같이 나쁜 존재가 아닙니다.")
+		halt
+	if (On(31, 13))
+		Say("주민", "당신들은 분명히 우리들을 밖으로 나가게 해 줄 것입니다.")
+		halt
+	# ---- 제작자 (33,10) — 한 번. 이야기를 마치면 그 자리가 빈다 (S15) ----
+	if (On(33, 10))
+		Say("안영기", "이 사람들은 잘 모르겠지만 사실 나는 이 게임의 제작자인 안영기요.")
+		Say("안영기", "나는 여태껏 계속 당신들이 가는 도시마다 주민으로 가장한 채 당신들을 지켜보았소. 이 게임의 버그를 찾거나 난이도를 조절하기 위해서 말이오. 만약 당신들이 Necromancer를 물리친다면 내가 마지막으로 당신 앞에 나타나겠소.")
+		Say("안영기", "그럼, 이만 나는 가 보겠소.")
+		Flag::Set("CREATOR_MET")
+		Map::ChangeTile(33, 10, 47)
+		DisplayMap()
+		halt
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	if (OnArea(23, 46, 26, 46))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Imperium", 25, 24)
+		else
+			WarpPrevPos()

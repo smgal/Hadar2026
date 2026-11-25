@@ -1,0 +1,834 @@
+{
+  "_": "lore2026_app 의 cm2 동사 표. 앱의 어댑터(script_engine_adapter.dart)와 검사기(tools/lore_cm2_check)가 같이 읽는다. 동사를 등록·삭제하면 여기도 고친다 — test/application/scripting/cm2_symbols_test.dart 가 어긋나면 이름으로 말한다. 인자 수는 [최소, 최대].",
+  "builtinCommands": [
+    "variable",
+    "include",
+    "halt",
+    "Event::Override",
+    "Context::SetCurrent",
+    "Context::Delete",
+    "Context::Set"
+  ],
+  "builtinFunctions": [
+    "Not",
+    "Or",
+    "And",
+    "Equal",
+    "Less",
+    "Add",
+    "Random",
+    "ScriptMode",
+    "JoinString",
+    "Context::Get",
+    "Context::GetCurrent"
+  ],
+  "commands": {
+    "Actor::Hide": [
+      1,
+      1,
+      "Actor::Hide(\"이름\")"
+    ],
+    "Actor::Move": [
+      3,
+      3,
+      "Actor::Move(\"이름\", dx, dy) — 주인공과 같은 빠르기로 한 칸 걷기 시작한다. 기다리지 않는다"
+    ],
+    "Actor::Show": [
+      4,
+      4,
+      "Actor::Show(\"이름\", 원작 타일 번호, x, y) — 맵 칸과 따로 그려지는 인물을 세운다"
+    ],
+    "Actor::ShowSprite": [
+      4,
+      4,
+      "Actor::ShowSprite(\"이름\", 번호, x, y) — 3부 스프라이트 띠(24px 28칸)의 그림으로 배우를 세운다. 에너지 공 20 · 네크로만서 25(위)·26(아래) · 드라코니안킹 14·16·18 / 15·17·19 (작은 모습 12) · 제작자 24"
+    ],
+    "Actor::Wait": [
+      0,
+      0,
+      "배우들이 다 걸음을 마칠 때까지 기다린다"
+    ],
+    "Answer": [
+      1,
+      1,
+      "플레이어 쪽 대답 한 줄 (초록)"
+    ],
+    "Arrival::Say": [
+      2,
+      2,
+      "Arrival::Say(누구, \"...\") — 다음 맵에 들어선 뒤에 낼 대사를 쌓는다. LoadScript 바로 앞에 쓴다"
+    ],
+    "Arrival::Talk": [
+      1,
+      1,
+      "Arrival::Talk(\"...\") — 다음 맵에 들어선 뒤(그 맵의 FLAG_MAP 이 끝난 뒤)에 낼 문장을 쌓는다"
+    ],
+    "Ask": [
+      1,
+      1,
+      "예/아니오 물음. Select::Result() 가 1 이면 예"
+    ],
+    "Battle::HideEnemyNames": [
+      0,
+      0,
+      "Battle::HideEnemyNames() — 지도 칸의 이름 목록을 걷는다 (맵을 옮기거나 전투를 시작해도 걷힌다)"
+    ],
+    "Battle::Init": [
+      0,
+      0,
+      "적 목록을 비운다"
+    ],
+    "Battle::RegisterEnemy": [
+      1,
+      2,
+      "Battle::RegisterEnemy(적 번호, 마릿수=1) — 그 편 적 표의 번호"
+    ],
+    "Battle::RegisterPartyClones": [
+      2,
+      2,
+      "Battle::RegisterPartyClones(바탕 적 번호, 빈자리 적 번호) — 일행 여섯 자리의 분신을 적으로 세운다 (이름·레벨·능력치·방어 복사)"
+    ],
+    "Battle::RegisterVariant": [
+      1,
+      2,
+      "Battle::RegisterVariant(\"major_mummy\", 마릿수) — 그 편의 변형 적(이름·수치를 바꾼 보스). 키는 packages/lore_battle/CONTRACT.md 「변형」"
+    ],
+    "Battle::SetRenewText": [
+      1,
+      1,
+      "Battle::SetRenewText(\"...\") — BATTLE_RENEW 전투에서 이긴 뒤 새 편성이 덤벼 오기 전의 문장 (없으면 내지 않는다)"
+    ],
+    "Battle::SetRepeatText": [
+      1,
+      1,
+      "Battle::SetRepeatText(\"...\") — BATTLE_REPEAT 전투에서 도망친 뒤 다시 붙을 때의 문장 (Battle::Init 이 지운다)"
+    ],
+    "Battle::ShowEnemyNames": [
+      0,
+      0,
+      "Battle::ShowEnemyNames() — 등록한 적을 싸우지 않고 지도 칸에 이름만 띄운다 (1부 적 목록, 생명력에 따른 색)"
+    ],
+    "Battle::Start": [
+      0,
+      1,
+      "Battle::Start(BATTLE_* 를 Add 로 더한 값)"
+    ],
+    "ClearText": [
+      0,
+      0,
+      "기다리지 않고 창을 지운다"
+    ],
+    "DisplayMap": [
+      0,
+      0,
+      "맵을 다시 그린다"
+    ],
+    "DisplayStatus": [
+      0,
+      0,
+      "상태 창을 다시 그린다"
+    ],
+    "Encounter::Add": [
+      1,
+      2,
+      "Encounter::Add(적 번호) 또는 (첫 번호, 끝 번호)"
+    ],
+    "Encounter::Clear": [
+      0,
+      0,
+      "무작위 조우 표를 비운다"
+    ],
+    "Encounter::Enable": [
+      1,
+      1,
+      "1|0"
+    ],
+    "Enemy::ChangeAttribute": [
+      3,
+      3,
+      "Enemy::ChangeAttribute(등록 순번, \"속성\", 값) — name · level · 능력치"
+    ],
+    "Event::StepAgain": [
+      0,
+      0,
+      "Event::StepAgain() — 이 스크립트가 끝나면 일행이 지금 선 칸을 밟은 것으로 다시 본다 (Party::Warp 로 내려선 칸의 사건)"
+    ],
+    "Flag::Reset": [
+      1,
+      1,
+      ""
+    ],
+    "Flag::Set": [
+      1,
+      1,
+      "Flag::Set(\"이름\")"
+    ],
+    "Game::Ending": [
+      1,
+      1,
+      "Game::Ending(\"A\") — 엔딩을 본 것으로 적고 제목 화면으로"
+    ],
+    "Game::Over": [
+      0,
+      0,
+      "일행 전멸 처리 (불러오기/끝내기)"
+    ],
+    "Game::Start": [
+      1,
+      1,
+      "Game::Start(편 번호) — 다른 편을 새로 시작한다 (제목 화면이 쓴다)"
+    ],
+    "Item::Give": [
+      1,
+      2,
+      "Item::Give(\"item.hp_potion\", 개수=1) — item.* crystal.* weapon.* shield.* armour.*"
+    ],
+    "Item::Take": [
+      1,
+      2,
+      ""
+    ],
+    "Letter::Add": [
+      1,
+      1,
+      "Letter::Add(\"문단\") — 편지 화면에 문단 하나를 쌓는다 ({주인공} · @X…@@ 색 표시를 쓸 수 있다)"
+    ],
+    "Letter::AddPicture": [
+      2,
+      2,
+      "Letter::AddPicture(\"10 14 18 / 11 15 19\", \"문단\") — 문단 왼쪽에 1부 인물 그림(원작 CHARA.FNT 0~27)을 붙인다. 공백으로 나란히, / 로 다음 줄"
+    ],
+    "Letter::Clear": [
+      0,
+      0,
+      "Letter::Clear() — 편지 화면에 쓸 문단을 비운다"
+    ],
+    "Letter::Show": [
+      1,
+      2,
+      "Letter::Show(색, 방식) — 쌓은 문단을 검은 화면 한 장에 보이고 키를 기다린다. 색은 원작 16색 번호(12 빨강 · 14 노랑 · 15 흰색 · 7 회색), 방식은 LETTER_STILL · LETTER_SCROLL(위로 흐름) · LETTER_LIGHTNING(번개) · LETTER_CREDITS(번개 뒤 첫 키에 제작자가 걸어 내려감 — 1부 엔딩)"
+    ],
+    "LoadScript": [
+      1,
+      3,
+      "LoadScript(\"E3_Lore\", x, y) — 맵을 옮긴다. 좌표를 안 주면 그 맵의 시작 위치"
+    ],
+    "Log": [
+      1,
+      1,
+      "오른쪽 아래 진행 기록 창에 한 줄"
+    ],
+    "Map::ChangeHiddenTiles": [
+      5,
+      5,
+      "Map::ChangeHiddenTiles(x1, y1, x2, y2, 타일) — 사각형 안의 숨은 칸(0)만 그 타일로 바꾼다"
+    ],
+    "Map::ChangeTile": [
+      3,
+      3,
+      "Map::ChangeTile(x, y, 원작 타일 번호)"
+    ],
+    "Map::ChangeTileArea": [
+      5,
+      5,
+      "Map::ChangeTileArea(x1, y1, x2, y2, 원작 타일 번호)"
+    ],
+    "Map::ReplaceTile": [
+      6,
+      6,
+      "Map::ReplaceTile(x1, y1, x2, y2, 원래 타일, 새 타일) — 사각형 안에서 그 원래 타일로 깔린 칸만 바꾼다"
+    ],
+    "Map::ResetLightArea": [
+      4,
+      4,
+      ""
+    ],
+    "Map::ScatterTile": [
+      6,
+      6,
+      "Map::ScatterTile(x1, y1, x2, y2, 타일, 백분율) — 사각형 안의 칸마다 그 확률로 그 타일로 바꾼다"
+    ],
+    "Map::SetDark": [
+      1,
+      1,
+      "완전한 암흑 구역 1|0 (횃불이 꺼진다)"
+    ],
+    "Map::SetHandicap": [
+      2,
+      2,
+      "Map::SetHandicap(HANDICAP_*, 1|0) — 이 맵에서 막히는 마법"
+    ],
+    "Map::SetLightArea": [
+      4,
+      4,
+      "항상 밝은 영역"
+    ],
+    "Map::SetMagicBarrier": [
+      4,
+      4,
+      "Map::SetMagicBarrier(x1, y1, x2, y2) — 이 사각형을 공간 이동·기화 이동(이동 구슬 포함)이 건너지 못한다. FLAG_MAP 에서 건다"
+    ],
+    "Music::Play": [
+      1,
+      1,
+      "배경 음악 (지금은 소리 없이 호출만 받는다)"
+    ],
+    "Music::Stop": [
+      0,
+      0,
+      ""
+    ],
+    "Notice": [
+      1,
+      1,
+      "시스템 알림 (획득·능력치 변화). 하늘색"
+    ],
+    "Party::ArmBareHanded": [
+      1,
+      2,
+      "Party::ArmBareHanded(\"무기\", \"fighter\"?) — 맨손인 대원에게 그 무기를 쥐여 준다(쓸 수 없는 계급은 건너뛴다). 둘째 값 \"fighter\" 면 전투사 계열만"
+    ],
+    "Party::BlessWeapons": [
+      0,
+      0,
+      "Party::BlessWeapons() — 1편 리겔의 「신의 축복」. 무기를 든 대원마다 행운 판정 두 번을 모두 통과하면 무기 공격력 ×1.2 (무기를 바꾸면 끝난다)"
+    ],
+    "Party::Dismiss": [
+      1,
+      1,
+      "n번 자리를 비운다 (영구 이탈)"
+    ],
+    "Party::Face": [
+      1,
+      1,
+      "0 아래 · 1 위 · 2 오른쪽 · 3 왼쪽"
+    ],
+    "Party::GiveExp": [
+      1,
+      1,
+      "행동 가능한 1~5번 각자에게 경험치"
+    ],
+    "Party::HealAll": [
+      0,
+      0,
+      "전원의 중독·의식불명·죽음을 풀고 HP·MP 를 채운다"
+    ],
+    "Party::Hide": [
+      0,
+      0,
+      "Party::Hide() — 일행 그림만 감춘다. 감춘 채 Party::Warp 하면 카메라만 옮겨 간다 (제목으로 돌아가거나 불러오면 다시 보인다)"
+    ],
+    "Party::HideCompanions": [
+      0,
+      0,
+      "2~5번을 데이터를 보존한 채 숨긴다"
+    ],
+    "Party::Join": [
+      1,
+      1,
+      "Party::Join(\"동료 키\") — 빈 자리(2~5번)에 앉힌다. 결과는 Party::Joined()"
+    ],
+    "Party::JoinReplace": [
+      1,
+      1,
+      "Party::JoinReplace(\"동료 키\") — 제1부 합류. 빈 자리(2~5번)가 없으면 교체할 사람(2~6번)을 묻는다. 결과는 Party::Joined()"
+    ],
+    "Party::Move": [
+      2,
+      2,
+      "Party::Move(dx, dy) — 한 칸 걷는 연출"
+    ],
+    "Party::PlusArrows": [
+      1,
+      1,
+      ""
+    ],
+    "Party::PlusFood": [
+      1,
+      1,
+      ""
+    ],
+    "Party::PlusGold": [
+      1,
+      1,
+      "음수면 뺀다 (0 밑으로는 안 내려간다)"
+    ],
+    "Party::PromoteDemigod": [
+      0,
+      0,
+      "제1부: 일행 전원을 반신반인으로"
+    ],
+    "Party::RemoveAssistant": [
+      0,
+      0,
+      ""
+    ],
+    "Party::Rest": [
+      1,
+      1,
+      "n시간 쉰 것으로 처리 (문장 없이)"
+    ],
+    "Party::RestoreCompanions": [
+      0,
+      0,
+      ""
+    ],
+    "Party::ReviveFallen": [
+      0,
+      0,
+      "쓰러진 대원(의식불명·죽음)을 HP 1 로 일으킨다 (제2부 이벤트 패배 전투)"
+    ],
+    "Party::SetAssistant": [
+      1,
+      2,
+      "Party::SetAssistant(\"동료 키\") 또는 (\"enemy\", 적 번호) — 6번 보조 일원"
+    ],
+    "Party::SetBuff": [
+      2,
+      2,
+      "Party::SetBuff(CHECKIF_*, 값)"
+    ],
+    "Party::SetTorch": [
+      1,
+      1,
+      "횃불 수치를 정한다"
+    ],
+    "Party::Show": [
+      0,
+      0,
+      "Party::Show() — 감춘 일행 그림을 다시 보인다"
+    ],
+    "Party::StripEquipment": [
+      0,
+      0,
+      "1~5번 대원이 장착한 무기·방패·갑옷을 모두 잃는다 (제2부 은행에서 항복)"
+    ],
+    "Party::Unlock": [
+      1,
+      1,
+      "Party::Unlock(\"special_magic\" | \"esp\") — 제1부의 특수 마법 · 초자연력 수련 해금"
+    ],
+    "Party::Warp": [
+      2,
+      2,
+      "같은 맵 안에서 (x, y) 로"
+    ],
+    "Player::AddAttribute": [
+      3,
+      4,
+      "Player::AddAttribute(n, \"속성\", 증가량, 상한)"
+    ],
+    "Player::ChangeAttribute": [
+      3,
+      3,
+      "Player::ChangeAttribute(n, \"속성\", 값)"
+    ],
+    "PressAnyKey": [
+      0,
+      0,
+      "키를 기다린 뒤 창을 지운다"
+    ],
+    "Say": [
+      2,
+      2,
+      "Say(\"화자\", \"대사\") — 화자 이름을 색으로 구분해 붙인다"
+    ],
+    "Screen::FadeIn": [
+      0,
+      1,
+      ""
+    ],
+    "Screen::FadeOut": [
+      0,
+      1,
+      ""
+    ],
+    "Screen::Flash": [
+      0,
+      1,
+      ""
+    ],
+    "Screen::ShowScenery": [
+      3,
+      3,
+      "Screen::ShowScenery(\"E3_Ground1\", 44, 50) — 그 맵의 그 칸을 가운데로 한 9×11칸을 그림 그대로 창에 비춘다 (크리스탈 볼). 밤이고 달빛이 없으면 어둡다. 아무 키나 누르면 닫힌다"
+    ],
+    "Select::Add": [
+      1,
+      1,
+      "첫 줄은 물음, 그 다음부터 보기"
+    ],
+    "Select::Init": [
+      0,
+      0,
+      "선택지 준비"
+    ],
+    "Select::Run": [
+      0,
+      0,
+      "선택을 받는다"
+    ],
+    "SetHeader": [
+      1,
+      1,
+      "대화 창 머리글"
+    ],
+    "Shop::ExpTraining": [
+      0,
+      0,
+      "경험치 훈련장"
+    ],
+    "Shop::Goods": [
+      0,
+      0,
+      "물품 가게"
+    ],
+    "Shop::Grocery": [
+      0,
+      0,
+      "식료품점"
+    ],
+    "Shop::Herb": [
+      0,
+      0,
+      "약초 가게"
+    ],
+    "Shop::Hospital": [
+      0,
+      0,
+      "병원"
+    ],
+    "Shop::StatTraining": [
+      2,
+      2,
+      "Shop::StatTraining(\"mentality\", 최대) — 제2부 유적의 석상: 황금을 받고 1~5번 중 한 명의 능력치를 1 올린다"
+    ],
+    "Shop::Training": [
+      0,
+      0,
+      "훈련소·마법 학교·전직"
+    ],
+    "Shop::Weapon": [
+      0,
+      0,
+      "무기상점"
+    ],
+    "Sound::Play": [
+      1,
+      1,
+      "효과음 (호출만 받는다)"
+    ],
+    "Talk": [
+      1,
+      1,
+      "본문 한 문단. {주인공} {2:은/는} {$변수} 치환"
+    ],
+    "Time::Pass": [
+      1,
+      2,
+      "Time::Pass(시간, 분=0)"
+    ],
+    "Time::Set": [
+      5,
+      5,
+      "Time::Set(년, 월, 일, 시, 분)"
+    ],
+    "Timer::Clear": [
+      0,
+      0,
+      ""
+    ],
+    "Timer::Set": [
+      2,
+      2,
+      "Timer::Set(번호, 분) — 그만큼 뒤에 FLAG_TIMER 로 episode.cm2 를 부른다. 0분이면 이 스크립트가 끝나는 대로(맵을 옮기면 새 맵의 FLAG_MAP 뒤에)"
+    ],
+    "Variable::Add": [
+      1,
+      2,
+      "Variable::Add(\"이름\", 증가량=1)"
+    ],
+    "Variable::Set": [
+      2,
+      2,
+      "Variable::Set(\"이름\", 값)"
+    ],
+    "Wait": [
+      1,
+      1,
+      "밀리초 대기"
+    ],
+    "WarpPrevPos": [
+      0,
+      0,
+      "한 걸음 전 자리로 되돌린다"
+    ]
+  },
+  "functions": {
+    "Battle::Downed": [
+      0,
+      0,
+      "마지막 전투에서 쓰러뜨린 등록된 적의 수. 도망쳤어도 센다"
+    ],
+    "Battle::EnemyDown": [
+      1,
+      1,
+      "Battle::EnemyDown(n) — 마지막 전투에서 등록 순서 n 번째 적이 쓰러졌는가(의식불명·죽음). 도망쳤어도 본다"
+    ],
+    "Battle::Result": [
+      0,
+      0,
+      "BATTLERESULT_*"
+    ],
+    "Div": [
+      2,
+      2,
+      "정수 나눗셈"
+    ],
+    "Flag::IsSet": [
+      1,
+      1,
+      ""
+    ],
+    "Greater": [
+      2,
+      2,
+      ""
+    ],
+    "GreaterEqual": [
+      2,
+      2,
+      ""
+    ],
+    "Item::Count": [
+      1,
+      1,
+      ""
+    ],
+    "Item::Used": [
+      0,
+      0,
+      "FLAG_ITEM 에서: 방금 쓴 물건의 키"
+    ],
+    "Josa": [
+      2,
+      2,
+      "Josa(\"슴갈\", \"은/는\") → \"슴갈은\""
+    ],
+    "LessEqual": [
+      2,
+      2,
+      ""
+    ],
+    "Map::GetTile": [
+      2,
+      2,
+      "Map::GetTile(x, y) — 그 칸에 지금 깔린 원작 타일 번호. 그림·행동이 같은 짝(들판 23·49, 동굴 0·52)은 작은 번호. 맵 밖이면 -1"
+    ],
+    "Map::Is": [
+      1,
+      1,
+      "Map::Is(\"E1_LastDitch\") — 지금 맵이 그 맵인가 (episode.cm2 의 예언 등)"
+    ],
+    "Map::IsPassable": [
+      2,
+      2,
+      "Map::IsPassable(x, y) — 일행이 걸어서 그 칸에 들어설 수 있으면 1 (걷기와 같은 판정: 벽·사람·푯말·입구는 0, 물은 물 위를 걷는 동안만)"
+    ],
+    "Map::IsTile": [
+      3,
+      3,
+      "Map::IsTile(x, y, 타일) — 그 칸이 지금 그 타일로 깔려 있으면 1. 조건에는 이것을 쓴다"
+    ],
+    "Mod": [
+      2,
+      2,
+      ""
+    ],
+    "Mul": [
+      2,
+      2,
+      ""
+    ],
+    "NotEqual": [
+      2,
+      2,
+      ""
+    ],
+    "On": [
+      2,
+      2,
+      "지금 사건이 일어난 칸이 (x, y) 인가"
+    ],
+    "OnArea": [
+      4,
+      4,
+      ""
+    ],
+    "Party::Arrows": [
+      0,
+      0,
+      ""
+    ],
+    "Party::AvgLevel": [
+      0,
+      0,
+      ""
+    ],
+    "Party::CheckIf": [
+      1,
+      1,
+      "CHECKIF_* 효과가 켜져 있는가"
+    ],
+    "Party::Count": [
+      0,
+      0,
+      "1~5번 중 있는 사람 수"
+    ],
+    "Party::Faced": [
+      0,
+      0,
+      ""
+    ],
+    "Party::Food": [
+      0,
+      0,
+      ""
+    ],
+    "Party::Gold": [
+      0,
+      0,
+      ""
+    ],
+    "Party::Has": [
+      1,
+      1,
+      "Party::Has(\"동료 키\")"
+    ],
+    "Party::HasAssistant": [
+      0,
+      0,
+      ""
+    ],
+    "Party::HasEsp": [
+      1,
+      1,
+      "Party::HasEsp(n) — 초자연력 기술치가 n 이상인 대원이 있는가"
+    ],
+    "Party::HasFreeSeat": [
+      0,
+      0,
+      "2~5번에 빈 자리가 있는가"
+    ],
+    "Party::Joined": [
+      0,
+      0,
+      "마지막 Party::Join 이 앉혔는가"
+    ],
+    "Party::JoinedSeat": [
+      0,
+      0,
+      "방금 Party::Join · Party::JoinReplace 로 합류한 사람의 대원 번호(1~6). 없으면 0"
+    ],
+    "Party::PosX": [
+      0,
+      0,
+      ""
+    ],
+    "Party::PosY": [
+      0,
+      0,
+      ""
+    ],
+    "Party::Torch": [
+      0,
+      0,
+      ""
+    ],
+    "Player::CanAct": [
+      1,
+      1,
+      "행동할 수 있는가"
+    ],
+    "Player::GetAttribute": [
+      2,
+      2,
+      ""
+    ],
+    "Player::GetName": [
+      1,
+      1,
+      ""
+    ],
+    "Player::IsAvailable": [
+      1,
+      1,
+      "그 자리에 사람이 있는가"
+    ],
+    "Select::Result": [
+      0,
+      0,
+      "0 취소 · 1.. 보기 번호"
+    ],
+    "Sub": [
+      2,
+      2,
+      ""
+    ],
+    "Time::Day": [
+      0,
+      0,
+      ""
+    ],
+    "Time::DayAfter": [
+      1,
+      1,
+      "Time::DayAfter(n) — n일 뒤의 일"
+    ],
+    "Time::DayNumber": [
+      0,
+      0,
+      "달력 첫날부터 센 오늘의 번호 — 날 단위 기한에 쓴다 (Add(Time::DayNumber(), 20) = 20일 뒤)"
+    ],
+    "Time::Hour": [
+      0,
+      0,
+      ""
+    ],
+    "Time::Minute": [
+      0,
+      0,
+      ""
+    ],
+    "Time::Month": [
+      0,
+      0,
+      ""
+    ],
+    "Time::MonthAfter": [
+      1,
+      1,
+      "Time::MonthAfter(n) — n일 뒤의 월"
+    ],
+    "Time::Year": [
+      0,
+      0,
+      ""
+    ],
+    "Time::YearAfter": [
+      1,
+      1,
+      "Time::YearAfter(n) — n일 뒤의 연"
+    ],
+    "Timer::Id": [
+      0,
+      0,
+      "FLAG_TIMER 에서: 울린 예약의 번호"
+    ],
+    "Variable::Get": [
+      1,
+      1,
+      ""
+    ]
+  }
+}

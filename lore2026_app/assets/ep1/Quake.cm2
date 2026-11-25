@@ -1,0 +1,111 @@
+####### 제1부 퀘이크 (E1_Quake) — 50×75 동굴 ########
+# 근거: 1st/05 §5.2 M3 · §5.3 S9 · 1st/06 §6.10 · 1st/08 §8.1~8.3 · 1st/10 §6.4 · §11(퀘이크 푯말) ·
+#       1st/12 부록 B · 공략집 Walkthrough/1st/src/maps/Quake.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥이 벽돌 벽(39)이라 숨은 통로가 벽처럼 보인다 — 숨은 통로는 밟아도 아무 일이 없다.
+# 보이는 밟는 칸(52): 아키가고일 줄 (25~26,27), 오크 집 비밀 칸 (10~11,48)·(40~41,48), 방패 (14,7), 갑옷 (45,19),
+# 출구 줄 (24~27,71). 들어오면 (25,70), 나가면 가이아 테라 (82,48).
+
+include("common/const.cm2")
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 18~25: 자이언트 랫·스켈레톤·켈피·게이저·고스트·슬라임·락맨·코볼트 (레벨 5~7)
+	Encounter::Clear()
+	Encounter::Add(18, 25)
+	Encounter::Enable(1)
+	# 이미 찾은 비밀 칸과 그 위 벽은 바닥이다
+	if (Flag::IsSet("QUAKE_SECRET_1"))
+		Map::ChangeTileArea(10, 47, 11, 48, 44)
+	if (Flag::IsSet("QUAKE_SECRET_2"))
+		Map::ChangeTileArea(40, 47, 41, 48, 44)
+
+####### 푯말 ########
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+	if (On(26, 63))
+		Talk("길의 마지막")
+		halt
+	if (On(22, 15))
+		Talk("(12,15)로 공간 이동하시오")
+		halt
+	if (On(11, 14))
+		Talk("(13,7)로 공간 이동하시오")
+		halt
+	if (On(27, 14))
+		Talk("황금의 갑옷은 (45,19)에 숨겨져 있음")
+		halt
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 아키가고일 (25,27)·(26,27) — 가이아 의뢰 단계 4 (M3). 좀비 2 + 아키가고일, 적 선공 ----
+	if (OnArea(25, 27, 26, 27))
+		if (Not(Equal(Variable::Get("GAIA_QUEST"), 4)))
+			halt
+		Notice("당신은 ArchiGagoyle과 두 마리의 Zombie를 발견했다.")
+		Battle::Init()
+		Battle::RegisterVariant("zombie", 2)
+		Battle::RegisterVariant("archi_gagoyle", 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		# 아키가고일(등록 3번째)만 쓰러뜨려도 성공 — 도망쳤어도 (1st/08 §8.2)
+		if (Or(Equal(Battle::Result(), BATTLERESULT_WIN), Equal(Battle::EnemyDown(3), 1)))
+			Talk("당신은 ArchiGagoyle을 물리쳤다.")
+			Variable::Set("GAIA_QUEST", 5)
+		else
+			# 도망치면 한 칸 밀려난다 (1st/08 §8.2 — 원작은 그 칸에 남아 북쪽으로 지나갈 수 있었다, 부록 A #21)
+			WarpPrevPos()
+		halt
+
+	# ---- 옛 오크 집의 비밀 칸 — 먼저 찾은 집 금화 6000, 다른 집 4000. 집마다 한 번 (S9, 부록 A #23) ----
+	if (OnArea(10, 48, 11, 48))
+		if (Not(Flag::IsSet("QUAKE_SECRET_1")))
+			Flag::Set("QUAKE_SECRET_1")
+			if (Flag::IsSet("QUAKE_SECRET_2"))
+				Party::PlusGold(4000)
+				Notice("황금 + 4000")
+			else
+				Party::PlusGold(6000)
+				Notice("황금 + 6000")
+			Map::ChangeTileArea(10, 47, 11, 48, 44)
+			DisplayMap()
+		halt
+	if (OnArea(40, 48, 41, 48))
+		if (Not(Flag::IsSet("QUAKE_SECRET_2")))
+			Flag::Set("QUAKE_SECRET_2")
+			if (Flag::IsSet("QUAKE_SECRET_1"))
+				Party::PlusGold(4000)
+				Notice("황금 + 4000")
+			else
+				Party::PlusGold(6000)
+				Notice("황금 + 6000")
+			Map::ChangeTileArea(40, 47, 41, 48, 44)
+			DisplayMap()
+		halt
+
+	# ---- 황금의 방패 (14,7) · 황금의 갑옷 (45,19) — 공간 이동 사슬로만 닿는다. 제3부 체계대로 배낭에 ----
+	if (On(14, 7))
+		if (Not(Flag::IsSet("GOLD_SHIELD_QUAKE")))
+			Flag::Set("GOLD_SHIELD_QUAKE")
+			Talk("당신은 황금의 방패를 발견했다.")
+			Item::Give("shield.platinum", 1)
+			Notice("황금의 방패(플래티움 방패)를 배낭에 넣었다")
+		halt
+	if (On(45, 19))
+		if (Not(Flag::IsSet("GOLD_ARMOR")))
+			Flag::Set("GOLD_ARMOR")
+			Talk("당신은 황금의 갑옷을 발견했다.")
+			Item::Give("armour.platinum", 1)
+			Notice("황금의 갑옷(플래티움 갑옷)을 배낭에 넣었다")
+		halt
+
+	# ---- 출구 줄 (24~27,71) ----
+	if (OnArea(24, 71, 27, 71))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Gaia", 82, 48)
+		else
+			WarpPrevPos()
+

@@ -1,0 +1,35 @@
+####### 제1부 물의 대륙 (E1_Water) — 100×100 필드 ########
+# 근거: 1st/06 §6.2 · §6.9 · 1st/08 §8.3 · 공략집 Walkthrough/1st/src/maps/Water.md
+# 대부분이 물이라 물위를 걸음이 있어야 워터 필드 밖으로 나간다(부록 A D9). 사건 칸·푯말 없음 — 입구 셋뿐.
+# 도착 자리: 워터 필드에서 (74,20) · 노티스에서 (23,63) · 록업에서 (96,43)
+
+include("common/const.cm2")
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("ground")
+	# 원작 번호 16~30: 샐러맨더·블러드 뱃·자이언트 랫·스켈레톤·켈피·게이저·고스트·슬라임·락맨·코볼트·
+	# 미라·악마 사냥꾼·크레이지 원·오우거·헤들리스 (레벨 4~8)
+	Encounter::Clear()
+	Encounter::Add(16, 30)
+	Encounter::Enable(1)
+
+####### 입구 ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (On(74, 19))
+		Ask("WATER FIELD에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_WaterField", 25, 70)
+		halt
+	if (On(23, 62))
+		Ask("NOTICE에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Notice", 56, 94)
+		halt
+	if (On(96, 42))
+		Ask("LOCKUP에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Lockup", 25, 94)
+		halt

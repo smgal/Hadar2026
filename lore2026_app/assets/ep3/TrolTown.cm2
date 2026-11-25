@@ -1,0 +1,450 @@
+####### 제3부 — 트롤 마을 (TrolTown, 동굴형 50×75) #######
+# 근거: 기획서 05(M5·S6·S7) · 06(6.1 마법 제한 · 6.16) · 10(10.9) · 12(12.3·12.4) · 14(7.3) · 16(B.2·B.3),
+#       공략 원고 Walkthrough/3rd/src/maps/TrolTown.{md,json}
+#
+# 칸 종류 (maptool 로 확인):
+#   트롤 — 원작은 입구 번호(54). 변환기가 사람 칸으로 바꿔 놓았으므로 FLAG_TALK 에서 다룬다
+#     (25,8)·(26,8) 트롤킹 · (17,19) 보물창고 경비대장 · (34,19) 감옥 경비
+#     (13,32)·(13,33) 서쪽 경비 · (38,32)·(38,33) 동쪽 경비 · (24~26,67) 입구 경비
+#     주민 1~8: (6,31) 물리학자 · (9,30) · (7,33) · (11,35) · (40,30) · (41,35) · (43,32) · (45,34)
+#   포로 — 원작은 푯말 번호(53). 마찬가지로 FLAG_TALK
+#     (37,17) 베크룩스 · (42,16) 헤로인 밀매상 · (42,21) 베스퍼성 출신 포로
+#   이벤트(52) — (12,17)·(14,17)·(12,21)·(14,21) 보물 · (13,19) 부비트랩
+#               (6,36)·(45,29) 바닥 벽돌 · (24~26,70) 출구 줄
+#   숨은 칸(0) — 중앙 계곡 (25~26, 26~30) 가운데 바위 (25,27)·(26,29) 를 뺀 8칸
+#   이 맵에는 푯말·입구로 다루는 칸이 없다 (FLAG_SIGN · FLAG_ENTER 없음)
+#
+# 빈 바닥은 44 — 이 맵의 default 는 0(계곡 그림)이라 쓸 수 없어, 맵 데이터에서 사람·기둥
+# 둘레를 이루는 바닥 번호를 썼다.
+
+include("common/const.cm2")
+variable(temp)
+variable(who)
+variable(resident)
+
+
+####### 맵에 들어왔다 #######
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("troltown")                     # 트롤 마을 전용 곡 (13.11)
+
+	# 무작위 조우: 트롤투사·트롤기사 — 트롤킹을 처치하면 사라진다 (12.3)
+	Encounter::Clear()
+	if (Flag::IsSet("TROLL_KING_DEAD"))
+		Encounter::Enable(0)
+	else
+		Encounter::Add(31, 32)
+		Encounter::Enable(1)
+
+	# 맵별 마법 제한 (06 6.1) — 기화 이동과 주시자의 눈만 된다
+	Map::SetHandicap(HANDICAP_TILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_BIGTILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_TELEPORT, 1)
+
+	# 부록 B.3 — 플래그에 따라 맵을 다시 고친다
+	# (바닥 벽돌이 놓는 다리는 기록하지 않는다. 다시 들어오면 사라진다 — 부록 A D16)
+	if (Flag::IsSet("JOINED_BECRUX"))
+		Map::ChangeTile(37, 17, 44)
+	if (Flag::IsSet("TROLL_KING_ROOM_OPEN"))
+		Map::ChangeTile(25, 8, 44)
+		Map::ChangeTile(26, 8, 44)
+	if (Flag::IsSet("TROLL_GUARD_TREASURY"))
+		Map::ChangeTile(17, 19, 44)
+	if (Flag::IsSet("TROLL_GUARD_PRISON"))
+		Map::ChangeTile(34, 19, 44)
+	if (Flag::IsSet("TROLL_GUARD_WEST"))
+		Map::ChangeTileArea(13, 32, 13, 33, 44)
+	if (Flag::IsSet("TROLL_GUARD_EAST"))
+		Map::ChangeTileArea(38, 32, 38, 33, 44)
+	if (Flag::IsSet("TROLL_GUARD_ENTRANCE"))
+		Map::ChangeTileArea(24, 67, 26, 67, 44)
+	# 주민 1~8 (물리학자를 동료가 벤 것도 주민 1 과 같은 자리다)
+	if (Or(Flag::IsSet("TROLL_RESIDENT_1_DEAD"), Flag::IsSet("TROLL_PHYSICIST_KILLED")))
+		Map::ChangeTile(6, 31, 44)
+	if (Flag::IsSet("TROLL_RESIDENT_2_DEAD"))
+		Map::ChangeTile(9, 30, 44)
+	if (Flag::IsSet("TROLL_RESIDENT_3_DEAD"))
+		Map::ChangeTile(7, 33, 44)
+	if (Flag::IsSet("TROLL_RESIDENT_4_DEAD"))
+		Map::ChangeTile(11, 35, 44)
+	if (Flag::IsSet("TROLL_RESIDENT_5_DEAD"))
+		Map::ChangeTile(40, 30, 44)
+	if (Flag::IsSet("TROLL_RESIDENT_6_DEAD"))
+		Map::ChangeTile(41, 35, 44)
+	if (Flag::IsSet("TROLL_RESIDENT_7_DEAD"))
+		Map::ChangeTile(43, 32, 44)
+	if (Flag::IsSet("TROLL_RESIDENT_8_DEAD"))
+		Map::ChangeTile(45, 34, 44)
+
+
+####### 말을 걸었다 (트롤 · 포로) #######
+if (Equal(ScriptMode(), FLAG_TALK))
+	resident.assign(0)                          # 말을 건 주민 번호 (1~8). 0 이면 주민이 아니다
+
+	####### 입구 #######
+	# (24~26,67) 입구 경비 — 트롤매직유저(오크매직유저 능력치, 레벨 5) 8, 적 선공
+	if (OnArea(24, 67, 26, 67))
+		if (Flag::IsSet("TROLL_SPEECH"))
+			Say("트롤 매직유저", "너희들을 절대 이 안으로 들여보낼 수 없다!!")
+			PressAnyKey()
+		Battle::Init()
+		Battle::RegisterEnemy(20, 8)
+		Enemy::ChangeAttribute(1, "name", "트롤매직유저")
+		Enemy::ChangeAttribute(1, "level", 5)
+		Enemy::ChangeAttribute(2, "name", "트롤매직유저")
+		Enemy::ChangeAttribute(2, "level", 5)
+		Enemy::ChangeAttribute(3, "name", "트롤매직유저")
+		Enemy::ChangeAttribute(3, "level", 5)
+		Enemy::ChangeAttribute(4, "name", "트롤매직유저")
+		Enemy::ChangeAttribute(4, "level", 5)
+		Enemy::ChangeAttribute(5, "name", "트롤매직유저")
+		Enemy::ChangeAttribute(5, "level", 5)
+		Enemy::ChangeAttribute(6, "name", "트롤매직유저")
+		Enemy::ChangeAttribute(6, "level", 5)
+		Enemy::ChangeAttribute(7, "name", "트롤매직유저")
+		Enemy::ChangeAttribute(7, "level", 5)
+		Enemy::ChangeAttribute(8, "name", "트롤매직유저")
+		Enemy::ChangeAttribute(8, "level", 5)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("TROLL_GUARD_ENTRANCE")
+			Map::ChangeTileArea(24, 67, 26, 67, 44)
+			DisplayMap()
+
+	####### 서쪽 방 #######
+	# (13,32)·(13,33) 서쪽 경비 — 트롤투사 4·트롤사냥꾼 4, 일행 선공
+	if (OnArea(13, 32, 13, 33))
+		Battle::Init()
+		Battle::RegisterEnemy(31, 4)
+		Battle::RegisterEnemy(28, 4)
+		Battle::Start(BATTLE_NO_PRELUDE)
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("TROLL_GUARD_WEST")
+			Map::ChangeTileArea(13, 32, 13, 33, 44)
+			DisplayMap()
+
+	# (6,31) 트롤 물리학자 (주민 1) — 다른 차원 이야기 (05 S7)
+	if (On(6, 31))
+		resident.assign(1)
+		if (Flag::IsSet("TROLL_SPEECH"))
+			Say("트롤 물리학자", "날 제발 살려 주시오. 나는 이곳의 물리학자인데 당신에게 중요한 발견 하나를 알려 줄 테니 제발 목숨만은 살려 주시오.")
+			Select::Init()
+			Select::Add("")
+			Select::Add("좋소, 한번 들어봅시다")
+			Select::Add("날 속이려고 드는군, 자 죽어랏!")
+			Select::Run()
+			if (Equal(Select::Result(), 1))
+				Say("트롤 물리학자", "오, 정말 감사하오. 나는 드라코니안족에게서 물리학을 배우고 이곳에 왔던 참이라오. 나는 차원에 관한 여러 가지 연구를 했었소. 그러던 중에 나는 로어 세계에서도 다른 차원으로 가는 길이 있다는 걸 알아냈소. 그곳의 중력은 무슨 이유에서인지 상당히 밀도가 높게 압축되어 있었고 태양의 인력이 반대로 작용하는 자정 무렵에는 그 지역의 공간이 일그러져 다른 세계로의 문이 열리는 것을 목격했소. 그 공간의 창을 통해 내가 본 것은 허허벌판이나 죽어 가는 행성의 최후의 모습 같은 것들도 있었지만 때때로 생명체가 사는 별들과 연결되는 것도 확인했소. 거대한 파충류가 사는 곳도 있고, 규질의 몸뚱이를 가지고 질소를 마시며 생활하는 생물도 보았소. 그중에서도 내가 가장 관심 있게 본 것은, 우리와 같이 C, H, O, N으로 구성된 피부를 가지고 산화 작용으로 ATP를 합성하는 생물이 사는 곳이었소. 그들은 마법도 사용할 줄 모르고 생활하고 있지만 대단한 살상 무기를 많이 보유하고 있었소. 또한 '뉴욕'이란 도시를 보았을 때 정말 그들의 과학력과 건축 기술에 탄복하고 말았소. 당신도 내 말을 믿을 수 있겠소?")
+				# 동료의 처형 — 행동 가능한 동료(2~5번) 가운데 번호가 가장 앞선 사람이 그를 벤다
+				who.assign(0)
+				if (Player::CanAct(5))
+					who.assign(5)
+				if (Player::CanAct(4))
+					who.assign(4)
+				if (Player::CanAct(3))
+					who.assign(3)
+				if (Player::CanAct(2))
+					who.assign(2)
+				if (Greater(who, 0))
+					PressAnyKey()
+					Talk(JoinString("그때 당신 옆에 있던 ", Josa(Player::GetName(who), "이/가"), " 검을 들어 그를 내리쳤다."))
+					Talk("순간적으로 일어난 일이라 아무도 손을 쓸 수가 없었다. 그리고 일행들에게 말했다.")
+					Say(Player::GetName(who), "쳇, 이런 겁쟁이가 지어내는 말을 믿고 있다니... 자네들 어서 가게. 이런 데서 시간을 낭비해 버리면 우리만 불리해진다네.")
+					Talk("당신은 그래도 아쉬운 마음에 한마디를 던졌다.")
+					Say(Player::GetName(1), "이건 자네가 좀 심했네. 그의 말이 황당하기는 했지만 거짓인 것 같지는 않았다고 생각하네. 이왕 들은 건데 그 장소까지 알았으면 좋았을걸...")
+					Flag::Set("TROLL_PHYSICIST_KILLED")
+					Flag::Set("TROLL_RESIDENT_1_DEAD")
+					Map::ChangeTile(6, 31, 44)
+					DisplayMap()
+					resident.assign(0)              # 이미 죽었다 — 처분 선택으로 넘어가지 않는다
+		# 동료가 없거나 「죽어랏」을 골랐거나 말을 모르면 아래 공통 처분 선택으로 넘어간다
+
+	# (9,30) 트롤 주민 2
+	if (On(9, 30))
+		resident.assign(2)
+		if (Flag::IsSet("TROLL_SPEECH"))
+			Say("트롤 주민", "으악! 인간이다 모두 도망쳐라! 인간이 우리 동굴에 침입했다.")
+
+	# (7,33) 트롤 주민 3
+	if (On(7, 33))
+		resident.assign(3)
+		if (Flag::IsSet("TROLL_SPEECH"))
+			Say("트롤 주민", "정말 당신들은 집요하군요. 또 우리에게 해를 입히려 쳐들어오다니...")
+
+	# (11,35) 트롤 주민 4
+	if (On(11, 35))
+		resident.assign(4)
+		if (Flag::IsSet("TROLL_SPEECH"))
+			Say("트롤 주민", "당신들이 나를 죽이더라도 나의 신인 에인션트 이블님이 복수를 해 주실 겁니다.")
+
+	####### 동쪽 방 #######
+	# (38,32)·(38,33) 동쪽 경비 — 트롤병사 2·트롤투사 3·트롤사냥꾼 3, 일행 선공
+	if (OnArea(38, 32, 38, 33))
+		Battle::Init()
+		Battle::RegisterEnemy(26, 2)
+		Battle::RegisterEnemy(31, 3)
+		Battle::RegisterEnemy(28, 3)
+		Battle::Start(BATTLE_NO_PRELUDE)
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("TROLL_GUARD_EAST")
+			Map::ChangeTileArea(38, 32, 38, 33, 44)
+			DisplayMap()
+
+	# (40,30) 트롤 주민 5
+	if (On(40, 30))
+		resident.assign(5)
+		if (Flag::IsSet("TROLL_SPEECH"))
+			Say("트롤 주민", "침략자!!")
+
+	# (41,35) 트롤 주민 6 — 헤로인 중독자
+	if (On(41, 35))
+		resident.assign(6)
+		if (Flag::IsSet("TROLL_SPEECH"))
+			Say("트롤 주민", "아이고, 위대하신 용사님들. 제발 저에게 헤로인 주사를 좀 놔 주십시오. 부탁합니다. 지금 헤로인을 맞지 않으면 죽을 것 같습니다.")
+
+	# (43,32) 트롤 주민 7
+	if (On(43, 32))
+		resident.assign(7)
+		if (Flag::IsSet("TROLL_SPEECH"))
+			Say("트롤 주민", "당신네 인간들은 우리 트롤족에게서 금을 뺏기 위해, 진통과 설사에 좋다는 명목으로 헤로인을 주사하기 시작했소. 그 때문에 상당수의 트롤 주민들이 헤로인 중독에 고생하며, 또한 헤로인을 구하기 위해 인간들에게 많은 금을 지불하고 있소.")
+
+	# (45,34) 트롤 주민 8 — 헤로인 중독자
+	if (On(45, 34))
+		resident.assign(8)
+		if (Flag::IsSet("TROLL_SPEECH"))
+			Say("트롤 주민", "으윽, 제발 헤로인 좀 놔 주십시오. 금 일만 개를 드리리다.")
+
+	####### 트롤 주민 공통 — 말을 모를 때 / 처분 선택 #######
+	# 죽이면 트롤주민 1명과 일행 선공 전투. 이기면 그 자리가 비고 기록된다 (보상은 없다)
+	if (Greater(resident, 0))
+		if (Not(Flag::IsSet("TROLL_SPEECH")))
+			Talk("당신 앞의 트롤족이 당신에게 무어라 말을 했지만 알아들을 수가 없었다.")
+		Select::Init()
+		Select::Add("당신 앞에 있는 트롤족을 당신은 어떻게 할 것인가를 선택하시오.")
+		Select::Add("죽여 버린다")
+		Select::Add("그냥 살려 준다")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			Battle::Init()
+			Battle::RegisterEnemy(25, 1)
+			Battle::Start(BATTLE_NO_PRELUDE)
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				if (Equal(resident, 1))
+					Flag::Set("TROLL_RESIDENT_1_DEAD")
+					Map::ChangeTile(6, 31, 44)
+				if (Equal(resident, 2))
+					Flag::Set("TROLL_RESIDENT_2_DEAD")
+					Map::ChangeTile(9, 30, 44)
+				if (Equal(resident, 3))
+					Flag::Set("TROLL_RESIDENT_3_DEAD")
+					Map::ChangeTile(7, 33, 44)
+				if (Equal(resident, 4))
+					Flag::Set("TROLL_RESIDENT_4_DEAD")
+					Map::ChangeTile(11, 35, 44)
+				if (Equal(resident, 5))
+					Flag::Set("TROLL_RESIDENT_5_DEAD")
+					Map::ChangeTile(40, 30, 44)
+				if (Equal(resident, 6))
+					Flag::Set("TROLL_RESIDENT_6_DEAD")
+					Map::ChangeTile(41, 35, 44)
+				if (Equal(resident, 7))
+					Flag::Set("TROLL_RESIDENT_7_DEAD")
+					Map::ChangeTile(43, 32, 44)
+				if (Equal(resident, 8))
+					Flag::Set("TROLL_RESIDENT_8_DEAD")
+					Map::ChangeTile(45, 34, 44)
+				DisplayMap()
+
+	####### 보물창고 #######
+	# (17,19) 보물창고 경비대장 — 트롤매직유저(레벨 6) 3·트롤사냥꾼 3·트롤광전사 1, 적 선공
+	if (On(17, 19))
+		if (Flag::IsSet("TROLL_SPEECH"))
+			Say("경비대장", "감히 트롤의 보물을 탈취하려고 이곳에 오다니! 나는 이 보물창고의 경비대장으로서 목숨을 걸고 보물을 지킬 테다.")
+			PressAnyKey()
+		Battle::Init()
+		Battle::RegisterEnemy(20, 3)
+		Enemy::ChangeAttribute(1, "name", "트롤매직유저")
+		Enemy::ChangeAttribute(1, "level", 6)
+		Enemy::ChangeAttribute(2, "name", "트롤매직유저")
+		Enemy::ChangeAttribute(2, "level", 6)
+		Enemy::ChangeAttribute(3, "name", "트롤매직유저")
+		Enemy::ChangeAttribute(3, "level", 6)
+		Battle::RegisterEnemy(28, 3)
+		Battle::RegisterEnemy(34, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("TROLL_GUARD_TREASURY")
+			Map::ChangeTile(17, 19, 44)
+			DisplayMap()
+
+	####### 감옥 #######
+	# (34,19) 감옥 경비 — 트롤투사 4·트롤기사 2·트롤위저드 1, 적 선공
+	if (On(34, 19))
+		if (Flag::IsSet("TROLL_SPEECH"))
+			Say("트롤 위저드", "바로 너희들이 우리 동굴에 잡혀 있는 인간들을 구하러 온 자들인가? 하지만 나의 파괴 마법 앞에서는 너희들의 배짱도 산산이 부서져 버릴 것이다.")
+			PressAnyKey()
+		Battle::Init()
+		Battle::RegisterEnemy(31, 4)
+		Battle::RegisterEnemy(32, 2)
+		Battle::RegisterEnemy(33, 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("TROLL_GUARD_PRISON")
+			Map::ChangeTile(34, 19, 44)
+			DisplayMap()
+
+	# (37,17) 베크룩스 — 포로. 수락하면 합류한다 (메이지, 레벨 9)
+	# 감방은 창살로 막혀 있어 기화 이동으로 들어와야 말을 걸 수 있다 (예: (38,19) → (38,17))
+	if (On(37, 17))
+		Say("베크룩스", "당신들이 우리를 구하러 온 사람들이오? 정말 감사하오. 소문에 의하면 베스퍼성이 완전히 전멸당했다는데 그 말이 사실이오? 그렇다면 정말 유감이군요.")
+		Say("베크룩스", "나는 베스퍼성에서 베크룩스라고 불리던 사람이오. 나는 단독으로 트롤킹을 잡기 위해 여기로 잠입했다가 적의 숫자에 밀려서 포로로 잡혀 버렸소. 일대일의 대결이라면 자신이 있었는데 적의 수가 워낙 많아서 이런 곳까지 잡혀 오게 되었던 거요. 나는 이 일로 더욱 타 종족에 대한 미움이 커져 버렸소. 나는 당신들에게 진정으로 부탁 하나 하겠소. 나를 당신의 일행에 넣어 주시오.")
+		Select::Init()
+		Select::Add("")
+		Select::Add("당신의 부탁을 들어주겠소")
+		Select::Add("미안하지만 그건 어렵겠소")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			if (Equal(Party::HasFreeSeat(), 1))
+				Party::Join("becrux")
+				if (Equal(Party::Joined(), 1))
+					Flag::Set("JOINED_BECRUX")
+					Map::ChangeTile(37, 17, 44)
+					DisplayMap()
+			else
+				# 자리가 없을 때의 거절 (04 4.3 동료 공통 문구)
+				Say("베크룩스", "벌써 사람이 모두 채워져 있군요. 다음 기회를 기다리지요.")
+
+	# (42,16) 헤로인 밀매상 — 포로
+	if (On(42, 16))
+		Say("밀매상", "헤로인을 만드는 건 쉬워요. 설익은 양귀비 열매 꼬투리에 흠집을 내면 나오는 우유 같은 수액을 갈색 고무질로 건조시키면 되는 거니까요. 그건 일종의 중추 신경 완화제의 역할을 하죠. 그걸 트롤에게 팔아서 꽤 돈을 벌었는데 한날 트롤족들이 들고일어나는 바람에 꼼짝없이 잡혀서 여기에 있는 거죠.")
+
+	# (42,21) 베스퍼성 출신 포로
+	if (On(42, 21))
+		Say("포로", "베스퍼성의 사람들은 이 대륙을 확실한 인간의 영토로 굳히기 위해 번번이 트롤족의 동굴을 공격했소. 때로는 협박을 하고 때로는 회유책을 쓰면서 그들을 대륙의 구석으로 몰아붙이려 했지만 역부족이었소. 그래서 베스퍼 성주를 중심으로 트롤의 동굴에 대대적인 공격을 감행했었소. 그때 죽거나 잡힌 트롤들은 모두 사지가 절단된 채 쇠꼬챙이에 꿰어 매달려 있었소. 그들에게 겁을 주어 다시는 인간에게 대항하지 못하게 하자는 속셈이었던 거요. 하지만 예상은 빗나갔었소. 그 광경들을 본 트롤들은 치밀어 오르는 분노에 집단적으로 베스퍼성에 대한 야습을 개시했던 거요. 여태껏 당하고만 살아왔던 한을 이때 모두 폭발시켰던 거라오. 그래서 예상하지도 못했던 기습을 받은 베스퍼성은 순식간에 전멸되었던 것이었소. 모두가 다 우리가 자청한 일이나 다름없었던 거지요.")
+
+	####### 트롤킹의 방 #######
+	# (25,8)·(26,8) 트롤킹 — 트롤 말을 알고 아직 협상을 받아들인 적이 없으면 협상을 제안한다 (05 S6)
+	if (Or(On(25, 8), On(26, 8)))
+		temp.assign(1)                          # 1 = 경호대와 싸운다
+		if (And(Flag::IsSet("TROLL_SPEECH"), Not(Flag::IsSet("TROLL_KING_BRIBED"))))
+			Say("트롤킹", "아니! 이곳까지 이방인이 쳐들어오다니.... 나는 이곳의 왕인 트롤킹이라고 하는데 우리 협상으로 해결하는 게 어떻겠는가?")
+			Select::Init()
+			Select::Add("")
+			Select::Add("그럼 조건부터 들어보겠소")
+			Select::Add("협상은 필요 없소")
+			Select::Run()
+			if (Equal(Select::Result(), 1))
+				Say("트롤킹", "당신이 무슨 목적으로 나의 방까지 쳐들어와서 나를 죽이려 하는지 모르겠지만 어쨌든 당신이 여기서 물러나 준다면 지금 이 상자 안에 있는 금의 절반을 당신에게 주겠다. 이 정도면 충분한가?")
+				Select::Init()
+				Select::Add("")
+				Select::Add("좋소, 이걸 받고 물러나지요")
+				Select::Add("그 상자 안의 금을 모두 주시오")
+				Select::Run()
+				if (Equal(Select::Result(), 1))
+					# 협상 수락 — 동굴 밖으로. 트롤족 정벌은 끝나지 않았고, 다시 오면 협상 없이 싸운다
+					temp.assign(0)
+					Flag::Set("TROLL_KING_BRIBED")
+					Talk("당신은 트롤킹에게 금을 받고는 동굴 밖으로 나왔다.")
+					# 받는 금 — 원작은 금을 늘리는 코드가 빠져 있다(MYSTTAL1.PAS:499~504, 버그). 트롤킹 현상금으로 보는
+					# 로드안의 토벌 보상 40,000(MYSTTAL2.PAS:410~415)의 절반을 준다 (2026-11-16 원작자 결정)
+					Party::PlusGold(20000)
+					Notice("황금 + 20000")
+					PressAnyKey()
+					LoadScript("E3_Ground3", 81, 16)
+
+		# 트롤킹의 경호대 — 트롤기사 4·트롤위저드 2·트롤광전사 1, 적 선공
+		# (협상을 거절했거나 결렬됐거나, 말을 모르거나, 이미 한 번 협상을 받아들였을 때)
+		if (Equal(temp, 1))
+			Talk("순간 사납게 생긴 두 명의 트롤 전사와 마법사 복장의 한 명이 나타났다.")
+			if (Flag::IsSet("TROLL_SPEECH"))
+				Say("트롤 광전사", "우리는 트롤킹님의 신변 보호를 맡고 있는 트롤의 광전사들과 위저드이다. 우리들은 목숨을 걸고 당신들로부터 우리의 왕을 지킬 것이다.")
+			PressAnyKey()
+			Battle::Init()
+			Battle::RegisterEnemy(32, 4)
+			Battle::RegisterEnemy(33, 2)
+			Battle::RegisterEnemy(34, 1)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				# 트롤킹 처치 — 그때의 단계와 관계없이 메인 진행 단계 4. 경험치 보상은 없다
+				Talk("당신은 경호대원들을 물리치고는 뒤에서 벌벌 떨고 있는 트롤킹에게 검을 겨누었다. 그는 겁에 질린 채 주저앉았고 당신은 그를 단숨에 베어 버렸다.")
+				Talk("이제 당신은 전과자 신분이라기보다는 영웅으로서 로어성에 귀환할 수 있게 되었다.")
+				Flag::Set("TROLL_KING_DEAD")
+				Flag::Set("TROLL_KING_ROOM_OPEN")
+				Variable::Set("MAIN_STAGE", 4)
+				Encounter::Enable(0)
+				Map::ChangeTile(25, 8, 44)
+				Map::ChangeTile(26, 8, 44)
+				DisplayMap()
+
+
+####### 이벤트 칸 #######
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	####### 입구 #######
+	# (24~26,70) 출구 줄 → 아프로디테 테라 (81,16)
+	if (OnArea(24, 70, 26, 70))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E3_Ground3", 81, 16)
+		else
+			WarpPrevPos()
+
+	####### 서쪽 방 · 동쪽 방 — 바닥 벽돌 #######
+	# 두 벽돌을 모두 밟아야 계곡 북쪽의 다리 (25~26, 22~25) 가 완성된다. 몇 번이든 밟을 수 있다
+	# (6,36) 서쪽 바닥 벽돌 → 다리 남쪽 반 (25~26, 24~25)
+	if (On(6, 36))
+		Talk("당신이 아래에 있는 벽돌을 밟자 벽돌은 약간 아래로 꺼졌다. 그리고 몇 초 후에 둔탁한 기계음이 들렸다.")
+		Map::ChangeTileArea(25, 24, 26, 25, 44)
+		DisplayMap()
+
+	# (45,29) 동쪽 바닥 벽돌 → 다리 북쪽 반 (25~26, 22~23)
+	if (On(45, 29))
+		Talk("당신이 아래에 있는 벽돌을 밟자 벽돌은 약간 아래로 꺼졌다. 그리고 몇 초 후에 둔탁한 기계음이 들렸다.")
+		Map::ChangeTileArea(25, 22, 26, 23, 44)
+		DisplayMap()
+
+	####### 중앙 계곡 #######
+	# (25~26, 26~30) — 공중 부상 없이 들어서면 추락해 게임 오버
+	if (OnArea(25, 26, 26, 30))
+		if (Not(Party::CheckIf(CHECKIF_LEVITATION)))
+			Talk("일행은 계곡으로 떨어져 버렸다.")
+			PressAnyKey()
+			Game::Over()
+
+	####### 보물창고 #######
+	# (13,19) 부비트랩 — 밟으면 게임 오버. 몇 번이든 작동한다
+	if (On(13, 19))
+		Talk("당신이 이곳에 서자 갑자기 부비트랩이 작동하며 거대한 폭발이 일어났고, 곧이어 의식이 흐려졌다.")
+		PressAnyKey()
+		Game::Over()
+
+	# (12,17) 보물 1 — 에너지 크리스탈
+	if (On(12, 17))
+		if (Not(Flag::IsSet("TROLL_TREASURE_1")))
+			Flag::Set("TROLL_TREASURE_1")
+			Talk("당신은 에너지 크리스탈을 발견했다.")
+			Item::Give("crystal.energy", 1)
+
+	# (14,17) 보물 2 — 한파의 크리스탈
+	if (On(14, 17))
+		if (Not(Flag::IsSet("TROLL_TREASURE_2")))
+			Flag::Set("TROLL_TREASURE_2")
+			Talk("당신은 한파의 크리스탈을 발견했다.")
+			Item::Give("crystal.frost", 1)
+
+	# (12,21) 보물 3 — 금화 15000 (문구는 13.6 공통 「금화 발견」)
+	if (On(12, 21))
+		if (Not(Flag::IsSet("TROLL_TREASURE_3")))
+			Flag::Set("TROLL_TREASURE_3")
+			Talk("당신은 금화 15000개를 발견했다.")
+			Party::PlusGold(15000)
+
+	# (14,21) 보물 4 — 식량 200
+	if (On(14, 21))
+		if (Not(Flag::IsSet("TROLL_TREASURE_4")))
+			Flag::Set("TROLL_TREASURE_4")
+			Talk("당신은 식량 200개를 발견했다.")
+			Party::PlusFood(200)
+
+
+# (원작 확인 · 결정) 트롤킹 협상을 받아들이면 원작은 「금을 받고는」이라 말하면서 금을 주지 않는다(MYSTTAL1.PAS:499~504, 버그).
+#                 로드안의 트롤족 토벌 보상 40,000 의 절반인 20,000 을 준다 (부록 A D2, 2026-11-16 원작자 결정).

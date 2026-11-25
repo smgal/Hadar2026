@@ -192,14 +192,14 @@ class HDTileProperties {
       if (eventType == 0x00040000) return HDTileAction.enter;
     }
 
-    // Check Object (Lore_B)
-    if (unit.ixObj1 > 0) {
-      final objAction = _getObjectAction(unit.ixObj1);
-      if (objAction != HDTileAction.move && objAction != HDTileAction.none) {
-        return objAction;
-      }
-      if (objAction == HDTileAction.none) return HDTileAction.none;
-    }
+    // Check Objects (Lore_B), top first: z3 (L4 top object), then z2
+    // (L3 object). A MOVE-band object (or an empty layer) falls through to
+    // the layer below. z1 (L2 floor decor, ixDecor) is never consulted —
+    // people walk over rugs. BP-36 R-36-57.
+    final topAction = _getObjectAction(unit.ixObj1);
+    if (topAction != HDTileAction.move) return topAction;
+    final lowerAction = _getObjectAction(unit.ixObj0);
+    if (lowerAction != HDTileAction.move) return lowerAction;
 
     // Check Tile (Lore_A5)
     return _getTileAction(unit.ixTile);

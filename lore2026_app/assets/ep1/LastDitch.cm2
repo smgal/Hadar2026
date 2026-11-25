@@ -1,0 +1,163 @@
+####### 제1부 라스트디치성 (E1_LastDitch) — 75×75 마을 ########
+# 근거: 1st/04 §4.3(폴라리스) · 1st/05 §5.2 M2 · §5.3 S6 · 1st/06 §6.2 · §6.5 · 1st/10 §5.1~5.2 · §11 ·
+#       1st/12 부록 B · 공략집 Walkthrough/1st/src/maps/LastDitch.md · 원작 칸 번호(maps.json)
+# 마을형 · 기본 바닥 45. 비밀 벽 (31,8~11)은 칸 6, 그 양옆 x=30·32 줄 (y 8~11)이 숨은 칸이다.
+# 그라운드 게이트 (50,9)·(50,10)과 출구 줄 (37~40,71)도 숨은 칸. 피라미드 입구 (37~40,6)은 입구 칸(22).
+# 도착 자리: 로어 대륙에서 (37,70) · 피라미드에서 (38,7) · 배리언트 피플즈의 게이트에서 (51,10)
+
+include("common/const.cm2")
+variable(temp)
+
+####### 맵에 들어올 때 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("town")
+	# 폴라리스가 일행에 들어왔으면 성문의 자리는 비어 있다 (부록 B.3)
+	if (Flag::IsSet("LASTDITCH_POLARIS_JOINED"))
+		Map::ChangeTile(37, 41, 44)
+
+####### 사람 ########
+
+if (Equal(ScriptMode(), FLAG_TALK))
+
+	# ---- 성주 (38,17) — 메이저 미라 (M2) ----
+	if (On(38, 17))
+		temp.assign(Variable::Get("LASTDITCH_QUEST"))
+		if (Equal(temp, 0))
+			Say("라스트디치 성주", "당신이 {주인공}이오?")
+			Say("라스트디치 성주", "나는 Lord Ahn에게 당신이 온다는 소식을 전해 받았소. 들었다시피 우리 성에는 큰 문제가 있소. 그것은 이 성의 북쪽에 위치해 있는 동굴 때문이오. 그 동굴 때문에 우리들은 상당한 압박을 받고 있소.")
+			Say("라스트디치 성주", "만약 당신들이 위대한 영웅이라면, PYRAMID라는 동굴에 있는 Major Mummy를 처단해 주시오.")
+			Say("라스트디치 성주", "당신들이 이 임무를 완수하면 나는 당신들에게 도움에 대한 대가를 치러 주겠소.")
+			Variable::Set("LASTDITCH_QUEST", 1)
+			halt
+		if (Equal(temp, 1))
+			Say("라스트디치 성주", "부탁하건대, PYRAMID의 'Major Mummy'를 처단해 주시오.")
+			halt
+		if (Equal(temp, 2))
+			Say("라스트디치 성주", "당신의 성공에 경의를 표하오.")
+			Party::GiveExp(10000)
+			Notice("EXP + 10000")
+			Say("라스트디치 성주", "당신의 도움 덕분에 우리의 성이 구제되었소.")
+			Variable::Set("LASTDITCH_QUEST", 3)
+			halt
+		Say("라스트디치 성주", "이 성의 북동쪽에 'GROUND GATE'라는 것이 있소. 만약 당신이 'GROUND GATE' 속에 들어간다면 'VALIANT PEOPLES'성으로 통하게 될 것이오. 'VALIANT PEOPLES'는 Necromancer에게 매우 심하게 영향을 받고 있소.")
+		halt
+
+	# ---- 폴라리스 (37,41) — 메이저 미라 처치 전에만 합류 제의. 수락하면 교체할 사람을 고른다 (S6) ----
+	if (On(37, 41))
+		if (GreaterEqual(Variable::Get("LASTDITCH_QUEST"), 2))
+			halt
+		Say("폴라리스", "나의 이름은 Polaris요. 당신들과 같이 Major Mummy를 물리치고 싶소.")
+		Say("폴라리스", "내가 당신의 일행에 끼어도 되겠소?")
+		Select::Init()
+		Select::Add("어떻게 하겠습니까?")
+		Select::Add("나는 당신의 제안을 받아들이겠소")
+		Select::Add("나는 당신의 도움은 필요 없소")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			Party::JoinReplace("polaris")
+			if (Equal(Party::Joined(), 1))
+				Flag::Set("LASTDITCH_POLARIS_JOINED")
+				Map::ChangeTile(37, 41, 44)
+				DisplayMap()
+		halt
+
+	# ---- 성 안 기사들 — 성주 의뢰 전 / 후 ----
+	if (Or(Or(On(36, 19), On(36, 21)), Or(Or(On(41, 18), On(41, 20)), Or(On(41, 22), On(40, 41)))))
+		if (Equal(Variable::Get("LASTDITCH_QUEST"), 0))
+			Say("기사", "성주님을 만나 보십시오.")
+		else
+			Say("기사", "당신이 성공하기를 빕니다.")
+		halt
+
+	# ---- 시설 ----
+	if (Or(Or(On(18, 19), On(24, 19)), Or(On(21, 21), On(16, 24))))
+		Shop::Training()
+		halt
+	if (Or(Or(On(57, 17), On(54, 20)), Or(On(58, 22), On(59, 25))))
+		Shop::Grocery()
+		halt
+	if (Or(On(59, 56), Or(On(59, 58), On(59, 60))))
+		Shop::Weapon()
+		halt
+	if (Or(On(17, 56), Or(On(17, 58), On(17, 60))))
+		Shop::Hospital()
+		halt
+
+	# ---- 주민 ----
+	if (On(51, 55))
+		Say("주민", "LASTDITCH 성과 VALIANT PEOPLES 성은 매우 닮았다는 말이 있습니다.")
+		halt
+	if (On(8, 44))
+		Say("주민", "이 세계는 다섯 개의 대륙으로 되어 있다더군요.")
+		halt
+	if (On(68, 35))
+		Say("주민", "각각의 대륙에는 서로 통하는 문이 존재합니다.")
+		halt
+	if (On(43, 9))
+		Say("주민", "당신은 PYRAMID 안에서 쉽게 창을 발견할 수 있을 것입니다.")
+		halt
+	if (On(65, 10))
+		Say("주민", "GROUND GATE는 여기로부터 서쪽에 나타나곤 합니다.")
+		halt
+	if (On(14, 68))
+		Say("로어 헌터의 아내", "LORE 특공대의 지휘관은 저의 남편인데 'Lore Hunter'라고 불렸습니다.")
+		halt
+	if (On(57, 42))
+		Say("주민", "Major Mummy와 두 마리의 Sphinx의 공격은 가히 치명적입니다.")
+		halt
+	if (On(44, 34))
+		Say("주민", "GROUND GATE는 당신을 다른 대륙으로 인도해 줄 것입니다.")
+		halt
+	if (On(32, 56))
+		Say("주민", "LORE 특공대의 지휘관은 상당히 능력 있는 인물이었습니다.")
+		halt
+
+####### 푯말 ########
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+	if (On(39, 68))
+		Talk("여기는 'LASTDITCH'성")
+		Talk("여러분을 환영합니다")
+		halt
+	if (On(39, 8))
+		Talk("여기는 PYRAMID의 입구")
+		halt
+	if (On(54, 9))
+		Talk("여기는 GROUND GATE의 입구")
+		halt
+
+####### 입구 ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (OnArea(37, 6, 40, 6))
+		Ask("PYRAMID에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Pyramid", 25, 45)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 비밀 벽 — x=30·32 줄 (y 8~11) 을 밟으면 같은 줄의 (31,y)가 바닥이 된다. 앞뜰로 가는 유일한 길 ----
+	if (Or(OnArea(30, 8, 30, 11), OnArea(32, 8, 32, 11)))
+		temp.assign(Party::PosY())
+		Map::ChangeTile(31, temp, 45)
+		DisplayMap()
+		halt
+
+	# ---- 그라운드 게이트 (50,9)·(50,10) → 배리언트 피플즈. 원작은 진행 조건이 없다 (M2) ----
+	# 원작은 건너편 게이트 칸 위에 세웠다(부록 A #35) — 리메이크는 그 옆 (51,10) 에 세운다.
+	if (OnArea(50, 9, 50, 10))
+		Ask("GROUND GATE에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Valiant", 51, 10)
+		halt
+
+	# ---- 출구 줄 (37~40,71) ----
+	if (OnArea(37, 71, 40, 71))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Lore", 77, 57)
+		else
+			WarpPrevPos()

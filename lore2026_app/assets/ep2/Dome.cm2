@@ -1,0 +1,97 @@
+####### 제2부 빛의 지붕 (E2_Dome) — 50×100 마을 (지하 세계 1) ########
+# 근거: 2nd/05 §5.2(1차 원정 — 빛의 지붕) · 2nd/06 §6.2 · §6.10 · 2nd/09 §9.4 · 2nd/10 §8.1 · 2nd/12 부록 B ·
+#       공략집 Walkthrough/2nd/src/maps/Dome.md · 원작 칸 번호(maps.json)
+# 마을형 · 기본 바닥 47. 시체(48)·생존자(53)는 말을 거는 칸, 보물 상자(19)는 밟는 칸. 테두리 (x=5, x=46, y=6, y=95)는 숨은 칸 — 출구.
+# 들어오면 (25,93). 나가면 지하 세계 1 의 입구 (66,78) 옆 — 나간 방향으로 한 칸.
+
+include("common/const.cm2")
+
+####### 맵에 들어올 때 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("town")
+	if (Flag::IsSet("DOME_SURVIVOR"))
+		Map::ChangeTile(25, 61, 48)
+
+####### 사람 — 시체와 생존자 ########
+
+if (Equal(ScriptMode(), FLAG_TALK))
+	# ---- 납 상자의 파피루스 (25,12) — 경험치는 한 번, 원정의 일은 이번 원정마다 ----
+	if (On(25, 12))
+		Talk("이 시체는 어떤 힘에 의해 살점은 완전히 떨어져 나가고 뼈만이 남아 있었다. 그의 오른손 옆에는 두꺼운 납으로 만들어진 상자가 있었다. 일행은 마법으로 잠긴 상자를 열고 그 안을 보니 파피루스로 만들어진 종이 조각이 있었고 거기에는 빽빽하게 무언가 쓰여 있었다.")
+		Talk("그 종이의 글을 읽어 보면 다음과 같다.")
+		Talk("@F악의 추종자들이 실리안 카미너스를 데려가 버렸다. 만약 이 글을 누가 본다면 그들을 응징해 주기를 바란다. 실리안 카미너스는 이곳 태생의 6살 난 여자아이며 그녀는 운명적으로 불멸의 힘을 가지고 태어났다. 아직은 그녀의 힘이 강하게 봉인되어 있어서 걱정이 없지만 만약 악의 추종자들이 봉인되어 있는 그녀의 숨은 힘을 이끌어 낸다면 그 힘에 의해서 세상은 걷잡을 수 없는 파국으로 치닫게 되어 멸망이 도래하게 될 것이다. 반드시 그들을 응징해 주기를 바란다. 세상의 평화를 위하여....@@")
+		if (Not(Flag::IsSet("DOME_PAPYRUS_READ")))
+			Flag::Set("DOME_PAPYRUS_READ")
+			Party::GiveExp(100000)
+			Notice("경험치 + 100000")
+		Flag::Set("TRIP_PAPYRUS")
+		halt
+	if (On(21, 13))
+		Talk("이 시체는 어떤 강력한 힘을 정면으로 받아서 거의 형체를 알아볼 수 없었다. 그 시체를 여러모로 살펴보니 이곳의 장로임을 알았고, 그 시체에는 강한 방사능이 있어서 이곳의 시체들의 사인이 핵무기에 의한 것임을 알았다.")
+		Talk("이 수법은 피라미드 속의 두 동굴을 함몰시킨 것과 같은 방법이었다.")
+		halt
+	if (On(23, 15))
+		Talk("이 시체는 죽은 지가 겨우 하루가 지난 것 같았다. 그자는 무언가 메시지를 남기기 위해 바닥에 피로 무언가를 썼는데 그것을 읽어 보면 다음과 같다.")
+		Talk("@C필멸의 생존 .. 33 .. 49 ..@@")
+		halt
+	if (Or(On(38, 40), On(39, 43)))
+		Talk("이 시체는 죽은 지 하루밖에 안 된 것 같았다.")
+		halt
+	# ---- 죽어 가는 생존자 (25,61) — 한 번. 이후 그 자리는 시체 ----
+	if (On(25, 61))
+		if (Flag::IsSet("DOME_SURVIVOR"))
+			Talk("이 시체는 죽은 지 하루밖에 안 된 것 같았다.")
+			halt
+		Say("생존자", "으~~윽~~ 드디어 사람을 만났군요. 어제 어떤 자들에 의해서 마을이 완전히 전멸했다오. 그들은 4명의 마도사였는데 그들은 엄청난 힘으로 마을을 폭파시키고는 사라졌소. 그들의 목적이 무엇인지 저는 알 수가 없었지만 그들은 이 마을의 동쪽에 있는 빛의 사원 쪽으로 사라졌소. 그럼 뒷일을 부탁하오...")
+		Talk("그는 말을 끝내고는 숨이 끊어졌다.")
+		Flag::Set("DOME_SURVIVOR")
+		Map::ChangeTile(25, 61, 48)
+		DisplayMap()
+		halt
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	# ---- 보물 ----
+	if (On(41, 27))
+		if (Not(Flag::IsSet("DOME_ITEM_1")))
+			Flag::Set("DOME_ITEM_1")
+			Item::Give("item.mp_potion", 2)
+			Talk("일행은 화분 속에서 마법 회복약을 발견하였다.")
+			Notice("마법 회복약 + 2")
+		halt
+	if (On(11, 33))
+		if (Not(Flag::IsSet("DOME_ITEM_2")))
+			Flag::Set("DOME_ITEM_2")
+			Party::PlusArrows(100)
+			Talk("일행은 상자 속에서 화살을 발견하였다.")
+			Notice("화살 + 100")
+		halt
+	if (On(11, 40))
+		if (Not(Flag::IsSet("DOME_ITEM_3")))
+			Flag::Set("DOME_ITEM_3")
+			Item::Give("item.seeing_orb", 5)
+			Talk("일행은 상자 속에서 수정 구슬을 발견하였다.")
+			Notice("수정 구슬 + 5")
+		halt
+	if (On(11, 43))
+		if (Not(Flag::IsSet("DOME_ITEM_4")))
+			Flag::Set("DOME_ITEM_4")
+			Item::Give("item.summon_scroll", 2)
+			Talk("일행은 상자 속에서 소환 문서를 발견하였다.")
+			Notice("소환 문서 + 2")
+		halt
+
+	# ---- 테두리 — 나간 방향의 입구 옆 칸으로 ----
+	Ask("여기서 나가기를 원합니까?")
+	if (Not(Equal(Select::Result(), 1)))
+		WarpPrevPos()
+		halt
+	if (Equal(Party::PosY(), 95))
+		LoadScript("E2_Underworld1", 66, 79)
+	if (Equal(Party::PosY(), 6))
+		LoadScript("E2_Underworld1", 66, 77)
+	if (Equal(Party::PosX(), 5))
+		LoadScript("E2_Underworld1", 65, 78)
+	LoadScript("E2_Underworld1", 67, 78)

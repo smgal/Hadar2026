@@ -1,0 +1,759 @@
+####### 드라코니안 마을 (DracTown · 120×120 · 마을형) ########
+# 근거: 기획서 제5장 M8 · S12~S15, 제6장 6.22, 제10장 10.9, 제12장 12.3 · 12.4, 제13장 13.9,
+#       제14장 9.2, 부록 A(D4 · D15 · D19 · #12 · #34), 부록 B.2 · B.3
+#       공략집 3rd/src/maps/DracTown.md · DracTown.json
+#
+# - 시작 (6,114) ← 우라누스 테라 (39,36). 출구는 x=5 줄의 이벤트 칸 (5,113)~(5,115) 세 칸뿐.
+# - 기본 바닥 44. 왕의 방 융단은 42(무늬 없는 융단) · 43(무늬 융단).
+# - 관문 플래그 번호는 부록 B.2 의 순서다 (공략집의 ①~⑧ 과 4·5·6 번이 다르다):
+#     DRACO_GATE_1 (14,105)·(15,106) 마을 입구   DRACO_GATE_5 (79,88) 보물창고 앞
+#     DRACO_GATE_2 (47,61)·(48,61) 남서 거리 북문 DRACO_GATE_6 (59,48) 동문
+#     DRACO_GATE_3 (27,54) 감옥                   DRACO_GATE_7 (73,40) 크로매틱 드라콘
+#     DRACO_GATE_4 (84,59) 남동 관문              DRACO_GATE_8 (94,37) 왕의 방 앞
+# - 보물 플래그 번호는 제5장 M8 · 제14장의 순서다:
+#     1 (76,73) 화살 · 2 (68,66) 흡혈귀 · 3 (68,73) 식량 · 4 (63,71) 금화 ·
+#     5 (68,88) 소환의 크리스탈 · 6 (63,79) 드라큘라 · 7 (64,64) 한파의 크리스탈
+# - 전투 방식: 「선공」= BATTLE_NO_PRELUDE, 「적선공」= BATTLE_ENEMY_FIRST + BATTLE_NO_PRELUDE.
+#   「반복」(도망에 성공해도 곧바로 재전투)은 BATTLE_REPEAT 로 한다.
+
+include("common/const.cm2")
+
+variable(temp)
+variable(res)
+variable(rx)
+variable(ry)
+variable(spoke)
+variable(kill)
+variable(fight)
+variable(who)
+variable(go)
+
+########## 맵에 들어왔다 ##########
+if (Equal(ScriptMode(), FLAG_MAP))
+	# 드라코니안 마을 전용 곡 (제13장 13.11)
+	Music::Play("draconian_town")
+
+	# 마법 제한 (제6장 「맵별 마법 제한」): 지형 변화 · 대지형 변화 · 공간 이동(이동 구슬) 불가.
+	# 기화 이동 · 주시자의 눈 · 투시는 된다.
+	Map::SetHandicap(HANDICAP_TILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_BIGTILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_TELEPORT, 1)
+
+	# 조우 표는 48 드라코니안 · 49 위병 드라콘 (제12장 12.3). 마을형이라 일어나지 않는다 —
+	# 조우 여부는 「결정 필요」 항목이다 (부록 A D4). 표만 두고 꺼 둔다.
+	Encounter::Clear()
+	Encounter::Add(48, 49)
+	Encounter::Enable(0)
+
+	# ---- 부록 B.3: 관문 8곳 → 통로 개방 ----
+	if (Flag::IsSet("DRACO_GATE_1"))
+		Map::ChangeTile(14, 105, 44)
+		Map::ChangeTile(15, 106, 44)
+	if (Flag::IsSet("DRACO_GATE_2"))
+		Map::ChangeTileArea(47, 59, 48, 61, 44)
+	if (Flag::IsSet("DRACO_GATE_3"))
+		Map::ChangeTileArea(24, 54, 27, 54, 44)
+	if (Flag::IsSet("DRACO_GATE_4"))
+		Map::ChangeTileArea(84, 59, 84, 61, 44)
+	if (Flag::IsSet("DRACO_GATE_5"))
+		Map::ChangeTileArea(77, 88, 79, 88, 44)
+	if (Flag::IsSet("DRACO_GATE_6"))
+		Map::ChangeTileArea(59, 48, 61, 48, 44)
+	if (Flag::IsSet("DRACO_GATE_7"))
+		Map::ChangeTileArea(73, 40, 75, 40, 44)
+	if (Flag::IsSet("DRACO_GATE_8"))
+		Map::ChangeTileArea(94, 37, 96, 37, 44)
+
+	# ---- 부록 B.3: 주민 13명 → 빈 바닥 ----
+	if (Flag::IsSet("DRACO_RESIDENT_1_DEAD"))
+		Map::ChangeTile(24, 98, 44)
+	if (Flag::IsSet("DRACO_RESIDENT_2_DEAD"))
+		Map::ChangeTile(24, 92, 44)
+	if (Flag::IsSet("DRACO_RESIDENT_3_DEAD"))
+		Map::ChangeTile(25, 81, 44)
+	if (Flag::IsSet("DRACO_RESIDENT_4_DEAD"))
+		Map::ChangeTile(34, 100, 44)
+	if (Flag::IsSet("DRACO_RESIDENT_5_DEAD"))
+		Map::ChangeTile(36, 93, 44)
+	if (Flag::IsSet("DRACO_RESIDENT_6_DEAD"))
+		Map::ChangeTile(42, 84, 44)
+	if (Flag::IsSet("DRACO_RESIDENT_7_DEAD"))
+		Map::ChangeTile(33, 82, 44)
+	if (Flag::IsSet("DRACO_RESIDENT_8_DEAD"))
+		Map::ChangeTile(41, 70, 44)
+	if (Flag::IsSet("DRACO_RESIDENT_9_DEAD"))
+		Map::ChangeTile(32, 22, 44)
+	if (Flag::IsSet("DRACO_RESIDENT_10_DEAD"))
+		Map::ChangeTile(40, 33, 44)
+	if (Flag::IsSet("DRACO_RESIDENT_11_DEAD"))
+		Map::ChangeTile(16, 19, 44)
+	if (Flag::IsSet("DRACO_RESIDENT_12_DEAD"))
+		Map::ChangeTile(16, 35, 44)
+	if (Flag::IsSet("DRACO_RESIDENT_13_DEAD"))
+		Map::ChangeTile(15, 48, 44)
+
+	# ---- 부록 B.3: 수감자 → 빈 바닥 (합류를 기록한다 — 부록 A #34) ----
+	if (Flag::IsSet("JOINED_DRACO_PRISONER"))
+		Map::ChangeTile(15, 57, 44)
+
+	# ---- 부록 B.3: 보물 7칸 → 빈 바닥 ----
+	# 보물 칸은 숨은 칸이고, 가져가면 바로 옆(동쪽 또는 서쪽)의 상자 그림이 사라진다.
+	if (Flag::IsSet("DRACO_TREASURE_1"))
+		Map::ChangeTile(77, 73, 44)
+	if (Flag::IsSet("DRACO_TREASURE_2"))
+		Map::ChangeTile(67, 66, 44)
+	if (Flag::IsSet("DRACO_TREASURE_3"))
+		Map::ChangeTile(67, 73, 44)
+	if (Flag::IsSet("DRACO_TREASURE_4"))
+		Map::ChangeTile(62, 71, 44)
+	if (Flag::IsSet("DRACO_TREASURE_5"))
+		Map::ChangeTile(67, 88, 44)
+	if (Flag::IsSet("DRACO_TREASURE_6"))
+		Map::ChangeTile(62, 79, 44)
+	if (Flag::IsSet("DRACO_TREASURE_7"))
+		Map::ChangeTile(65, 64, 44)
+
+	# ---- 부록 B.3: 왕 처치 → 왕좌 주변 정리 ----
+	# 가드 셋 (102,20)·(101,21)·(103,21)은 바닥, 왕의 자리 (102,21)은 융단 바닥.
+	if (Flag::IsSet("DRACO_KING_DEAD"))
+		Map::ChangeTile(102, 20, 44)
+		Map::ChangeTile(101, 21, 44)
+		Map::ChangeTile(103, 21, 44)
+		Map::ChangeTile(102, 21, 42)
+
+########## 사람 ##########
+if (Equal(ScriptMode(), FLAG_TALK))
+	res.assign(0)
+	spoke.assign(0)
+
+	# ================= 성벽 모퉁이 =================
+	# 관문 ① 마을 입구 (14,105)·(15,106) — (14,106)에서 북쪽·동쪽으로 다가간다.
+	# 드라콘 말을 알면 경고를 듣고 물러설 수 있다. 모르면 곧바로 전투.
+	# 위병 드라콘 4 · 기사 드라콘 1, 일행 선공.
+	if (Or(On(14, 105), On(15, 106)))
+		fight.assign(1)
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("위병 드라콘", "잠깐, 너희들은 누구냐? 이 안으로 들어갈 수 있는 것은 드라코니안족뿐이다. 썩 물러나라.")
+			Select::Init()
+			Select::Add("")
+			Select::Add("적과 싸운다")
+			Select::Add("그냥 물러선다")
+			Select::Run()
+			if (NotEqual(Select::Result(), 1))
+				fight.assign(0)
+		if (Equal(fight, 1))
+			Battle::Init()
+			Battle::RegisterEnemy(49, 4)
+			Battle::RegisterEnemy(51)
+			Battle::Start(BATTLE_NO_PRELUDE)
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("DRACO_GATE_1")
+				Map::ChangeTile(14, 105, 44)
+				Map::ChangeTile(15, 106, 44)
+				DisplayMap()
+
+	# ================= 남서 거리 (x 14~58, y 62~106) =================
+	# 주민 1 (24,98)
+	if (On(24, 98))
+		res.assign(1)
+		rx.assign(24)
+		ry.assign(98)
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("드라코니안", "아니! 인간이 여길 들어오다니...")
+			spoke.assign(1)
+
+	# 주민 2 (24,92)
+	if (On(24, 92))
+		res.assign(2)
+		rx.assign(24)
+		ry.assign(92)
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("드라코니안", "음? 너는... 호모 사피엔스 종족이로군. 이처럼 하등한 포유류가 감히 드라코니안 종족의 영역을 침범하다니 놀랍군.")
+			spoke.assign(1)
+
+	# 주민 3 (25,81) — 묻지 않고 덤빈다
+	if (On(25, 81))
+		res.assign(3)
+		rx.assign(25)
+		ry.assign(81)
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("드라코니안", "그래... 너 잘 만났다. 한번 죽어 봐라.")
+			spoke.assign(1)
+
+	# 주민 4 (34,100)
+	if (On(34, 100))
+		res.assign(4)
+		rx.assign(34)
+		ry.assign(100)
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("드라코니안", "당신이 우리를 정벌하러 왔다는 말을 들었는데 뭔가 잘못 안 것은 아니오? 여태껏 우리 종족과 당신들은 아무런 접촉도 없었는데 악의를 품은 채 이곳으로 올 이유가 없지 않소. 어차피 당신은 우리들의 상대가 안 되니 여기서 썩 물러나시오.")
+			spoke.assign(1)
+
+	# 주민 5 (36,93)
+	if (On(36, 93))
+		res.assign(5)
+		rx.assign(36)
+		ry.assign(93)
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("드라코니안", "우리 드라코니안족은 드래곤과 인간의 장점만을 모아 진화한 생명체로서 드라콘이라고 줄여 부르기도 하지. 지능은 IQ 200에서 250 정도로 인간의 두 배 정도이고 키도 평균 2m 30cm로 인간보다 크고 게다가 날개도 있어서 하늘을 나는 것도 가능하네. 수명도 150에서 200세 정도라서 인간보다 발전 가능성도 뛰어나지.")
+			Say("드라코니안", "흐흐흐... 어때? 이래도 우리에게 대항하겠는가?")
+			spoke.assign(1)
+
+	# 주민 6 (42,84)
+	if (On(42, 84))
+		res.assign(6)
+		rx.assign(42)
+		ry.assign(84)
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("드라코니안", "우와~~ 말로만 듣던 인간을 직접 이렇게 보게 되다니... 정말 신기하게 생겼네.")
+			spoke.assign(1)
+
+	# 주민 7 (33,82) — 묻지 않고 덤빈다
+	if (On(33, 82))
+		res.assign(7)
+		rx.assign(33)
+		ry.assign(82)
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("드라코니안", "콩알만 한 것들이 겁도 없이 들어오다니. 심심하던 차에 잘됐군. 싸움이나 걸어야지.")
+			spoke.assign(1)
+
+	# 주민 8 (41,70)
+	if (On(41, 70))
+		res.assign(8)
+		rx.assign(41)
+		ry.assign(70)
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("드라코니안", "쩝쩝, 배고파.")
+			spoke.assign(1)
+
+	# 관문 ② 남서 거리 북문 (47,61)·(48,61) — (47,62)·(48,62)에서 북쪽으로 다가간다.
+	# 위병 드라콘 7 · 소환사 드라콘 1, 적 선공. 이기면 (47~48,59~61)이 열려 북서 구역으로.
+	if (Or(On(47, 61), On(48, 61)))
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("소환사 드라콘", "이곳은 너희 같은 이방인은 절대 들어갈 수 없는 곳이다. 그래도 끝까지 들어가려 한다면 나와의 사생결단이 남았을 뿐이다.")
+			PressAnyKey()
+		Battle::Init()
+		Battle::RegisterEnemy(49, 7)
+		Battle::RegisterEnemy(52)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("DRACO_GATE_2")
+			Map::ChangeTileArea(47, 59, 48, 61, 44)
+			DisplayMap()
+
+	# ================= 북서 구역 (x 27~59, y 15~61) =================
+	# 주민 9 — 물리학자 아인슈타인 (32,22)
+	if (On(32, 22))
+		res.assign(9)
+		rx.assign(32)
+		ry.assign(22)
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("드라코니안 물리학자", "나는 이곳 최고의 물리학자일세. 그리고 나의 이름은 아인슈타인이라네. 내가 어릴 때 머리가 완전히 돌이었지. 그래서 항상 아이들이 나를 보며 'Du bist ein Stein'이라고 놀리곤 했지. 거기서 나온 이름이 내 이름인 'Einstein'일세.")
+			spoke.assign(1)
+
+	# 주민 10 (40,33)
+	if (On(40, 33))
+		res.assign(10)
+		rx.assign(40)
+		ry.assign(33)
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("드라코니안", "만약, 당신이 자꾸 우리를 위협하겠다면 우리는 성의 서쪽 감옥에 있는 인간들을 모두 처형시켜 버릴 테다.")
+			spoke.assign(1)
+
+	# 관문 ③ 감옥 (27,54) — (28,54)에서 서쪽으로 다가간다.
+	# 위병 드라콘 4 · 가드 드라콘 2 · 얼음 엘리멘탈 1 · 위저드 드라콘 1, 적 선공.
+	# 이기면 (24~27,54)가 열려 감옥 복도로.
+	if (On(27, 54))
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("위저드 드라콘", "오! 에인션트 이블님이시여! 그대의 이름으로 저들에게 패배를 명하소서.")
+			PressAnyKey()
+		Battle::Init()
+		Battle::RegisterEnemy(49, 4)
+		Battle::RegisterEnemy(50, 2)
+		Battle::RegisterEnemy(47)
+		Battle::RegisterEnemy(53)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("DRACO_GATE_3")
+			Map::ChangeTileArea(24, 54, 27, 54, 44)
+			DisplayMap()
+
+	# 관문 ④(공략집 번호) 동문 (59,48) — (58,48)에서 동쪽으로 다가간다. 플래그는 DRACO_GATE_6.
+	# 기사 드라콘 2 · 성전사 드라콘 1 · 소환사 드라콘 1, 적 선공. 이기면 (59~61,48)이 열려 동쪽 광장으로.
+	if (On(59, 48))
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("성전사 드라콘", "멋모르고 날뛰고 있는 인간들아 들어라. 나는 성전사의 명예를 걸고 드라코니안족과 우리의 왕을 위해 싸울 것이다.")
+			PressAnyKey()
+		Battle::Init()
+		Battle::RegisterEnemy(51, 2)
+		Battle::RegisterEnemy(56)
+		Battle::RegisterEnemy(52)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("DRACO_GATE_6")
+			Map::ChangeTileArea(59, 48, 61, 48, 44)
+			DisplayMap()
+
+	# ================= 감옥 (복도 x=19 · y=54, 감방은 문이 없어 기화 이동으로 들어간다) =================
+	# 주민 11 (16,19) — 감방 안. 「가문의 보물」을 주는 처리는 원작에 없다 (부록 A D19, 결정 필요).
+	if (On(16, 19))
+		res.assign(11)
+		rx.assign(16)
+		ry.assign(19)
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("드라코니안", "나를 여기서 탈출시켜 주시오. 그러면 우리 가문의 보물을 드리리다.")
+			spoke.assign(1)
+
+	# 주민 12 (16,35) — 감방 안
+	if (On(16, 35))
+		res.assign(12)
+		rx.assign(16)
+		ry.assign(35)
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("드라코니안", "나도 나쁜 놈이지만 당신은 더 나쁜 놈이오. 왜 그렇냐고 물으면 웃지요.")
+			Say("드라코니안", "으하하하.. 낄낄.. 흐흐흐...")
+			spoke.assign(1)
+
+	# 주민 13 (15,48) — 감방 안
+	if (On(15, 48))
+		res.assign(13)
+		rx.assign(15)
+		ry.assign(48)
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("드라코니안", "위대한 프로그래머이시며 이 세계의 창시자이신 분과 타임워커 알비레오는 동일 인물이라는 생각이 안 드오?")
+			spoke.assign(1)
+
+	# 쇠돌이 (22,24) — 감방 안의 인간. 드라콘 말이 없어도 된다.
+	if (On(22, 24))
+		Say("쇠돌이", "나는 마징가 Z를 실제로 보았죠. 정말 무쇠 팔, 무쇠 다리, 로켓트 주먹을 가지고 있더군요. 만약 전쟁이 일어나면 인천 앞바다가 갈라지며 출동한다고 들었어요. 그것뿐만 아니죠. 잠실구장이 열리면서 메칸더 V도 나오고 비룡폭포에서는 그렌다이져가 뉴크프리트와 합체하여 출격하고 육군본부에 보호망이 쳐지며 그레이트 마징가와 비너스 A가 같이 나타나고 공군본부에서 출동한 독수리 5형제가 조국의 창공을 지키게 되죠. 물론 김 박사가 만든 태권 V도 최후의 희망으로 버티고 있죠. 뭐, 믿기지 않는다면 국방부 장관님께 직접 물어보시죠.")
+		Say("쇠돌이", "제 이름이 뭐냐구요? 저는 쇠돌이에요.")
+
+	# 인간 포로 (24,50) — 감방 안. 독심 상태에서만 입을 연다.
+	if (On(24, 50))
+		if (Party::CheckIf(CHECKIF_MINDCONTROL))
+			Say("인간 포로", "당신은 지금 로드안에게 속고 있소. 그는 표면적인 선을 행하기 위해서 당신을 이용하고 있는 것이오. 당신이 드라코니안족을 적대시할 이유가 없소. 그들은 인간에게 아무런 피해도 간섭도 없이 살아왔소. 그들이 에인션트 이블을 숭상한다는 것이 정벌의 이유가 될 수는 없소. 당신은 에인션트 이블을 진정으로 만나 보기라도 했소? 당신은 위선자 로드안의 말만 믿고 에인션트 이블과 그의 추종자들을 배척하고 있는 거란 말이오. 당신은 어릴 때부터 에인션트 이블과 악은 나쁘다고 사상 교육을 받아 왔던 걸 아시오? 진리를 모른 채 단지 위에서 가르치는 대로 배우며 그것을 진실로 받아들이고 머릿속에 새겼던 게 바로 화근이었던 것이오.")
+		else
+			Talk("그는 당신을 슬쩍 본 후 다시 자기 할 일만 하고 있었다.")
+
+	# 반역죄 수감자 (15,57) — 감방 안. 받아들이면 보조 일원(6번)으로 합류한다.
+	# 드라콘 말이 없어도 된다. 이미 있던 보조 일원은 사라진다.
+	if (On(15, 57))
+		Say("드라코니안 수감자", "나는 드라콘족의 통치 체제에 반발하다가 이곳에 반역죄로 잡혀 오게 되었소. 당신 역시 이곳의 체제를 전복시키려는 게 주목적인 것 같은데, 우리 힘을 합해 보는 게 어떻겠소.")
+		Select::Init()
+		Select::Add("")
+		Select::Add("그렇게 하지요")
+		Select::Add("그건 안 되겠소")
+		Select::Run()
+		if (Equal(Select::Result(), 1))
+			Party::SetAssistant("draco_prisoner")
+			Flag::Set("JOINED_DRACO_PRISONER")
+			Map::ChangeTile(15, 57, 44)
+			DisplayMap()
+			DisplayStatus()
+
+	# ================= 동쪽 광장 (x 59~93, y 38~59) =================
+	# 관문 ⑤(공략집 번호) 남동 관문 (84,59) — (84,58)에서 남쪽으로 다가간다. 플래그는 DRACO_GATE_4.
+	# 위저드 드라콘 7 · 광란자 드라콘 1, 적 선공. 이기면 (84,59~61)이 열려 남동 구역·묘지로.
+	if (On(84, 59))
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("광란자 드라콘", "내가 광란자라고 불리는 이유를 너희들에게 보여 주지. 자, 맛 좀 봐랏!")
+			PressAnyKey()
+		Battle::Init()
+		Battle::RegisterEnemy(53, 7)
+		Battle::RegisterEnemy(54)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("DRACO_GATE_4")
+			Map::ChangeTileArea(84, 59, 84, 61, 44)
+			DisplayMap()
+
+	# 관문 ⑦ 북쪽 관문 (73,40) — (72,40)에서 동쪽으로 다가간다.
+	# 크로매틱 드라콘 단독(분신 능력), 적 선공. 이기면 (73~75,40)이 열려 북쪽 호수 공원으로.
+	if (On(73, 40))
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("크로매틱 드라콘", "네가 더 이상 이 안으로 들어갈 수 없는 이유는 바로 내가 있기 때문이다. 내가 만든 나의 환상 속에서 너는 스스로의 능력에 대한 비애를 느낄 수밖에 없을 것이다.")
+			PressAnyKey()
+		Battle::Init()
+		Battle::RegisterEnemy(57)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("DRACO_GATE_7")
+			Map::ChangeTileArea(73, 40, 75, 40, 44)
+			DisplayMap()
+
+	# ================= 남동 구역 (x 79~107, y 59~106) =================
+	# 관문 ⑥(공략집 번호) 보물창고 앞 (79,88) — (80,88)에서 서쪽으로 다가간다. 플래그는 DRACO_GATE_5.
+	# 얼음 엘리멘탈 7 · 프로스트 드라콘 1, 적 선공. 이기면 (77~79,88)이 열려 동쪽 전시실로.
+	if (On(79, 88))
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("프로스트 드라콘", "나는 너희들과 같은 보물 약탈자들을 제거하기 위해 보물창고 앞을 지키고 있는 프로스트 드라코니안이다. 나의 냉기와 한파 공격에는 아무 저항도 하지 못하고 나가떨어질 것이다.")
+			PressAnyKey()
+		Battle::Init()
+		Battle::RegisterEnemy(47, 7)
+		Battle::RegisterEnemy(55)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("DRACO_GATE_5")
+			Map::ChangeTileArea(77, 88, 79, 88, 44)
+			DisplayMap()
+
+	# ================= 북쪽 구역 (x 49~94, y 15~42) =================
+	# 대예언자 (67,21) — 독심 상태로 말을 건 횟수(DRACO_PROPHET_TALKS)에 따라 달라진다.
+	# 1·2회째는 외면, 3·4회째는 드라콘 말이 있어야 말한다(없으면 아무 글 없이 멈추고 횟수는 그대로), 그 뒤는 다시 외면.
+	if (On(67, 21))
+		if (Party::CheckIf(CHECKIF_MINDCONTROL))
+			temp.assign(Variable::Get("DRACO_PROPHET_TALKS"))
+			if (Less(temp, 2))
+				Talk("그는 당신을 힐끗 보더니 외면해 버렸다.")
+				Variable::Add("DRACO_PROPHET_TALKS")
+			if (Equal(temp, 2))
+				if (Flag::IsSet("DRACO_SPEECH"))
+					Say("대예언자", "나는 드라코니안족의 대예언자요. 나에게는 당신의 미래가 보인다오. 그러나 그것은 너무나 무서운 것이기에 함부로 얘기할 수 없소.")
+					Variable::Add("DRACO_PROPHET_TALKS")
+			if (Equal(temp, 3))
+				if (Flag::IsSet("DRACO_SPEECH"))
+					Say("대예언자", "좋소, 얘기해 주겠소. 당신은 곧 에인션트 이블님을 만나게 될 거요. 그리고 로드안을 배신하려는 선택을 할지도 모르는 순간이 다가올 것이오. 그때의 선택은 당신의 결말을 크게 뒤흔들 것이오.")
+					Variable::Add("DRACO_PROPHET_TALKS")
+			if (GreaterEqual(temp, 4))
+				Talk("그는 당신을 힐끗 보더니 외면해 버렸다.")
+		else
+			Talk("그는 당신을 보더니 외면해 버렸다.")
+
+	# 관문 ⑧ 왕의 방 앞 (94,37) — (93,37)에서 동쪽으로 다가간다.
+	# 위저드 드라콘 4 · 기사 드라콘 3 · 아키드라코니안 1, 적 선공. 이기면 (94~96,37)이 열린다.
+	if (On(94, 37))
+		if (Flag::IsSet("DRACO_SPEECH"))
+			Say("아키드라코니안", "나는 아키드라코니안이라고 하는 여기 최강의 용사이다. 또한 드라코니안킹의 방을 지키는 경호대장이다. 너 같은 자들은 나의 능력으로 충분히 제거해 버릴 수 있다.")
+			PressAnyKey()
+		Battle::Init()
+		Battle::RegisterEnemy(53, 4)
+		Battle::RegisterEnemy(51, 3)
+		Battle::RegisterEnemy(58)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Equal(Battle::Result(), BATTLERESULT_WIN))
+			Flag::Set("DRACO_GATE_8")
+			Map::ChangeTileArea(94, 37, 96, 37, 44)
+			DisplayMap()
+
+	# ================= 왕의 방 =================
+	# 드라코니안킹 (102,21) — 북·서·동은 가드 칸 (102,20)·(101,21)·(103,21)이라
+	# 남쪽 (102,22)에서만 말을 걸 수 있다. 가드 셋은 대사가 없다.
+	# 대사는 드라콘 말과 무관하게 항상 나온다 (부록 A.4).
+	if (On(102, 21))
+		if (Not(Flag::IsSet("DRACO_KING_DEAD")))
+			Say("드라코니안킹", "나는 네가 목표로 하는 드라코니안족의 왕이다. 아마 이곳에 살아남은 우리 종족의 전투사들은 거의 없을 것으로 안다. 보이다시피 지금 너의 앞에는 나와 가드 드라코니안 3명밖에는 없다. 너는 이 기회를 놓치지 않고 반드시 나를 쓰러뜨려서 드라코니안 종족을 멸망시키려 할 것이란 건 알고 있다. 하지만 지금 나의 편이 불리하다고 내가 진다는 것은 아니다. 나 역시 반드시 너희들을 패배시켜서 우리 종족을 존속시키려고 필사적이다.")
+			Say("드라코니안킹", "이제 나의 뜻을 알았을 것이라 믿는다. 그럼 이제 결전이다!")
+			PressAnyKey()
+
+			# 연출 (제13장 13.9): 가드 셋이 차례로 한 칸씩 비켜선다 — 0.5 · 0.2 · 0.3초 간격.
+			#   (102,20)→(102,19), (101,21)→(101,22), (103,21)→(103,22)
+			# 가드는 칸에서 내려와 배우로 비켜선다 — 칸 사이를 걷고, 서 있던 칸은 바닥이 된다.
+			Map::ChangeTile(102, 20, 44)
+			Map::ChangeTile(101, 21, 44)
+			Map::ChangeTile(103, 21, 44)
+			Actor::Show("가드1", 53, 102, 20)
+			Actor::Show("가드2", 53, 101, 21)
+			Actor::Show("가드3", 53, 103, 21)
+			Actor::Move("가드1", 0, -1)
+			Actor::Wait()
+			Wait(340)
+			Actor::Move("가드2", 0, 1)
+			Actor::Wait()
+			Wait(40)
+			Actor::Move("가드3", 0, 1)
+			Actor::Wait()
+			Wait(140)
+			# 왕 칸을 융단 바닥(42)으로 바꾸고 작은 모습(3부 스프라이트 12)을 세운다. 1.5초 뒤 (101~103,20~21)을 덮는
+			# 3×2칸의 거대한 모습 — 윗줄 14·16·18, 아랫줄 15·17·19. 키를 누르면 전투 (MYSTTALK.PAS:1324~1330)
+			Map::ChangeTile(102, 21, 42)
+			Actor::ShowSprite("작은 왕", 12, 102, 21)
+			DisplayMap()
+			Wait(1500)
+			Actor::Hide("작은 왕")
+			Actor::ShowSprite("왕 1", 14, 101, 20)
+			Actor::ShowSprite("왕 2", 16, 102, 20)
+			Actor::ShowSprite("왕 3", 18, 103, 20)
+			Actor::ShowSprite("왕 4", 15, 101, 21)
+			Actor::ShowSprite("왕 5", 17, 102, 21)
+			Actor::ShowSprite("왕 6", 19, 103, 21)
+			DisplayMap()
+			PressAnyKey()
+
+			# 가드 드라콘 3 · 드라코니안킹 1, 적 선공, 반복.
+			Battle::Init()
+			Battle::RegisterEnemy(50, 3)
+			Battle::RegisterEnemy(59)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, Add(BATTLE_NO_PRELUDE, BATTLE_REPEAT)))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("DRACO_KING_DEAD")
+				# 왕좌 주변 정리: 가드가 있던 칸과 비켜섰던 칸은 바닥, 왕의 자리는 융단 바닥.
+				Actor::Hide("가드1")
+				Actor::Hide("가드2")
+				Actor::Hide("가드3")
+				Actor::Hide("왕 1")
+				Actor::Hide("왕 2")
+				Actor::Hide("왕 3")
+				Actor::Hide("왕 4")
+				Actor::Hide("왕 5")
+				Actor::Hide("왕 6")
+				Map::ChangeTile(102, 21, 42)
+				DisplayMap()
+
+				# 드라콘 수호령 — 왕 처치 직후, 쉬지 못한 채 이어진다.
+				Talk("당신은 마지막 적인 드라코니안족의 왕을 처치했다. 기쁨을 감추지 못한 채 돌아 나오려고 할 때 갑자기 난데없는 암흑이 성 전체를 뒤덮기 시작했다. 그와 동시에 정체불명의 목소리가 어디에선가 들려왔다.")
+				Say("드라콘 수호령", "나는 드라코니안족의 수호령이다. 너희들은 너무나 큰 실수를 나에게 저질렀다. 나는 죽어 간 드라코니안족의 복수를 위해 너희들을 이 세상에서 소멸시켜 버리려 한다. 너희들은 나의 상대가 전혀 되지 않는다. 이쯤에서 작별 인사나 해 두는 게 좋을 것이다.")
+				PressAnyKey()
+
+				# 드라콘 수호령 1 (드라코니안킹 능력치 + 분신), 적 선공, 반복.
+				Battle::Init()
+				Battle::RegisterEnemy(59)
+				Enemy::ChangeAttribute(1, "name", "드라콘 수호령")
+				Enemy::ChangeAttribute(1, "ability_clone", 1)          # 초자연 능력 「분신」 (12 §12.2 비고)
+				Battle::Start(Add(BATTLE_ENEMY_FIRST, Add(BATTLE_NO_PRELUDE, BATTLE_REPEAT)))
+				if (Equal(Battle::Result(), BATTLERESULT_WIN))
+					# 드라코니안 멸망 — 우라누스 테라·이 마을의 조우가 끝나고,
+					# 마을을 나서면 우라누스 테라 (15,31)에 임페리엄 마이너성 입구가 생긴다.
+					Flag::Set("DRACONIAN_DESTROYED")
+					Encounter::Enable(0)
+					Talk("당신은 드라코니안족을 멸망시켰다.")
+			else
+				# 이기지 못한 채 전투가 끝났다 — 가드를 제자리로 돌려놓는다.
+				Actor::Hide("가드1")
+				Actor::Hide("가드2")
+				Actor::Hide("가드3")
+				Map::ChangeTile(102, 20, 53)
+				Map::ChangeTile(101, 21, 53)
+				Map::ChangeTile(103, 21, 53)
+				DisplayMap()
+
+	# ================= 주민 13명 공통 처리 =================
+	# 대사는 드라콘 말을 알 때만 나온다(위). 3번·7번은 곧바로, 나머지는 선택지를 거쳐
+	# 드라코니안 1명과 일행 선공 전투. 살려 주면 아무 일도 없다.
+	if (Greater(res, 0))
+		kill.assign(0)
+		if (Or(Equal(res, 3), Equal(res, 7)))
+			kill.assign(1)
+			if (Equal(spoke, 1))
+				PressAnyKey()
+		else
+			Select::Init()
+			Select::Add("당신 앞에 있는 드라코니안족을 당신은 어떻게 할 것인가를 선택하시오.")
+			Select::Add("죽여 버린다")
+			Select::Add("그냥 살려 준다")
+			Select::Run()
+			if (Equal(Select::Result(), 1))
+				kill.assign(1)
+		if (Equal(kill, 1))
+			Battle::Init()
+			Battle::RegisterEnemy(48)
+			Battle::Start(BATTLE_NO_PRELUDE)
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				if (Equal(res, 1))
+					Flag::Set("DRACO_RESIDENT_1_DEAD")
+				if (Equal(res, 2))
+					Flag::Set("DRACO_RESIDENT_2_DEAD")
+				if (Equal(res, 3))
+					Flag::Set("DRACO_RESIDENT_3_DEAD")
+				if (Equal(res, 4))
+					Flag::Set("DRACO_RESIDENT_4_DEAD")
+				if (Equal(res, 5))
+					Flag::Set("DRACO_RESIDENT_5_DEAD")
+				if (Equal(res, 6))
+					Flag::Set("DRACO_RESIDENT_6_DEAD")
+				if (Equal(res, 7))
+					Flag::Set("DRACO_RESIDENT_7_DEAD")
+				if (Equal(res, 8))
+					Flag::Set("DRACO_RESIDENT_8_DEAD")
+				if (Equal(res, 9))
+					Flag::Set("DRACO_RESIDENT_9_DEAD")
+				if (Equal(res, 10))
+					Flag::Set("DRACO_RESIDENT_10_DEAD")
+				if (Equal(res, 11))
+					Flag::Set("DRACO_RESIDENT_11_DEAD")
+				if (Equal(res, 12))
+					Flag::Set("DRACO_RESIDENT_12_DEAD")
+				if (Equal(res, 13))
+					Flag::Set("DRACO_RESIDENT_13_DEAD")
+				# 그 자리는 빈 바닥이 된다
+				Map::ChangeTile(rx, ry, 44)
+				DisplayMap()
+
+########## 푯말 ##########
+if (Equal(ScriptMode(), FLAG_SIGN))
+	# 묘지 입구의 푯말 (92,94)
+	if (On(92, 94))
+		Talk("이곳은 신성한 드라코니안 묘지이므로 함부로 훼손시키지 마시오")
+
+########## 이벤트 칸 ##########
+if (Equal(ScriptMode(), FLAG_EVENT))
+	# ================= 성벽 밖 =================
+	# 출구 (5,113)~(5,115) → 우라누스 테라 (39,37). 「아니오」면 한 칸 동쪽으로 돌아간다.
+	# 드라코니안 멸망 뒤에 나가면 우라누스 테라 (15,31)에 임페리엄 입구가 놓인다(Ground5 가 한다).
+	if (OnArea(5, 113, 5, 115))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E3_Ground5", 39, 37)
+		else
+			WarpPrevPos()
+
+	# ================= 호수 (x 45~76, y 94~109) =================
+	# 금빛 인어 (65,101) — 호수 한가운데, 사방이 물이라 물 위를 걷는 상태로 밟는다. 한 번뿐.
+	# 놓아주면 드라콘 글. 죽이면 드라콘 글·말을 영영 배울 수 없다.
+	# 고르지 않고 닫으면(Esc) 기록하지 않는다 — 다시 밟으면 다시 묻는다.
+	if (On(65, 101))
+		if (Not(Flag::IsSet("MERMAID_MET")))
+			Talk("갑자기 호수 밑에서 누군가가 당신의 발을 잡고 호수 밑으로 끌어내리려 했다. 하지만 당신의 물 위를 걷는 마법 때문에 당신은 전혀 끌려 들어가지 않았다. 도리어 당신이 정체불명의 손을 끌어 올려 물 밖으로 들어 올렸다. 놀랍게도 당신이 물 밖으로 끌어 올린 것은 금빛의 인어였다. 그녀는 겁에 질려 당신에게 애원했다.")
+			Say("금빛 인어", "제발 살려 주세요. 그냥 장난친 것뿐이에요.")
+			Say("금빛 인어", "만약 살려 주시면 당신에게 드라코니안족의 글을 가르쳐 드릴게요.")
+			Select::Init()
+			Select::Add("")
+			Select::Add("인어를 놓아준다")
+			Select::Add("죽여 버린다")
+			Select::Run()
+			if (Equal(Select::Result(), 1))
+				Flag::Set("MERMAID_MET")
+				Talk("그 인어는 당신에게 금빛의 가루를 뿌렸다.")
+				Talk("그러자 당신은 약간의 어지러움을 느꼈다.")
+				Flag::Set("DRACO_SCRIPT")
+			if (Equal(Select::Result(), 2))
+				Flag::Set("MERMAID_MET")
+				Talk("당신은 그 인어를 죽여 버렸다.")
+
+	# ================= 보물창고 (x 62~77, y 62~90) =================
+	# 보물 칸은 숨은 칸이다. 가져가면 옆의 상자 그림이 사라진다. 모두 한 번뿐.
+	# 동쪽 전시실(x 73~77)만 관문 뒤 걸어서 닿고, 가운데(x 67~71)·서쪽(x 62~65)은 기화 이동으로 들어간다.
+
+	# 보물 1 — 화살 (76,73), 상자 그림 (77,73)
+	if (On(76, 73))
+		if (Not(Flag::IsSet("DRACO_TREASURE_1")))
+			Notice("화살 + 400")
+			Party::PlusArrows(400)
+			Flag::Set("DRACO_TREASURE_1")
+			Map::ChangeTile(77, 73, 44)
+			DisplayMap()
+
+	# 보물 2 — 함정 상자: 흡혈귀 8, 적 선공 (68,66), 상자 그림 (67,66)
+	# 도망치면 상자가 그대로 남아 다시 밟으면 또 싸운다.
+	if (On(68, 66))
+		if (Not(Flag::IsSet("DRACO_TREASURE_2")))
+			Talk("당신이 보물상자를 열자 갑자기 흡혈귀가 튀어나왔다.")
+			PressAnyKey()
+			Battle::Init()
+			Battle::RegisterEnemy(4, 8)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("DRACO_TREASURE_2")
+				Map::ChangeTile(67, 66, 44)
+				DisplayMap()
+
+	# 보물 3 — 식량 (68,73), 상자 그림 (67,73). 식량이 최대치 255 가 된다.
+	if (On(68, 73))
+		if (Not(Flag::IsSet("DRACO_TREASURE_3")))
+			Notice("식량 + 255")
+			Party::PlusFood(Sub(255, Party::Food()))
+			Flag::Set("DRACO_TREASURE_3")
+			Map::ChangeTile(67, 73, 44)
+			DisplayMap()
+
+	# 보물 4 — 황금 (63,71), 상자 그림 (62,71)
+	if (On(63, 71))
+		if (Not(Flag::IsSet("DRACO_TREASURE_4")))
+			Notice("황금 + 200000")
+			Party::PlusGold(200000)
+			Flag::Set("DRACO_TREASURE_4")
+			Map::ChangeTile(62, 71, 44)
+			DisplayMap()
+
+	# 보물 5 — 소환의 크리스탈 (68,88), 상자 그림 (67,88)
+	if (On(68, 88))
+		if (Not(Flag::IsSet("DRACO_TREASURE_5")))
+			Notice("소환의 크리스탈 + 1")
+			Item::Give("crystal.summon", 1)
+			Flag::Set("DRACO_TREASURE_5")
+			Map::ChangeTile(67, 88, 44)
+			DisplayMap()
+
+	# 보물 6 — 함정 상자: 드라큘라 5, 적 선공 (63,79), 상자 그림 (62,79)
+	if (On(63, 79))
+		if (Not(Flag::IsSet("DRACO_TREASURE_6")))
+			Talk("당신이 보물상자를 열자 갑자기 드라큘라가 튀어나왔다.")
+			PressAnyKey()
+			Battle::Init()
+			Battle::RegisterEnemy(14, 5)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			if (Equal(Battle::Result(), BATTLERESULT_WIN))
+				Flag::Set("DRACO_TREASURE_6")
+				Map::ChangeTile(62, 79, 44)
+				DisplayMap()
+
+	# 보물 7 — 한파의 크리스탈 (64,64), 상자 그림 (65,64)
+	if (On(64, 64))
+		if (Not(Flag::IsSet("DRACO_TREASURE_7")))
+			Notice("한파의 크리스탈 + 1")
+			Item::Give("crystal.frost", 1)
+			Flag::Set("DRACO_TREASURE_7")
+			Map::ChangeTile(65, 64, 44)
+			DisplayMap()
+
+	# ================= 묘지 (남동 구역 남쪽) =================
+	# 21대 드라콘 제왕의 묘 (97,100) — 관 그림 바로 위의 숨은 칸
+	if (On(97, 100))
+		Talk("묘비에는 제21대 드라콘 제왕의 묘라고 쓰여 있었다.")
+
+	# 17대 드라콘 제왕의 지하 묘 입구 (89,103) — 관 그림 바로 위의 숨은 칸.
+	# 혼자 내려간다. 한 번 내려간 뒤에는 묘비 첫 문장만 나온다(다시 들어갈 수 없다).
+	# 동료(2~5번)는 지하 묘 쪽에서 숨긴다 (Tomb.cm2 의 FLAG_MAP — 부록 B.4).
+	if (On(89, 103))
+		Talk("묘비에는 제17대 드라콘 제왕의 지하 묘라고 쓰여 있었고 바로 밑에는 기묘하게 생긴 바닥이 있었다.")
+		if (Not(Flag::IsSet("DRACO_TOMB_ENTERED")))
+			go.assign(0)
+			Talk("당신이 바닥을 밀어내자 바닥이 스르르 밀려나며 좁은 지하계단이 나타났다. 계단의 입구에는 스산한 기운이 맴돌고 있었고 자세히 다시 보니 뚜렷하게 이런 글자가 새겨져 있었다.")
+			Talk("'이곳으로 발을 디딘 자는 드라콘 제왕의 저주를 받게 될 것이다.'")
+			Select::Init()
+			Select::Add("")
+			Select::Add("지하계단으로 내려간다")
+			Select::Add("다시 바닥을 원위치시킨다")
+			Select::Run()
+			if (Equal(Select::Result(), 1))
+				# 행동 가능한 동료(2~5번) 가운데 번호가 가장 앞선 사람이 말린다
+				who.assign(0)
+				if (And(Player::IsAvailable(5), Player::CanAct(5)))
+					who.assign(5)
+				if (And(Player::IsAvailable(4), Player::CanAct(4)))
+					who.assign(4)
+				if (And(Player::IsAvailable(3), Player::CanAct(3)))
+					who.assign(3)
+				if (And(Player::IsAvailable(2), Player::CanAct(2)))
+					who.assign(2)
+				if (Equal(who, 0))
+					# 말릴 동료가 없다 — 그대로 내려간다
+					go.assign(1)
+				else
+					Talk("당신이 일행들을 데리고 지하계단으로 내려가려 하자 당신을 저지시키는 사람이 있었다.")
+					Talk(JoinString("그는 바로 ", Josa(Player::GetName(who), "이었다/였다"), "."))
+					Talk("그는 말을 했다.")
+					Say(Player::GetName(who), "우리들의 목적은 따로 있는데 일부러 이런 모험을 할 필요가 없지 않은가? 우리들은 모두 여기에 있겠네. 게다가 계단에 쓰여 있는 이 글도 마음에 걸린다네. 정말 가고 싶다면 자네 혼자서 가게나. 우리는 여기서 기다릴 테니.")
+					Select::Init()
+					Select::Add("")
+					Select::Add("혼자라도 지하무덤으로 간다")
+					Select::Add("대원들의 의견대로 그만둔다")
+					Select::Run()
+					if (Equal(Select::Result(), 1))
+						go.assign(1)
+					else
+						Talk("당신은 다시 물러서서 바닥을 원위치시켰다.")
+			else
+				Talk("당신이 바닥을 끌어당기자 다시 스르르 밀려와서 원위치되었다.")
+			if (Equal(go, 1))
+				Flag::Set("DRACO_TOMB_ENTERED")
+				LoadScript("E3_Tomb", 24, 16)
+
+# (해결된 NEED — BATTLE_REPEAT 로 바꿨다) Battle::Start 의 「반복」 방식 (예: BATTLE_REPEAT) — 도망에 성공해도 같은 적 편성·남은 피해 그대로
+#   곧바로 다시 적 선공으로 싸운다 (제12장 12.4 「반복」). 드라코니안킹·드라콘 수호령이 쓴다.
+#   이제 BATTLE_REPEAT 로 한다(이기거나 질 때까지 끝나지 않는다는 결과는 같다).
+# (해결된 NEED) 초자연 능력 「분신」 — Enemy::ChangeAttribute(1, "ability_clone", 1).
+#   드라콘 수호령 = 59번 드라코니안킹 능력치 + 분신 (제12장 12.2 비고 · 12.4).
+# (해결된 NEED) 맵 위에 큰 그림 — 왕 칸의 작은 모습이 1.5초 뒤 (101~103,20~21)을 덮는 3×2칸의 거대한 모습으로 바뀐다.
+#   작은 모습 12 → 1.5초 → Actor::ShowSprite 6조각 (3부 스프라이트 14·16·18 / 15·17·19, MYSTTALK.PAS:1324~1329).
+#   가드가 비켜서는 것은 배우(Actor::*)로 옮겼다.
+# (원작 확인) 왕을 쓰러뜨린 뒤 왕의 자리 (102,21) 은 42, 가드가 있던 (102,20)·(101,21)·(103,21) 은 44 (MYSTTALK.PAS:1341~1342).

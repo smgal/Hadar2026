@@ -1,0 +1,85 @@
+####### 제1부 메너스 (E1_Menace) — 50×50 동굴 ########
+# 근거: 1st/05 §5.2 M1 · §5.3 S2 · 1st/06 §6.10 · 1st/08 §8.3 · 1st/10 §4 · 1st/12 부록 B ·
+#       공략집 Walkthrough/1st/src/maps/Menace.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥 44 · 사람·푯말·고정 전투 없음. 숨은 칸(0): 중심부 (25,8)·(26,8), 금화 여섯, 방패 (16,20),
+# 출구 줄 (25~26,46). 들어오면 (25,45), 나가면 로어 대륙 (18,89).
+
+include("common/const.cm2")
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 5~12: 드워프·자이언트·팬텀·울프·임프·고블린·파이톤·인섹트 (레벨 2~3)
+	Encounter::Clear()
+	Encounter::Add(5, 12)
+	Encounter::Enable(1)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# ---- 중심부 (25,8)·(26,8) — 로드안 단계 3일 때만 탐사 완료 (M1) ----
+	if (Or(On(25, 8), On(26, 8)))
+		if (Equal(Variable::Get("LORD_STAGE"), 3))
+			Talk("여기가 'MENACE'의 중심이다.")
+			Talk("당신의 탐험은 성공적이었다. 이제 Lord Ahn에게 돌아가는 일만 남았다.")
+			Variable::Set("LORD_STAGE", 4)
+		halt
+
+	# ---- 금화 여섯 곳 (한 번씩) ----
+	if (On(6, 6))
+		if (Not(Flag::IsSet("MENACE_GOLD_1")))
+			Flag::Set("MENACE_GOLD_1")
+			Party::PlusGold(1000)
+			Notice("황금 + 1000")
+		halt
+	if (On(18, 10))
+		if (Not(Flag::IsSet("MENACE_GOLD_2")))
+			Flag::Set("MENACE_GOLD_2")
+			Party::PlusGold(2500)
+			Notice("황금 + 2500")
+		halt
+	if (On(6, 44))
+		if (Not(Flag::IsSet("MENACE_GOLD_3")))
+			Flag::Set("MENACE_GOLD_3")
+			Party::PlusGold(400)
+			Notice("황금 + 400")
+		halt
+	if (On(31, 30))
+		if (Not(Flag::IsSet("MENACE_GOLD_4")))
+			Flag::Set("MENACE_GOLD_4")
+			Party::PlusGold(600)
+			Notice("황금 + 600")
+		halt
+	if (On(31, 8))
+		if (Not(Flag::IsSet("MENACE_GOLD_5")))
+			Flag::Set("MENACE_GOLD_5")
+			Party::PlusGold(1500)
+			Notice("황금 + 1500")
+		halt
+	if (On(14, 28))
+		if (Not(Flag::IsSet("MENACE_GOLD_6")))
+			Flag::Set("MENACE_GOLD_6")
+			Party::PlusGold(1000)
+			Notice("황금 + 1000")
+		halt
+
+	# ---- 황금의 방패 (16,20) — 사방이 벽. 지형 변화로 벽을 허물고 걸어 들어온다 (S2) ----
+	# 원작은 「누가 이 황금의 방패를 장착하겠습니까?」로 곧장 한 명에게 장착시켰다. 리메이크는 제3부 체계대로
+	# 배낭에 넣는다 — 황금의 방패는 금제(최고) 등급이라 플래티움 방패로 대응한다 (1st/07 §7.6).
+	if (On(16, 20))
+		if (Not(Flag::IsSet("GOLD_SHIELD_MENACE")))
+			Flag::Set("GOLD_SHIELD_MENACE")
+			Talk("당신은 황금의 방패를 발견했다.")
+			Item::Give("shield.platinum", 1)
+			Notice("황금의 방패(플래티움 방패)를 배낭에 넣었다")
+		halt
+
+	# ---- 출구 줄 (25~26,46) ----
+	if (OnArea(25, 46, 26, 46))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Lore", 18, 89)
+		else
+			WarpPrevPos()

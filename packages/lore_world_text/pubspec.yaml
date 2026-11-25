@@ -1,0 +1,17 @@
+name: lore_world_text
+description: >-
+  Korean names and sentences for packages/lore_world — classes, skills,
+  items, spells, companions, the personality questions, and one sentence
+  for every result and refusal a command can return.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  lore_world:
+    path: ../lore_world
+
+dev_dependencies:
+  test: ^1.24.0

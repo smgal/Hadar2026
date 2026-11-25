@@ -1,0 +1,102 @@
+####### 제3부 — 오두막 (Hut, 마을형 30×30) #######
+# 근거: 기획서 05(S8·5.7·5.11) · 06(6.19) · 10(10.9) · 14(8.3) · 15(부록 A #7) · 16(B.2·B.3),
+#       공략 원고 Walkthrough/3rd/src/maps/Hut.{md,json}
+#
+# 칸 종류 (maptool 로 확인):
+#   사람   (15,9) 은둔자
+#   숨은 칸 (9,13) 창 앞 · (9,14) 갑옷 앞 — 밟기만 해도 묻지 않고 물건을 가진다
+#           창·갑옷이 걸린 진열대는 그 서쪽 (8,13)·(8,14) (막힌 칸)
+#   이벤트 — 가장자리 네 줄 x=5 · x=26 · y=6 · y=25 (출구)
+#   이 맵에는 푯말·입구 칸이 없다 (FLAG_SIGN · FLAG_ENTER 없음)
+#
+# 빈 진열대는 35 (이 맵의 default, 걸을 수 있는 칸).
+
+include("common/const.cm2")
+
+
+####### 맵에 들어왔다 #######
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("town")                         # 마을형 공통 곡 (13.11)
+
+	# 부록 B.3 — 가져간 창·갑옷의 진열대는 비어 있다
+	if (Flag::IsSet("HUT_LANCE_TAKEN"))
+		Map::ChangeTile(8, 13, 35)
+	if (Flag::IsSet("HUT_ARMOR_TAKEN"))
+		Map::ChangeTile(8, 14, 35)
+
+
+####### 말을 걸었다 #######
+if (Equal(ScriptMode(), FLAG_TALK))
+	# (15,9) 은둔자 — 체력 회복약 5개에 코볼트 글을 가르친다 (7일)
+	# 확인 순서: 창·갑옷을 가졌는가 → 글을 배웠는가 → 교습 제의.
+	# 창·갑옷을 하나라도 가져갔으면 가르쳐 주지 않는다 (05 5.11)
+	if (On(15, 9))
+		if (Or(Flag::IsSet("HUT_LANCE_TAKEN"), Flag::IsSet("HUT_ARMOR_TAKEN")))
+			Say("은둔자", "당신들이 가지고 있는 창과 갑옷을 어디선가 본 것 같은데...")
+		else
+			if (Flag::IsSet("KOBOLD_SCRIPT"))
+				Say("은둔자", "이제 당신은 웬만한 코볼트 글을 이해할 수 있을 겁니다.")
+			else
+				Say("은둔자", "나는 어릴 때부터 코볼트족에게 발견되어 그들의 손에 자라났습니다. 지금은 비록 인간이라는 이유로 그들의 집단에서 소외되어 이곳에서 홀로 살고 있지만 한때는 코볼트족의 말과 글을 사용하던 시절이 있습니다. 당신 혹시 나에게 체력 회복약 5개만 주지 않겠습니까? 그런다면 나는 기꺼이 당신에게 코볼트의 글을 가르쳐 주겠습니다. 그것도 일주일 만에 말입니다.")
+				Select::Init()
+				Select::Add("")
+				Select::Add("좋소, 그렇게 합시다")
+				Select::Add("체력 회복약 5개는 좀...")
+				Select::Run()
+				if (Equal(Select::Result(), 1))
+					if (GreaterEqual(Item::Count("item.hp_potion"), 5))
+						# 체력 회복약 5개를 쓴다 (원작이 부활의 약초 1개를 줄이던 것은 버그 — 부록 A #7)
+						Item::Take("item.hp_potion", 5)
+						Screen::FadeOut()
+						Time::Pass(168, 0)
+						Screen::FadeIn()
+						Talk("일주일이 지났다.")
+						Talk("당신은 이제 코볼트 글을 알게 되었다.")
+						Flag::Set("KOBOLD_SCRIPT")
+					else
+						Talk("하지만 당신에게는 체력 회복약 5개가 없다.")
+
+
+####### 이벤트 칸 #######
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	####### 서쪽 방 — 은둔자의 창과 갑옷 #######
+	# (9,13) 창 — 랜서 1. 한 번만. 진열대 (8,13) 이 빈다
+	if (On(9, 13))
+		if (Not(Flag::IsSet("HUT_LANCE_TAKEN")))
+			Flag::Set("HUT_LANCE_TAKEN")
+			Talk("당신은 앞에 있는 창을 가졌다.")
+			Notice("랜서 + 1")
+			Item::Give("weapon.lancer", 1)
+			Map::ChangeTile(8, 13, 35)
+			DisplayMap()
+
+	# (9,14) 갑옷 — 라멜라 1. 한 번만. 진열대 (8,14) 가 빈다
+	if (On(9, 14))
+		if (Not(Flag::IsSet("HUT_ARMOR_TAKEN")))
+			Flag::Set("HUT_ARMOR_TAKEN")
+			Talk("당신은 앞에 있는 갑옷을 가졌다.")
+			Notice("라멜라 + 1")
+			Item::Give("armour.lamellar", 1)
+			Map::ChangeTile(8, 14, 35)
+			DisplayMap()
+
+	####### 가장자리 네 줄 — 출구 #######
+	# 필드 (48,57) 에서 나간 방향으로 한 칸 옮긴 자리에 선다
+	if (Or(OnArea(5, 6, 26, 6), OnArea(5, 25, 26, 25), OnArea(5, 7, 5, 24), OnArea(26, 7, 26, 24)))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			# 북쪽 가장자리 y=6
+			if (OnArea(5, 6, 26, 6))
+				LoadScript("E3_Ground4", 48, 56)
+			# 남쪽 가장자리 y=25
+			if (OnArea(5, 25, 26, 25))
+				LoadScript("E3_Ground4", 48, 58)
+			# 서쪽 가장자리 x=5
+			if (OnArea(5, 7, 5, 24))
+				LoadScript("E3_Ground4", 47, 57)
+			# 동쪽 가장자리 x=26
+			if (OnArea(26, 7, 26, 24))
+				LoadScript("E3_Ground4", 49, 57)
+		else
+			WarpPrevPos()

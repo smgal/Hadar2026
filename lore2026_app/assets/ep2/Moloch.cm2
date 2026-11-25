@@ -1,0 +1,102 @@
+####### 제2부 몰록의 동굴 (E2_Moloch) — 20×50 동굴 (지하 세계 1, 2차 원정) ########
+# 근거: 2nd/05 §5.2(2차 원정) · 2nd/06 §6.10 · 2nd/07 §7.2(이벤트 패배 전투 · 마법 제한) · 2nd/08 §8.2~8.3 · 2nd/10 §8.5 ·
+#       2nd/12 부록 B · 공략집 Walkthrough/2nd/src/maps/Moloch.md · 원작 칸 번호(maps.json)
+# 동굴형 · 기본 바닥 42. y=14 줄(52)에서 밀폐된 방 (9~12,6~9)으로 빨려 든다. 방 안을 떠도는 보이지 않는 칸이 (9,7)에
+# 있을 때 밟으면 (6,7)로 나간다. 순간 이동 (6,40)→(9,40)을 지나야 출구(y=45)에서 몰록이 나타난다.
+# 공간 이동·기화 이동·지형 변화가 막힌다. 들어오면 (10,44). 나가면 몰록 처치 전 지하 세계 1 (93,7), 처치 뒤 (14,27).
+
+include("common/const.cm2")
+variable(px)
+variable(py)
+variable(cx)
+variable(cy)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("den")
+	# 원작 번호 41~49 (레벨 11~13)
+	Encounter::Clear()
+	Encounter::Add(41, 49)
+	Encounter::Enable(1)
+	Map::SetHandicap(HANDICAP_TELEPORT, 1)
+	Map::SetHandicap(HANDICAP_ETHEREAL, 1)
+	Map::SetHandicap(HANDICAP_TILECHANGING, 1)
+	Map::SetHandicap(HANDICAP_BIGTILECHANGING, 1)
+	# 밀폐된 방의 모든 칸을 밟는 칸으로 두고, 떠도는 칸을 하나 정한다
+	Map::ChangeTileArea(9, 6, 12, 9, 0)
+	Variable::Set("MOLOCH_ROOM_X", Add(9, Random(4)))
+	Variable::Set("MOLOCH_ROOM_Y", Add(6, Random(4)))
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	px.assign(Party::PosX())
+	py.assign(Party::PosY())
+
+	# ---- 출구 줄 (9~12,45) — (6,40)을 지났고 몰록 처치 전이면 몰록 ----
+	if (OnArea(9, 45, 12, 45))
+		if (And(Flag::IsSet("MOLOCH_PATH"), Not(Flag::IsSet("TRIP_MOLOCH"))))
+			Say("몰록", "당신들이 나의 손아귀에서 빠져나가려고 하지만 그건 큰 착각이오. 당신들이 이 동굴을 헤매고 있을 때 나는 이미 당신들의 약점과 단점을 발견했소. 즉, 그 말은 나의 환상 마법의 먹이가 되었다는 것이오. 나는 비록 다른 마법에는 별로 재능이 없지만 환상 마법만은 최고를 고수하고 있다오. 그럼 당신은 당신의 환상과 싸우게 되고 결국에는 스스로에 지쳐 쓰러지게 되지요. 그리고는 나의 마법에 의해 잿더미가 될 운명밖에 되지 않겠지요. 자, 그러면 시작하겠소.")
+			# 환상 — 일행의 분신. 이길 수 없는 전투 (2nd/07 §7.2): 도망쳐도 같은 전투(BATTLE_REPEAT),
+			# 이기면 새 분신(BATTLE_RENEW). 져도 게임 오버가 아니다 — 일행이 쓰러져야 끝난다.
+			Battle::Init()
+			Battle::SetRepeatText("하지만 일행은 환상에서 헤어날 수 없었다.")
+			Battle::SetRenewText("@B몰록@@ : 하지만 나의 마법은 이 정도로 끝나는 것이 아니라오. 다시 한번 당신의 환상에 빠져들어 보시오. 하하하하~~")
+			Battle::RegisterPartyClones(60, 0)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, Add(BATTLE_NO_PRELUDE, Add(BATTLE_REPEAT, Add(BATTLE_RENEW, BATTLE_LOSE_OK)))))
+			Talk("일행이 환상에 빠져 스스로 파멸하고 있을 때 멀리서 귀에 익은 음성이 들려왔다.")
+			Say("레드 안타레스", "{주인공}. 나는 레드 안타레스일세.")
+			Say("레드 안타레스", "다시 또 만나게 됐군. 상당히 위험한 상황인 것 같군. 그럼 내가 환상을 깨어 주도록 하지.")
+			Talk("@A안 바스 쿠아스 ..@@")
+			Screen::Flash()
+			Talk("순식간에 환상은 걷혔고 몰록이 모습을 드러냈다.")
+			Party::ReviveFallen()
+			Say("몰록", "너는 또 누구냐. 나의 환상을 걷어 내다니 대단한 실력이군. 하지만 당신의 의지가 여기로 스며들지 못하도록 결계를 맺어야겠군. 당신이 아무리 뛰어나다고 해도 육체가 없는 영혼인 주제에 에너지 장벽을 뚫지는 못하겠지. 그럼 나는 이자들과 전투를 마무리 지어야겠소. 자, 그럼 결계 밖에서 이자들의 최후를 감상하기 바라오.")
+			Talk("몰록이 레드 안타레스에 대한 결계를 만드는 순간 일행은 기회를 틈타서 선공권을 잡게 되었다.")
+			# 몰록 — 반복(도망에 성공하면 적 선공으로 다시), 첫 판은 일행 선공
+			Battle::Init()
+			Battle::SetRepeatText("하지만 일행은 몰록의 결계에서 벗어날 수 없었다.")
+			Battle::RegisterEnemy(73, 1)
+			Battle::Start(Add(BATTLE_NO_PRELUDE, BATTLE_REPEAT))
+			Flag::Set("TRIP_MOLOCH")
+			Say("레드 안타레스", "휴~~~ 겨우 몰록의 결계에서 벗어났군. 나의 출현이 도움이 되었나? 나는 또 다음에 나타나도록 하지. 그때까지 안녕히...")
+			Talk("레드 안타레스는 점점 희미해지더니 이내 사라지고 말았다.")
+			PressAnyKey()
+			LoadScript("E2_Underworld1", 14, 27)
+		Ask("여기서 나가기를 원합니까?")
+		if (Not(Equal(Select::Result(), 1)))
+			WarpPrevPos()
+			halt
+		if (Flag::IsSet("TRIP_MOLOCH"))
+			LoadScript("E2_Underworld1", 14, 27)
+		LoadScript("E2_Underworld1", 93, 7)
+
+	# ---- 순간 이동 (6,40) → (9,40) ----
+	if (On(6, 40))
+		Flag::Set("MOLOCH_PATH")
+		Party::Warp(9, 40)
+		halt
+
+	# ---- 밀폐된 방 (9~12,6~9) — 떠도는 칸 ----
+	if (OnArea(9, 6, 12, 9))
+		cx.assign(Variable::Get("MOLOCH_ROOM_X"))
+		cy.assign(Variable::Get("MOLOCH_ROOM_Y"))
+		if (Not(And(Equal(px, cx), Equal(py, cy))))
+			halt
+		if (And(Equal(cx, 9), Equal(cy, 7)))
+			Party::Warp(6, 7)
+			halt
+		Variable::Set("MOLOCH_ROOM_X", Add(9, Random(4)))
+		Variable::Set("MOLOCH_ROOM_Y", Add(6, Random(4)))
+		halt
+
+	# ---- y=14 줄 — 밀폐된 방으로 빨려 든다 (같은 x 의 y=9) ----
+	if (Equal(py, 14))
+		Talk("일행은 앗! 하는 사이에 밀폐된 방 안으로 빨려 들어가고 말았다.")
+		if (Less(px, 9))
+			px.assign(9)
+		if (Greater(px, 12))
+			px.assign(12)
+		Party::Warp(px, 9)
+		halt

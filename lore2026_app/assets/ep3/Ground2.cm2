@@ -1,0 +1,152 @@
+####### 가이아 테라 (Ground2) — 필드 ########
+# 근거: 기획서 05 §5.3 M3·M4 · §5.4 L2 · §5.7 · 06 §6.11 · 12 §12.3·§12.4 · 14 §6.2·§11 · 15 부록 A #5·#27,
+#       공략 원고 Ground2.md/json
+# 필드형 · 기본 바닥 41 · 무작위 조우: 오크주민·오크병사·오크매직유저 (오크킹 처치 전) · 마법 제한 없음
+# 도착 자리: 배리언트 피플즈/빛의 성에서 (19,27) · 가이아 테라성에서 (32,82) · 오크 마을에서 (82,48)
+#            · 아프로디테 테라에서 (44,8)
+
+include("common/const.cm2")
+variable(year)
+variable(month)
+variable(day)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("gaea_terra")
+	# 12 §12.3 — 18 오크주민 · 19 오크병사 · 20 오크매직유저. 오크킹을 처치하면 사라진다
+	Encounter::Clear()
+	if (Flag::IsSet("ORC_KING_DEAD"))
+		Encounter::Enable(0)
+	else
+		Encounter::Add(18, 20)
+		Encounter::Enable(1)
+
+####### 입구 ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+
+	# (19,26) 배리언트 피플즈성 — 반란 소식 뒤에는 빛의 성
+	if (On(19, 26))
+		Ask("배리언트 피플즈성에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			if (Flag::IsSet("REBELLION"))
+				LoadScript("E3_Light", 38, 69)
+			else
+				LoadScript("E3_Valiant", 38, 69)
+
+	# (31,82) 가이아 테라성
+	if (On(31, 82))
+		Ask("가이아 테라성에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E3_Gaea", 26, 44)
+
+	# (82,47) 오크 마을
+	if (On(82, 47))
+		Ask("오크 마을에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E3_OrcTown", 25, 44)
+
+	# (42,8)·(42,9)·(46,8)·(46,9) 아프로디테 게이트의 기둥 — 입구 번호 칸이지만 사건이 없다. 벽처럼 막힐 뿐이다.
+
+####### 이벤트 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+
+	# (44,7) 아프로디테 게이트 — 오크킹을 처치하기 전에는 아무 일도 없다
+	if (On(44, 7))
+		if (Flag::IsSet("ORC_KING_DEAD"))
+			# 처음 들어설 때 (단계 4 미만) 로드안의 음성, 1회
+			if (And(Not(Flag::IsSet("LORD_VOICE_HEARD")), Less(Variable::Get("MAIN_STAGE"), 4)))
+				Flag::Set("LORD_VOICE_HEARD")
+				Talk("당신이 아프로디테 게이트 안으로 막 들어가려고 할 때, 허공에서 낯익은 목소리가 당신을 불렀다. 그 목소리의 주인공은 바로 로드안이었다.")
+				Say("로드안", "드디어 이곳까지 왔군요. 내가 한 가지 부탁을 더 해도 되겠소? 이미 베스퍼성은 쑥밭이 되어서 사실상 원정은 더 이상 필요치 않게 되었소. 그래서 부탁하건대 우리의 원흉인 트롤족을 완전히 멸해 주시오. 그들의 마을은 베스퍼성 북동쪽 산악 지역에 있소. 당신의 승리를 기원하리라.")
+				# 행동 가능한 대원 전원 (보조 일원 포함) 경험치 +10000
+				Party::GiveExp(10000)
+				if (And(Party::HasAssistant(), Player::CanAct(6)))
+					Player::AddAttribute(6, "exp", 10000)
+				Notice("경험치 + 10000")
+				PressAnyKey()
+			Talk("당신이 이곳에 서자 새로운 풍경이 나타나기 시작했다.")
+			PressAnyKey()
+			# 게이트 통과 — 0.3초 페이드 아웃 뒤 새 맵 (부록 D). 막은 맵을 옮긴 뒤 엔진이 걷는다
+			Screen::FadeOut(300)
+			LoadScript("E3_Ground3", 13, 12)
+
+	# (30,47) 지친 여행자 — 반란 전 1회. 강도 폴록스와 기록을 함께 쓰던 것은 버그라 따로 적는다 (부록 A #5)
+	if (On(30, 47))
+		if (And(Not(Flag::IsSet("TRAVELER_MET")), Not(Flag::IsSet("REBELLION"))))
+			Flag::Set("TRAVELER_MET")
+			Talk("당신은 길을 가던 중 매우 지친 듯이 보이는 한 여행자를 만났다. 그는 내가 베스퍼성으로 간다는 말을 듣더니 이렇게 말했다.")
+			# 아래 문단은 여행자의 말이다 (원문에 화자 표시가 없다)
+			Talk("저는 지금 아프로디테 테라에서 오는 길입니다. 거기서 우연히 트롤족의 계보를 보았는데 그 종족은 왕권 세습제이며 왕권 중심으로 사회가 구성되어 있습니다. 트롤족의 왕은 그리 강하지 않지만 그의 부하들 중에는 꽤 강한 자가 있습니다.")
+
+	# (90,80) 오크의 비석 — 오크 글을 알면 오크 말을 얻는다
+	if (On(90, 80))
+		if (Flag::IsSet("ORC_SPEECH"))
+			Talk("거기에는 오크의 글로 쓰여진 비석이 여전히 있었다.")
+		else
+			if (Flag::IsSet("ORC_SCRIPT"))
+				Talk("거기에는 오크의 글로 적혀진 비석이 있었다. 그리고 당신은 그 글을 읽어 내려갔다. 거기에 적힌 주문을 외자 갑자기 당신의 머리가 혼란스러워졌고 곧 정신을 잃었다.")
+				PressAnyKey()
+				Screen::FadeOut()
+				Flag::Set("ORC_SPEECH")
+				# 다음 날 23:00, 오크 마을 앞 (82,52) 에서 깨어난다 (한 달 30일 · 한 해 12달)
+				year.assign(Time::Year())
+				month.assign(Time::Month())
+				day.assign(Add(Time::Day(), 1))
+				if (Greater(day, 30))
+					day.assign(1)
+					month.add(1)
+				if (Greater(month, 12))
+					month.assign(1)
+					year.add(1)
+				Time::Set(year, month, day, 23, 0)
+				Party::Warp(82, 52)
+				DisplayMap()
+				Screen::FadeIn()
+			else
+				Talk("거기에는 비석이 하나 서 있었지만 도저히 무슨 글인지 알아볼 수가 없었다.")
+
+	# (8,35) 숨은 이벤트 칸 — 원작에 처리가 없다. 밟아도 아무 일이 없다 (부록 A.4)
+
+####### 이야기용 물건 ########
+
+if (Equal(ScriptMode(), FLAG_ITEM))
+
+	# 크리스탈 볼 — 충성 루트의 원혼 봉인 (순서 고정: 오크 → 트롤 → 코볼트 → 드라콘)
+	if (Equal(Item::Used(), "crystal.ball"))
+		if (GreaterEqual(Variable::Get("SPIRITS_SEALED"), 4))
+			Talk("크리스탈 볼 속에는 아무것도 떠오르지 않았다.")
+		else
+			# 1번째: 오크의 원혼 — 이 맵 (92,12), 북동쪽 연못 한가운데의 물 칸.
+			# 그 자리에 서서 쓰면 곧바로 전투다 (다음 한 걸음 뒤에 판정하던 것은 버그 — 부록 A #27).
+			if (And(Equal(Variable::Get("SPIRITS_SEALED"), 0), On(92, 12)))
+				# 12 §12.4 — 60 오크의 원혼 ×1, 적 선공, 반복
+				Battle::Init()
+				Battle::RegisterEnemy(60, 1)
+				Battle::Start(Add(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE), BATTLE_REPEAT))
+				if (Equal(Battle::Result(), BATTLERESULT_WIN))
+					Variable::Set("SPIRITS_SEALED", 1)
+					Talk("당신은 오크의 원혼을 크리스탈 볼 속에 봉인시켰다.")
+			else
+				# 다른 자리 (또는 다음 원혼이 다른 대륙에 있을 때) — 그 장소의 풍경을 비춰 준다
+				Talk("당신은 수정 구슬을 통해 낯선 풍경을 보았다.")
+				# 봉인 수에 따라 다음 원혼이 있는 자리 — 가이아 (92,12) · 아프로디테 (35,34) · 이쉬도 (11,91) · 로어 대륙 (44,50)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 0))
+					Screen::ShowScenery("E3_Ground2", 92, 12)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 1))
+					Screen::ShowScenery("E3_Ground3", 35, 34)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 2))
+					Screen::ShowScenery("E3_Ground4", 11, 91)
+				if (Equal(Variable::Get("SPIRITS_SEALED"), 3))
+					Screen::ShowScenery("E3_Ground1", 44, 50)
+
+# (해결된 NEED — BATTLE_REPEAT 로 바꿨다) BATTLE_REPEAT (Battle::Start 값) — 「반복」 전투. 도망에 성공해도 같은 적(피해 유지)과 곧바로 다시,
+#       다시 적 선공으로 싸운다 (12 §12.4 오크의 원혼). 이제 BATTLE_REPEAT 로 한다.
+# (해결된 NEED) 크리스탈 볼의 풍경 — Screen::ShowScenery 가 다음 원혼이 있는 자리의 9×11칸을 그 맵의 그림으로
+#       비춘다. 밤이고 달빛이 없으면 어둡게 그린다 (05 §5.4 L2).
+# (해결된 NEED) 게이트 전환 — Screen::FadeOut(300) 뒤 LoadScript. 맵을 옮긴 뒤 엔진이 막을 걷는다 (부록 D 「페이드 아웃(0.3초) →
+#       새 맵」). 두 풍경이 겹치는 전환(13 §13.9)은 아직 없다 — 어두워졌다가 밝아진다.
+# (원작 확인) 입구 확인 문구의 장소 이름 — 「배리언트 피플즈성」·「가이아 테라성」·「오크 마을」(MYSTENT.PAS:101·115·124).
+#       반란 뒤 (19,26) 도 같은 이름으로 묻는다(같은 줄에서 맵만 바뀐다).

@@ -1,0 +1,127 @@
+####### 제1부 이블 컨센트레이션 (E1_EvilConc) — 50×50 요새 ########
+# 근거: 1st/04 §4.4(드라코니안) · 1st/05 §5.2 M6 · 1st/06 §6.2 · §6.13 · 1st/08 §8.1~8.2 · 1st/10 §9.2~9.3 · §11 ·
+#       1st/12 부록 B · 공략집 Walkthrough/1st/src/maps/EvilConc.md · 원작 칸 번호(maps.json)
+# 요새형 · 기본 바닥 46 · 무작위 조우 없음. 가짜 네크로만서 줄 (25~26,26)과 남쪽 출구 (24~27,46)는 밟는 칸(52).
+# 기둥 (25,25)·(26,25)·(24,26)·(27,26)·(24,27)·(27,27). 성 터 (12~39,7~34)의 숨은 칸은 레버를 당기면 성벽(36)이 된다.
+# 가짜 네크로만서 처치와 레버는 기록되어 다시 들어와도 유지된다 (부록 B.3 — 원작은 되살아났다, 부록 A #29).
+# 도착 자리: 용암의 대륙에서 (25,45) · 던전 오브 이블에서 (25,45)
+
+include("common/const.cm2")
+variable(px)
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("keep")
+	Encounter::Clear()
+	Encounter::Enable(0)
+	if (Flag::IsSet("EC_FAKE_NECRO_DEAD"))
+		Map::ChangeTileArea(25, 25, 26, 25, 46)
+		Map::ChangeTileArea(24, 26, 24, 27, 46)
+		Map::ChangeTileArea(27, 26, 27, 27, 46)
+		if (Not(Flag::IsSet("EC_LEVER")))
+			Map::ChangeTile(29, 43, 53)
+			if (Flag::IsSet("EVILCONC_SIGN_READ"))
+				Map::ChangeTile(25, 27, 52)
+	if (Flag::IsSet("EC_LEVER"))
+		Map::ChangeHiddenTiles(12, 7, 39, 34, 36)
+		Map::ChangeTileArea(25, 12, 26, 12, 54)
+
+####### 푯말 — 가짜 네크로만서가 죽으면 (29,43)에 나타난다. 읽어야 (25,27)에 레버가 생긴다 ########
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+	Talk("(25,27)에 있는 레버를 움직이면")
+	Talk("성을 볼 수 있을 것이오.")
+	Talk("제작자 안영기 씀")
+	if (Not(Flag::IsSet("EC_LEVER")))
+		Flag::Set("EVILCONC_SIGN_READ")
+		Map::ChangeTile(25, 27, 52)
+		DisplayMap()
+
+####### 입구 — 숨겨진 성의 성문 (25~26,12) = 던전 오브 이블 ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (OnArea(25, 12, 26, 12))
+		if (Not(Flag::IsSet("DUNGEON_ENTRANCE_BATTLE")))
+			Say("아키드라코니안", "이 동굴에 들어가겠다고?")
+			Say("아키드라코니안", "하! 우습군. 너희들에게는 여기의 Draconian 족들의 모습이 보이지 않는 모양이군.")
+			# 보조 일원 드라코니안은 배신자로 지목되어 전투 전에 죽는다 (1st/04 §4.4)
+			if (Party::Has("draconian"))
+				Talk("ArchiDraconian은 마지막에 있는 Draconian을 발견했다.")
+				Say("아키드라코니안", "아니 너는 누구냐! 감히 Draconian 족이면서 Necromancer님에게 반기를 들다니... 그것은 바로 죽음이다. 받아랏!!")
+				Party::RemoveAssistant()
+			# 드라코니안 6 + 아키드라코니안(3번째), 적 선공
+			Battle::Init()
+			Battle::RegisterEnemy(62, 2)
+			Battle::RegisterEnemy(70, 1)
+			Battle::RegisterEnemy(62, 4)
+			Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+			# 아키드라코니안(등록 3번째)을 쓰러뜨렸으면 도망쳤어도 들어간다 (원작 차이 부록 A #22)
+			if (Not(Or(Equal(Battle::Result(), BATTLERESULT_WIN), Equal(Battle::EnemyDown(3), 1))))
+				halt
+			Flag::Set("DUNGEON_ENTRANCE_BATTLE")
+		Ask("DUNGEON OF EVIL에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_DungeonEvil", 25, 45)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	px.assign(Party::PosX())
+
+	# ---- 남쪽 출구 (24~27,46) ----
+	if (OnArea(24, 46, 27, 46))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Lava", 34, 15)
+		else
+			WarpPrevPos()
+		halt
+
+	# ---- 레버 (25,27) — 푯말을 읽은 뒤. 숨겨진 성이 떠오르고 (25~26,12)에 성문 ----
+	if (On(25, 27))
+		if (Or(Flag::IsSet("EC_LEVER"), Not(Flag::IsSet("EVILCONC_SIGN_READ"))))
+			halt
+		Talk("푯말에 쓰여 있는 대로 이곳의 레버를 당겼더니 굉음과 함께 감추어져 있었던 성이 지하로부터 떠올랐다.")
+		Flag::Set("EC_LEVER")
+		Screen::Flash()
+		Map::ChangeHiddenTiles(12, 7, 39, 34, 36)
+		Map::ChangeTileArea(25, 12, 26, 12, 54)
+		Map::ChangeTile(29, 43, 46)
+		Map::ChangeTile(25, 27, 46)
+		DisplayMap()
+		halt
+
+	# ---- 가짜 네크로만서 (25~26,26) — 환상 속 분신 → 가짜 네크로만서 ----
+	if (OnArea(25, 26, 26, 26))
+		if (Flag::IsSet("EC_FAKE_NECRO_DEAD"))
+			halt
+		Say("네크로만서", "잘도 여기까지 찾아왔구나, {주인공}.")
+		Say("네크로만서", "네가 찾던 그 Necromancer가 바로 나다. 드디어 너의 실력을 보게 되겠구나. 하지만 분명히 나보다는 떨어지겠지만. 으하하하.")
+		Say("네크로만서", "너희들은 곧 환상에 빠져들게 될 것이다.")
+		Say("네크로만서", "나는 벌써 너희들의 약점을 파악했지. 너희 일행들은 항상 자신을 너무 신뢰하고 믿고 있더군. 그러나 그 착각은 곧 깨어질 것이다.")
+		Say("네크로만서(주문)", "어둠의 신이여, 당신의 힘으로 이들을 환상에 빠져들게 하소서. 인 쿠아스 젠 ~~")
+		# ① 일행 여섯의 분신(빈자리는 레이스) — 이길 때까지. 도망에 성공해도 환상에서 벗어나지 못한다
+		Battle::Init()
+		Battle::SetRepeatText("하지만 당신은 환상에서 벗어나지 못했다.")
+		Battle::RegisterPartyClones(60, 60)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, Add(BATTLE_NO_PRELUDE, BATTLE_REPEAT)))
+		Say("네크로만서", "환상에서 벗어나다니 대단한 의지력이군.")
+		Say("네크로만서", "하지만 진짜 적은 바로 나다. 받아라!!")
+		# ② 가짜 네크로만서(아키드라코니안 능력치), 적 선공. 도망치면 남쪽 한 칸, 다시 밟으면 처음부터
+		Battle::Init()
+		Battle::RegisterVariant("fake_necromancer", 1)
+		Battle::Start(Add(BATTLE_ENEMY_FIRST, BATTLE_NO_PRELUDE))
+		if (Not(Equal(Battle::Result(), BATTLERESULT_WIN)))
+			Party::Warp(px, 27)
+			halt
+		Say("네크로만서", "욱! 너의 힘은 대단하구나. 나는 너에게 졌다고 인정하겠다. 흐흐, 그러나 사실 나는 너희가 찾던 Necromancer님이 아니다. 만약 그분이라면 이렇게 쉽게 당하지는 않았을 테니까. 내 생명이 얼마 안 남았구나. Necromancer님 만세!!")
+		Talk("그는 숨이 끊어졌고 주위의 기둥도 그와 함께 사라져 버렸다.")
+		Flag::Set("EC_FAKE_NECRO_DEAD")
+		Map::ChangeTileArea(25, 25, 26, 25, 46)
+		Map::ChangeTileArea(24, 26, 24, 27, 46)
+		Map::ChangeTileArea(27, 26, 27, 27, 46)
+		Map::ChangeTile(29, 43, 53)
+		DisplayMap()
+		halt
+

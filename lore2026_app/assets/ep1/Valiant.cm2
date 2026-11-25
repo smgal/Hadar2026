@@ -1,0 +1,46 @@
+####### 제1부 배리언트 피플즈성 (E1_Valiant) — 75×75 마을 (폐허) ########
+# 근거: 1st/06 §6.2 · §6.6 · 1st/10 §11 · 공략집 Walkthrough/1st/src/maps/Valiant.md · 원작 칸 번호(maps.json)
+# 마을형 · 기본 바닥 47 · 사람이 없다. 잔해가 늪(25)·용암(26) 칸으로 그려져 있어 밟으면 실제로 효과가 있다
+# (원작 맵 그대로 — 부록 A D21). 숨은 칸: 그라운드 게이트 (50,9)·(50,10), 남쪽 출구 줄 (37~40,71).
+# 도착 자리: 가이아 테라에서 (38,70) · 라스트디치의 게이트에서 (51,10) · 이블 실에서 (39,7)
+
+include("common/const.cm2")
+
+####### 맵에 들어올 때 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("town")
+
+####### 푯말 ########
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+	if (On(39, 67))
+		Talk("여기는 'VALIANT PEOPLES'성")
+		Talk("우리의 미덕은 굽히지 않는 용기")
+		Talk("우리는 어떤 악에도 굽히지 않는다")
+		halt
+	Talk("여기는 EVIL SEAL의 입구")
+
+####### 입구 ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (OnArea(37, 6, 40, 6))
+		Ask("EVIL SEAL에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_EvilSeal", 25, 70)
+
+####### 밟는 칸 ########
+
+if (Equal(ScriptMode(), FLAG_EVENT))
+	# 그라운드 게이트 (50,9)·(50,10) → 라스트디치. 건너편 게이트 옆 (51,10) 에 선다 (부록 A #35)
+	if (OnArea(50, 9, 50, 10))
+		Ask("GROUND GATE에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_LastDitch", 51, 10)
+		halt
+	if (OnArea(37, 71, 40, 71))
+		Ask("여기서 나가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Gaia", 19, 27)
+		else
+			WarpPrevPos()

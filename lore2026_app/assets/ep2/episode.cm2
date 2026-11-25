@@ -1,0 +1,138 @@
+####### 제2부 「다크 메이지 실리안 카미너스」 — 편 전체의 일 (episode) ########
+# 근거: 2nd/04 §4.1(시작) · 2nd/05 §5.2(진행) · §5.6(예언) · 2nd/07 §7.2 · 2nd/10 §2.2(알비레오의 예언서) ·
+#       2nd/12 부록 B
+# 맵과 무관하게 불린다: FLAG_OPENING · FLAG_START · FLAG_PROPHECY. 제2부는 예약한 사건(FLAG_TIMER)을 쓰지 않는다 —
+# 월식과 레굴루스가 돌아오는 날은 「날 번호」(Time::DayNumber) 로 기한을 적어 두고 그 맵이 비교한다.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+#  편 전체가 함께 쓰는 이름 (부록 B 의 TRIP_FLAGS 비트를 이름 붙은 플래그로 풀었다)
+#    ECLIPSE_DAY       변수. 다음 월식의 날 번호 (로드안 단계 7·10·13 이 정한다). 이 날이 지난 뒤 로드안에게 말을 건다
+#    REGULUS_RETURN_DAY 변수. 레굴루스가 돌아오는 날 번호 (오두막의 쪽지)
+#    이번 원정의 진행 — 귀환할 때와 로드안 단계 14 에서 모두 끈다
+#      1차: TRIP_ARRIVED · TRIP_PAPYRUS · TRIP_TEMPLE · TRIP_DIARY
+#      2차: TRIP_ARRIVED · TRIP_BELIAL · TRIP_MOLOCH   (TRIP_BELIAL 은 베리알의 동굴 봉쇄와 순간 이동 칸 작동을 겸한다)
+#      3차: TRIP_ARRIVED · TRIP_ASMODEUS · TRIP_MEPHISTO
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# 조건에 인자 없는 함수 하나만 쓰면 엔진이 부르지 않고 늘 참으로 본다 — 그런 자리는 Equal(…, 1) 로 쓴다.
+
+include("common/const.cm2")
+variable(lord)
+variable(ditch)
+
+####### 오프닝 — 알비레오의 예언서 (2nd/10 §2.2) ########
+
+if (Equal(ScriptMode(), FLAG_OPENING))
+	SetHeader("알비레오의 예언서")
+	Talk("이 책을 쓴 나는 세계의 주시자이며 금빛과 푸른빛의 눈부신 이중성의 이름을 가진 타임워커 알비레오라고 한다.")
+	Talk("내가 시간을 여행하던 중 우연히 로드안의 시대를 스쳐 가게 되었다. 그 시대는 금빛 찬란한 문화와 영원할 것만 같은 평화가 모든 대륙을 감싸고 있었고, 위대한 로드안의 악에 대한 결계는 시리우스의 별빛처럼 강하게 그들을 보호하고 있었다.")
+	Talk("그러던 어느 날, 나는 다섯 개의 검은 흉성이 로어 대륙의 강력한 결계를 뚫고 들어와 그들의 운명 속에 스며드는 것을 보았다. 그것들은 정해진 때가 되면 하나씩 그 세계의 운명을 바꾸어 놓을 것 같았다.")
+	Talk("그런 후에 내가 본 것은 아래의 다섯 가지였다.")
+	PressAnyKey()
+	Talk("첫 번째 흉성이 나타나는 날, 평화는 로어의 신과 함께 대지로 추락할 것이며 공간이 어긋나고 대륙이 진동하며 새로운 존재가 나타난다.")
+	Talk("두 번째 흉성이 나타나는 날, 그는 용암의 대륙으로부터 세상을 뒤흔들게 되며 그는 네크로만서라 불리어진다.")
+	Talk("세 번째 흉성이 나타나는 날, 네크로만서를 이기는 자는 아무도 없게 된다.")
+	Talk("네 번째 흉성이 나타나는 날, 메너스의 달이 붉게 물들 때 어둠의 영혼이 나타나 세계의 종말을 예고한다.")
+	Talk("다섯 번째 흉성이 나타나는 날, 내가 본 다섯 번의 흉성 중에 하나가 나타나지 않았음을 알아낸다.")
+	PressAnyKey()
+	SetHeader("")
+
+####### 새 게임 (캐릭터를 만든 직후) ########
+# 2nd/04 §4.1: 774년 1월 19일 10:10, 로어성의 주인공의 집 (10,48). 레벨 1, 장비 없음, 식량·금화 0, 혼자.
+
+if (Equal(ScriptMode(), FLAG_START))
+	Time::Set(774, 1, 19, 10, 10)
+	Variable::Set("LORD_STAGE", 0)
+	Variable::Set("LASTDITCH_QUEST", 0)
+	Variable::Set("ECLIPSE_DAY", 0)
+	Variable::Set("REGULUS_RETURN_DAY", 0)
+	LoadScript("E2_CastleLore", 10, 48)
+
+####### 예언 — 「당신은 ○○ 것이다」 (2nd/05 §5.6) ########
+# 표를 위에서부터 판정해 마지막으로 맞는 것을 내는 원작 방식 그대로 — 뒤 번호부터 보고 맞으면 말한다.
+
+if (Equal(ScriptMode(), FLAG_PROPHECY))
+	lord.assign(Variable::Get("LORD_STAGE"))
+	ditch.assign(Variable::Get("LASTDITCH_QUEST"))
+
+	if (Or(Equal(lord, 16), And(Equal(lord, 15), And(Flag::IsSet("TRIP_ASMODEUS"), Flag::IsSet("TRIP_MEPHISTO")))))
+		Talk("당신은 어떤 힘에 의해 예언을 방해받고 있다")
+		halt
+
+	# 20 · 21 — 3차 원정 (아스모데우스 > 메피스토펠레스)
+	if (And(Equal(lord, 15), Flag::IsSet("TRIP_ARRIVED")))
+		if (Not(Flag::IsSet("TRIP_ASMODEUS")))
+			Talk("당신은 아스모데우스의 동굴에서 결전을 벌일 것이다")
+			halt
+		Talk("당신은 메피스토펠레스와 대결을 벌일 것이다")
+		halt
+	if (Equal(lord, 14))
+		Talk("당신은 마지막 세 번째 월식을 기다릴 것이다")
+		halt
+
+	# 17 · 18 · 15 — 2차 원정 (베리알 > 몰록)
+	if (And(Equal(lord, 12), Flag::IsSet("TRIP_ARRIVED")))
+		if (Not(Flag::IsSet("TRIP_BELIAL")))
+			Talk("당신은 베리알의 동굴에서 결전을 벌일 것이다")
+			halt
+		if (Not(Flag::IsSet("TRIP_MOLOCH")))
+			Talk("당신은 몰록의 동굴에서 결전을 벌일 것이다")
+			halt
+		Talk("당신은 지하 세계 중앙의 통로를 통해 지상으로 갈 것이다")
+		halt
+	if (Equal(lord, 11))
+		Talk("당신은 두 번째 월식을 기다릴 것이다")
+		halt
+
+	# 12 · 13 · 14 · 15 — 1차 원정 (빛의 지붕 > 사원 > 일기)
+	if (And(Equal(lord, 9), Flag::IsSet("TRIP_ARRIVED")))
+		if (Not(Flag::IsSet("TRIP_PAPYRUS")))
+			Talk("당신은 빛의 지붕을 방문할 것이다")
+			halt
+		if (Not(Flag::IsSet("TRIP_TEMPLE")))
+			Talk("당신은 빛의 사원에서 악의 추종자들의 메시지를 볼 것이다")
+			halt
+		if (Not(Flag::IsSet("TRIP_DIARY")))
+			Talk("당신은 필멸의 생존을 탐험할 것이다")
+			halt
+		Talk("당신은 지하 세계 중앙의 통로를 통해 지상으로 갈 것이다")
+		halt
+
+	# 11 — 월식이 일어났고 아직 내려가지 않았다
+	if (Or(Equal(lord, 9), Or(Equal(lord, 12), Equal(lord, 15))))
+		Talk("당신은 메너스를 통해 지하 세계로 갈 것이다")
+		halt
+	if (Equal(lord, 8))
+		Talk("당신은 첫 번째 월식을 기다릴 것이다")
+		halt
+
+	# 6 ~ 9 — 단계 5 와 라스트디치 의뢰
+	if (Equal(lord, 5))
+		if (Equal(ditch, 3))
+			Talk("당신은 피라미드 속의 두 동굴에서 두 개의 석판을 찾을 것이다")
+			halt
+		if (Or(Equal(ditch, 2), Equal(ditch, 4)))
+			Talk("당신은 라스트디치의 군주에게로 돌아갈 것이다")
+			halt
+		if (Equal(ditch, 1))
+			Talk("당신은 피라미드 속의 로어 헌터를 찾을 것이다")
+			halt
+		if (Equal(ditch, 0))
+			Talk("당신은 라스트디치의 성주를 만날 것이다")
+			halt
+		Talk("당신은 다시 로드안에게 갈 것이다")
+		halt
+
+	if (Equal(lord, 4))
+		Talk("당신은 다시 로어성으로 돌아갈 것이다")
+		halt
+	if (Equal(lord, 3))
+		Talk("당신은 다시 메너스를 조사할 것이다")
+		halt
+	if (Or(Or(Equal(lord, 2), Equal(lord, 6)), Or(Equal(lord, 10), Equal(lord, 13))))
+		Talk("당신은 다시 로드안에게 갈 것이다")
+		halt
+	if (Equal(lord, 1))
+		Talk("당신은 메너스로 갈 것이다")
+		halt
+	Talk("당신은 로드안을 만날 것이다")

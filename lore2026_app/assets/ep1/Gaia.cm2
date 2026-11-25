@@ -1,0 +1,56 @@
+####### 제1부 가이아 테라 (E1_Gaia) — 100×100 필드 ########
+# 근거: 1st/06 §6.2 · §6.7 · 1st/08 §8.3 · 1st/10 §11(가이아 테라 필드 푯말) ·
+#       공략집 Walkthrough/1st/src/maps/Gaia.md
+# 필드 사건 칸이 없다. 퀘이크 화산의 입구 모양 칸 (80,47)·(84,47)·(81,49)·(83,49)는 장식이다.
+# 도착 자리: 배리언트 피플즈에서 (19,27) · 가이아 테라성에서 (32,82) · 퀘이크에서 (82,48) · 와이번 동굴에서 (44,8)
+
+include("common/const.cm2")
+
+####### 맵에 들어왔다 ########
+
+if (Equal(ScriptMode(), FLAG_MAP))
+	Music::Play("ground")
+	# 원작 번호 8~20: 울프·임프·고블린·파이톤·인섹트·자이언트 스파이더·그렘린·버즈 버그·샐러맨더·
+	# 블러드 뱃·자이언트 랫·스켈레톤·켈피 (레벨 2~5)
+	Encounter::Clear()
+	Encounter::Add(8, 20)
+	Encounter::Enable(1)
+
+####### 입구 ########
+
+if (Equal(ScriptMode(), FLAG_ENTER))
+	if (On(19, 26))
+		Ask("VALIANT PEOPLES에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Valiant", 38, 70)
+		halt
+	if (On(31, 82))
+		Ask("GAIA TERRA에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_GaiaCastle", 26, 45)
+		halt
+	if (On(82, 47))
+		Ask("QUAKE에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Quake", 25, 70)
+		halt
+	if (On(44, 7))
+		Ask("WIVERN에 들어가기를 원합니까?")
+		if (Equal(Select::Result(), 1))
+			LoadScript("E1_Wivern", 20, 35)
+		halt
+
+####### 푯말 ########
+
+if (Equal(ScriptMode(), FLAG_SIGN))
+	if (On(31, 44))
+		Talk("WIVERN 가는 길")
+		halt
+	if (Or(On(29, 50), On(35, 72)))
+		Talk("북쪽 : VALIANT PEOPLES 가는 길")
+		Talk("남쪽 : GAIA TERRA 가는 길")
+		halt
+	if (On(44, 77))
+		Talk("북동쪽 : QUAKE 가는 길")
+		Talk("남서쪽 : GAIA TERRA 가는 길")
+		halt
