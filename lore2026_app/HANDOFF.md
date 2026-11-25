@@ -8,7 +8,7 @@
 - **정본은 원작 Pascal 소스다.** https://github.com/smgal/LoreTrilogy_1993
   - 기획서·공략집·기억과 다르면 소스를 따른다. 사용자가 확인한 원칙이다.
   - 파일은 **조합형** 한글이다. `iconv -f cp949` 는 깨지고 Python `bytes.decode('johab')` 로 읽힌다.
-  - 이 Mac 에는 사본이 없다. 필요하면 `git clone --depth 1` 로 임시 폴더에 받는다.
+  - UTF-8 참조본은 [reference/pascal_utf8](reference/pascal_utf8/README.md), 원본 저장소는 `C:/_GIT_2026/LoreTrilogy_1993` 에 있다. 변환 예외와 기준 커밋은 참조본 안내를 본다.
   - 1부 `LORE_1993_src`, 2부 `DARK_1994_src`, 3부 `MYST_1995_src`.
 - **설계 자료:** `~/_GIT/SMG_GameDesignVault/LORE_TRILOGY` — `GameDesign`(기획서, 편마다 부록 A) · `Walkthrough`(공략집).
 - **커밋한 것이 없다.** `lore2026_app/`, `packages/lore_*`(4개), `tools/lore_cm2_check`, `tools/lore_import` 가 모두 git 에 올라가지 않은 상태다. 사용자가 요청하기 전에는 커밋하지 않는다.
