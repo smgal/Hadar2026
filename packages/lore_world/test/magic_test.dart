@@ -280,7 +280,7 @@ void main() {
       expect(out.first<TorchChanged>()!.delta, 7);
       expect(w.torch, 11);
       expect(w.protagonist!.mp, mp - 1);
-      w.torch = 252;
+      w.setTorch(252);
       w.castChange(0, 1);
       expect(w.torch, 255);
     });

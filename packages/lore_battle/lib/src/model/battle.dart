@@ -26,6 +26,32 @@ import '../rules/weapon.dart';
 import 'combatant.dart';
 import 'enemy_instance.dart';
 
+/// Live battle state for consumers that need to read its formation and vitals.
+abstract interface class BattleView {
+  List<CombatantView> get party;
+  List<EnemyView> get enemies;
+  int get gap;
+  int? get leaderSlot;
+}
+
+final class _BattleView implements BattleView {
+  _BattleView(this._battle);
+
+  final Battle _battle;
+
+  @override
+  List<CombatantView> get party => _battle.party;
+
+  @override
+  List<EnemyView> get enemies => _battle.enemies;
+
+  @override
+  int get gap => _battle.gap;
+
+  @override
+  int? get leaderSlot => _battle.leaderSlot;
+}
+
 /// Where the battle is in its cycle.
 enum BattlePhase {
   /// Nothing has happened yet. One `advance()` announces the enemies and
@@ -90,10 +116,13 @@ enum _Ask {
 /// magic pool, an assistant member in the sixth seat who fights on its
 /// own. `rules/` holds each formula next to the line of the document it
 /// comes from; this file only decides who does what to whom, and when.
-class Battle {
+class Battle implements BattleView {
   /// [rng] exists for tests that need a scripted draw sequence; leave it
   /// out and the battle seeds itself from `setup.seed`.
-  Battle(this.setup, {BattleRng? rng}) : _rng = rng ?? SeededRng(setup.seed) {
+  Battle(BattleSetup setup, {BattleRng? rng})
+    : _setup = setup,
+      _rng = rng ?? SeededRng(setup.seed),
+      _held = {...setup.consumables} {
     if (setup.episode < 1 || setup.episode > 3) {
       throw ArgumentError('episode must be 1, 2 or 3: ${setup.episode}');
     }
@@ -137,21 +166,22 @@ class Battle {
     );
   }
 
-  final BattleSetup setup;
+  final BattleSetup _setup;
   final BattleRng _rng;
   final List<Combatant> _party = [];
   final List<EnemyInstance> _enemies = [];
 
+  /// A live view that can be given to presentation code.
+  late final BattleView view = _BattleView(this);
+
   /// Party members taking part, in seat order.
-  List<Combatant> get party => List.unmodifiable(_party);
+  @override
+  List<CombatantView> get party => List.unmodifiable(_party);
 
   /// Enemies, in the order they were registered. Indices in events refer
   /// to this list, and **stay put**: an enemy that dies keeps its line.
-  List<EnemyInstance> get enemies => List.unmodifiable(_enemies);
-
-  /// Exposed so a test can assert that a change did not add or drop a
-  /// random draw.
-  BattleRng get rng => _rng;
+  @override
+  List<EnemyView> get enemies => List.unmodifiable(_enemies);
 
   BattlePhase get phase => _phase;
   BattlePhase _phase = BattlePhase.intro;
@@ -167,14 +197,15 @@ class Battle {
   BattleOutcome? _outcome;
 
   BattleResultCode _result = BattleResultCode.none;
-  late final Map<String, int> _held = {...setup.consumables};
+  final Map<String, int> _held;
   final Map<String, int> _spent = {};
-  late int _arrows = setup.arrows;
+  late int _arrows = _setup.arrows;
   int _arrowsUsed = 0;
   final List<int> _departedSlots = [];
 
   /// How far apart the two sides stand. One number for both sides: "we
   /// advance" and "they advance" are the same event.
+  @override
   int get gap => _gap;
   int _gap = 0;
 
@@ -317,7 +348,7 @@ class Battle {
     if (c.weapon.canCharge && canAdvance(c.rank)) BattleAction.charge,
     BattleAction.brace,
     if (_isLeader(c)) ...[
-      if (setup.canEscape) BattleAction.escape,
+      if (_setup.canEscape) BattleAction.escape,
       BattleAction.orders,
     ],
   ];
@@ -331,6 +362,7 @@ class Battle {
 
   /// The leader: the lowest seat that can act, among seats 0..4. Null
   /// when only the assistant is left standing.
+  @override
   int? get leaderSlot {
     int? best;
     for (final c in _party) {
@@ -343,7 +375,7 @@ class Battle {
   bool _isLeader(Combatant c) => c.slot == leaderSlot;
 
   List<SkillOption> _skillsFor(Combatant c) =>
-      skillOptions(c.snapshot, mp: c.mp, episode: setup.episode);
+      skillOptions(c.snapshot, mp: c.mp, episode: _setup.episode);
 
   List<String> _itemsFor(Combatant c) =>
       usableItems(_held, holdsMagic: c.snapshot.holdsMagic);
@@ -721,7 +753,7 @@ class Battle {
     _escaping = false;
     _assistantActed = false;
     // An ambush: the first round has no party phase at all (ch.8.3).
-    _partySitsOut = _round == 1 && setup.enemyActsFirst;
+    _partySitsOut = _round == 1 && _setup.enemyActsFirst;
     final events = <BattleEvent>[
       RoundStarted(_round, enemyActsFirst: _partySitsOut),
     ];
@@ -916,7 +948,7 @@ class Battle {
       e.dead = 1;
       return [EnemyDiedFromPoison(index)];
     }
-    final amount = enemyPoisonTick(setup.episode);
+    final amount = enemyPoisonTick(_setup.episode);
     e.hp -= amount;
     if (e.hp > 0) return [EnemyPoisonTick(index, amount)];
     e
@@ -2002,7 +2034,7 @@ class Battle {
         if (_enemies.length < maxEnemies &&
             summonAllyFires(actingEnemies: _actingEnemyCount, rng: _rng)) {
           final data = enemyByLegacyId(
-            setup.episode,
+            _setup.episode,
             pickSummonedAlly(e.key, _rng),
           );
           if (data != null) events.addAll(_callIn(index, data));
@@ -2041,7 +2073,7 @@ class Battle {
         casterLegacyId: e.data.legacyId,
         rng: _rng,
       );
-      final data = id == null ? null : enemyByLegacyId(setup.episode, id);
+      final data = id == null ? null : enemyByLegacyId(_setup.episode, id);
       if (data != null) events.addAll(_callIn(index, data));
     }
     if (e.superLevel >= 2 &&
@@ -2152,7 +2184,7 @@ class Battle {
     );
     final turned = EnemyInstance(
       data,
-      episode: setup.episode,
+      episode: _setup.episode,
       override: EnemyOverride(
         displayName: a.name.isEmpty ? null : a.name,
         nameKey: a.name.isEmpty ? a.snapshot.nameKey : null,
@@ -2187,7 +2219,7 @@ class Battle {
 
   /// Adds one enemy to the fight.
   List<BattleEvent> _callIn(int callerIndex, EnemyData data) {
-    _enemies.add(EnemyInstance(data, episode: setup.episode)..summoned = true);
+    _enemies.add(EnemyInstance(data, episode: _setup.episode)..summoned = true);
     return [EnemySummoned(callerIndex, _enemies.length - 1)];
   }
 
@@ -2619,7 +2651,7 @@ class Battle {
     ];
     _outcome = BattleOutcome(
       resultCode: _result,
-      combatants: [for (final c in seated) c.toResult()],
+      combatants: List.unmodifiable([for (final c in seated) c.toResult()]),
       goldGained: gold,
       consumedItems: Map.unmodifiable(_spent),
       arrowsUsed: _arrowsUsed,
@@ -2676,7 +2708,7 @@ class Battle {
   /// either standing or — when the option allows — unconscious, which
   /// finishes it (ch.8.5 step 1).
   bool _canBeStruck(EnemyInstance e) =>
-      e.isPresent && (e.unconscious == 0 || setup.attackUnconscious);
+      e.isPresent && (e.unconscious == 0 || _setup.attackUnconscious);
 
   List<int> _byRank(bool Function(EnemyInstance e) test) {
     final found = [
@@ -2697,7 +2729,7 @@ class Battle {
   /// unconscious when the option allows finishing them.
   List<int> _strikeTargets() => [
     ..._standingTargets(),
-    if (setup.attackUnconscious)
+    if (_setup.attackUnconscious)
       ..._byRank((e) => e.isPresent && e.unconscious > 0),
   ];
 

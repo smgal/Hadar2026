@@ -31,6 +31,5 @@ export 'src/rules/equipment.dart';
 export 'src/rules/field.dart';
 export 'src/rules/items.dart';
 export 'src/rules/magic.dart';
-export 'src/rules/party.dart';
 export 'src/rules/town.dart';
 export 'src/rules/training.dart';

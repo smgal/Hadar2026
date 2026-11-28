@@ -204,7 +204,7 @@ enum SpecialEffect {
         final lowest = target.abilities.reduce(
           (a, b) => a.index < b.index ? a : b,
         );
-        target.abilities.remove(lowest);
+        target.removeAbility(lowest);
       } else {
         target.superLevel = reduceStat(target.superLevel, 1);
       }

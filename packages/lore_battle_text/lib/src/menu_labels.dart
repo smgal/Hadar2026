@@ -212,7 +212,7 @@ String cancelLabelFor(BattleDecision decision) =>
 ///
 /// 파티는 리더가 맨 위, 나머지는 열 → 슬롯. 자리를 비운 사람(정신 지배로
 /// 넘어간 보조 일원)은 빠진다.
-List<Combatant> partyInDisplayOrder(Battle battle) {
+List<CombatantView> partyInDisplayOrder(BattleView battle) {
   final leader = leaderSlotOf(battle);
   final members = [
     for (final c in battle.party)
@@ -231,7 +231,7 @@ List<Combatant> partyInDisplayOrder(Battle battle) {
 ///
 /// 원작처럼 번호 순으로 늘어놓고 싶으면 이것을 쓰지 않고 인덱스를 그대로
 /// 쓰면 된다. 죽은 적은 줄을 남긴다(부록 E.2) — 빼지 않는다.
-List<int> enemiesInDisplayOrder(Battle battle) {
+List<int> enemiesInDisplayOrder(BattleView battle) {
   final ix = [for (var i = 0; i < battle.enemies.length; i++) i];
   ix.sort((a, b) {
     final byRank = battle.enemies[a].rank.compareTo(battle.enemies[b].rank);
@@ -242,7 +242,7 @@ List<int> enemiesInDisplayOrder(Battle battle) {
 
 /// 리더 = 명령을 받는 다섯 가운데 행동 가능한 가장 낮은 슬롯. model 의
 /// 규칙(`Battle.leaderSlot`)을 그대로 읽는다.
-int? leaderSlotOf(Battle battle) => battle.leaderSlot;
+int? leaderSlotOf(BattleView battle) => battle.leaderSlot;
 
 /// 물품 목록 한 줄 — `💚 체력 회복약`.
 String itemLine(String key) {
@@ -291,4 +291,4 @@ String actionHeaderSuffix({
 
 /// 적 목록 한 줄의 이름 — 이름표에서 찾은 표시 이름. 색은
 /// `enemyNameColor` 가 따로 준다.
-String enemyLabel(EnemyInstance enemy) => enemyDisplayName(enemy);
+String enemyLabel(EnemyView enemy) => enemyDisplayName(enemy);

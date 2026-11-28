@@ -213,7 +213,7 @@ void main() {
     });
 
     test('the torch burns down by hours ÷ 3 + 1', () {
-      final w = worldWith(fighter())..torch = 10;
+      final w = worldWith(fighter())..setTorch(10);
       final out = w.rest(6, rng: Random(1));
       expect(out.first<TorchChanged>()!.delta, -3);
       expect(w.torch, 7);
@@ -731,7 +731,7 @@ void main() {
   group('sight', () {
     LoreWorld at(int hour, int minute, {int day = 1, int torch = 0}) =>
         worldWith(fighter())
-          ..torch = torch
+          ..setTorch(torch)
           ..calendar = LoreCalendar(
             year: 673,
             month: 1,

@@ -1,11 +1,4 @@
-import 'dart:math';
-
-import '../contract/events.dart';
-import '../contract/outcome.dart';
-import '../data/level_table.dart';
-import '../domain/enums.dart';
-import '../domain/member.dart';
-import '../model/world.dart';
+part of '../model/world.dart';
 
 /// 적 한 마리의 능력치 중 보조 일원이 될 때 필요한 것(제12장 12.1).
 ///
@@ -142,18 +135,21 @@ extension PartyRules on LoreWorld {
   Outcome join(Member newcomer) {
     final seat = firstFreeCompanionSeat;
     if (seat == null) return Outcome.refused(RefusalReason.partyFull);
-    seats[seat] = newcomer;
+    _seats[seat] = newcomer;
     return Outcome.accepted([MemberJoined(seat)]);
   }
 
   /// 보조 일원(5번 자리)을 정한다. 이미 있으면 **덮어쓴다.**
   Outcome setAssistant(Member newcomer, {bool summoned = false}) {
     final replaced = seats[Seat.assistant] != null;
-    seats[Seat.assistant] = newcomer;
+    _seats[Seat.assistant] = newcomer;
     return Outcome.accepted([
       AssistantSet(replaced: replaced, summoned: summoned),
     ]);
   }
+
+  /// 이야기나 전투로 보조 일원이 떠난다. 빈자리도 그대로 비워 둔다.
+  void removeAssistant() => _seats[Seat.assistant] = null;
 
   /// 한 자리(1~5)의 사람을 새 사람으로 바꾼다. 있던 사람은 영구히 떠난다.
   ///
@@ -174,7 +170,7 @@ extension PartyRules on LoreWorld {
     if (old != null) {
       events.add(MemberDismissed(seat, name: old.name, nameKey: old.nameKey));
     }
-    seats[seat] = newcomer;
+    _seats[seat] = newcomer;
     events.add(
       seat == Seat.assistant
           ? AssistantSet(replaced: old != null)
@@ -198,7 +194,7 @@ extension PartyRules on LoreWorld {
     final m = member(seat);
     if (m == null)
       return Outcome.refused(RefusalReason.noSuchMember, seat: seat);
-    seats[seat] = null;
+    _seats[seat] = null;
     return Outcome.accepted([
       MemberDismissed(seat, name: m.name, nameKey: m.nameKey),
     ]);
@@ -216,8 +212,8 @@ extension PartyRules on LoreWorld {
       return Outcome.refused(RefusalReason.noSuchMember, seat: b);
     }
     final t = seats[a];
-    seats[a] = seats[b];
-    seats[b] = t;
+    _seats[a] = seats[b];
+    _seats[b] = t;
     return Outcome.accepted([SeatsSwapped(a, b)]);
   }
 
@@ -324,7 +320,7 @@ extension PartyRules on LoreWorld {
       final have = countOf(e.key);
       take(e.key, e.value > have ? have : e.value);
     }
-    if (result.assistantLost) seats[Seat.assistant] = null;
+    if (result.assistantLost) removeAssistant();
     final newcomer = result.newAssistant;
     if (newcomer != null) {
       events.addAll(setAssistant(newcomer).events);

@@ -1,6 +1,6 @@
 import '../domain/enums.dart';
 import '../domain/member.dart';
-import '../rules/party.dart';
+import '../model/world.dart';
 import 'class_table.dart';
 import 'level_table.dart';
 

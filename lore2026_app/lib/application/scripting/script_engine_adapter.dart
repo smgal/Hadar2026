@@ -119,10 +119,6 @@ class HDScriptEngine {
     }
   }
 
-  Map<String, dynamic> get variables => _map.variables;
-
-  List<ScriptStatement> get currentScript => _map.currentScript;
-
   /// 이 어댑터가 등록해 둔 이름들. **감사가 쓴다** — cm2 는 모르는 이름을
   /// 예외로 만들지 않고 그냥 넘어가므로, 오타를 잡으려면 밖에서 훑어야 한다.
   Set<String> get registeredCommands => _map.registeredCommands;

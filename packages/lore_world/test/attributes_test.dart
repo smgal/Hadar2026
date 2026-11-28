@@ -4,6 +4,20 @@ import 'package:test/test.dart';
 import 'support.dart';
 
 void main() {
+  test('member abilities and skills permit writes without resizing', () {
+    final member = mage();
+
+    member.setAbility(Ability.strength, 12);
+    member.skills[MageSkill.cure] = 30;
+
+    expect(member.abilities.clear, throwsUnsupportedError);
+    expect(member.skills.clear, throwsUnsupportedError);
+    expect(member.abilities, hasLength(8));
+    expect(member.skills, hasLength(6));
+    expect(member.strength, 12);
+    expect(member.cureSkill, 30);
+  });
+
   /// 스크립트가 쓰는 이름. 이 목록이 바뀌면 맵 스크립트가 깨진다.
   const scriptNames = [
     'strength',

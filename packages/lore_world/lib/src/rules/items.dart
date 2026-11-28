@@ -8,7 +8,6 @@ import '../domain/calendar.dart';
 import '../domain/enums.dart';
 import '../domain/member.dart';
 import '../model/world.dart';
-import 'party.dart';
 
 /// 체력 회복약·마법 회복약 한 병이 채우는 양.
 const int potionAmount = 1000;

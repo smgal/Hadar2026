@@ -1,8 +1,16 @@
+import 'dart:collection';
+import 'dart:math';
+
+import '../contract/events.dart';
+import '../contract/outcome.dart';
 import '../data/equipment_table.dart';
 import '../data/item_table.dart';
+import '../data/level_table.dart';
 import '../domain/calendar.dart';
 import '../domain/enums.dart';
 import '../domain/member.dart';
+
+part '../rules/party.dart';
 
 /// 저장 형식의 판.
 const int loreSaveVersion = 1;
@@ -72,15 +80,19 @@ class LoreWorld {
     Map<String, int>? crystals,
     Map<String, int>? backpack,
     LoreCalendar? calendar,
-    this.torch = 0,
+    int torch = 0,
     FieldBuffs? buffs,
     GameOptions? options,
     bool? espTrainingUnlocked,
     bool? specialMagicUnlocked,
-  }) : seats = List<Member?>.filled(Seat.count, null),
-       consumables = {...?consumables},
-       crystals = {...?crystals},
-       backpack = {...?backpack},
+  }) : _seats = List<Member?>.filled(Seat.count, null),
+       _consumables = _initialCounts(
+         consumables,
+         (k) => consumableByKey(k) != null,
+       ),
+       _crystals = _initialCounts(crystals, (k) => crystalByKey(k) != null),
+       _backpack = _initialCounts(backpack, (k) => equipSlotOf(k) != null),
+       _torch = torch.clamp(0, torchLimit),
        calendar = calendar ?? LoreCalendar.startOf(episode),
        buffs = buffs ?? FieldBuffs(),
        options = options ?? GameOptions(),
@@ -88,7 +100,7 @@ class LoreWorld {
        specialMagicUnlocked = specialMagicUnlocked ?? episode != Episode.ep1 {
     if (seats != null) {
       for (var i = 0; i < Seat.count && i < seats.length; i++) {
-        this.seats[i] = seats[i];
+        _seats[i] = seats[i];
       }
     }
   }
@@ -100,7 +112,7 @@ class LoreWorld {
   /// * 제2부 — 774년 1월 19일 10:10, 빈손.
   factory LoreWorld.newGame(Episode episode, Member protagonist) {
     final world = LoreWorld(episode: episode);
-    world.seats[Seat.protagonist] = protagonist;
+    world._seats[Seat.protagonist] = protagonist;
     switch (episode) {
       case Episode.ep1:
         world.food = 20;
@@ -108,33 +120,40 @@ class LoreWorld {
       case Episode.ep2:
         break;
       case Episode.ep3:
-        world.torch = 4;
+        world.setTorch(4);
     }
     return world;
   }
 
   Episode episode;
 
-  /// 자리 여섯. 0 주인공, 1~4 동료, 5 보조 일원. 빈 자리는 null.
-  final List<Member?> seats;
+  final List<Member?> _seats;
+
+  /// 읽기 전용 자리 목록. 0 주인공, 1~4 동료, 5 보조 일원, 빈 자리는 null.
+  late final List<Member?> seats = UnmodifiableListView(_seats);
 
   int gold;
   int food;
   int arrows;
 
+  final Map<String, int> _consumables;
+  final Map<String, int> _crystals;
+  final Map<String, int> _backpack;
+
   /// 물품 10종의 개수(열쇠 → 개수).
-  final Map<String, int> consumables;
+  late final Map<String, int> consumables = UnmodifiableMapView(_consumables);
 
   /// 크리스탈 9종의 개수.
-  final Map<String, int> crystals;
+  late final Map<String, int> crystals = UnmodifiableMapView(_crystals);
 
   /// 장비 배낭. **장착 중인 것은 여기 없다.**
-  final Map<String, int> backpack;
+  late final Map<String, int> backpack = UnmodifiableMapView(_backpack);
 
   LoreCalendar calendar;
 
   /// 횃불 세기(0~255).
-  int torch;
+  int get torch => _torch;
+  int _torch;
   FieldBuffs buffs;
   GameOptions options;
 
@@ -255,9 +274,9 @@ class LoreWorld {
   }
 
   Map<String, int>? _bucket(String key) {
-    if (consumableByKey(key) != null) return consumables;
-    if (crystalByKey(key) != null) return crystals;
-    if (equipSlotOf(key) != null) return backpack;
+    if (consumableByKey(key) != null) return _consumables;
+    if (crystalByKey(key) != null) return _crystals;
+    if (equipSlotOf(key) != null) return _backpack;
     return null;
   }
 
@@ -340,7 +359,16 @@ class LoreWorld {
 
   void addArrows(int amount) => arrows = (arrows + amount).clamp(0, arrowLimit);
 
-  void setTorch(int value) => torch = value.clamp(0, torchLimit);
+  void setTorch(int value) => _torch = value.clamp(0, torchLimit);
+
+  static Map<String, int> _initialCounts(
+    Map<String, int>? counts,
+    bool Function(String) known,
+  ) => {
+    if (counts != null)
+      for (final e in counts.entries)
+        if (e.value > 0 && known(e.key)) e.key: e.value.clamp(1, stackLimit),
+  };
 
   // ── 저장 ──────────────────────────────────────────────────
 
@@ -439,9 +467,13 @@ class LoreWorld {
       }
     }
 
-    counts('consumables', world.consumables, (k) => consumableByKey(k) != null);
-    counts('crystals', world.crystals, (k) => crystalByKey(k) != null);
-    counts('backpack', world.backpack, (k) => equipSlotOf(k) != null);
+    counts(
+      'consumables',
+      world._consumables,
+      (k) => consumableByKey(k) != null,
+    );
+    counts('crystals', world._crystals, (k) => crystalByKey(k) != null);
+    counts('backpack', world._backpack, (k) => equipSlotOf(k) != null);
 
     final rawSeats = json['seats'];
     if (rawSeats is List) {
@@ -469,7 +501,7 @@ class LoreWorld {
           );
           m.armour = null;
         }
-        world.seats[i] = m;
+        world._seats[i] = m;
       }
     }
     return LoadResult(world, issues);
