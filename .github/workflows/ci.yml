@@ -169,7 +169,8 @@ jobs:
 
       - name: Check hd_battle purity 🧱
         run: |
-          hits="$(grep -rn "package:flutter" packages/hd_battle/lib packages/hd_battle/test || true)"
+          flutter_import="^[[:space:]]*(import|export)[[:space:]]*['\"]package:flutter/"
+          hits="$(grep -rnE --include='*.dart' "$flutter_import" packages/hd_battle/lib packages/hd_battle/test || true)"
           if [ -n "$hits" ]; then
             echo "::error::hd_battle must not depend on Flutter"
             echo "$hits"
@@ -179,7 +180,7 @@ jobs:
 
           # 문장은 hd_battle_text 에만 있어야 한다. model 이 한국어를 들면
           # 그 순간 view 를 갈아끼울 수 없게 된다.
-          hits="$(grep -rn "package:flutter" packages/hd_battle_text/lib || true)"
+          hits="$(grep -rnE --include='*.dart' "$flutter_import" packages/hd_battle_text/lib || true)"
           if [ -n "$hits" ]; then
             echo "::error::hd_battle_text must not depend on Flutter"
             echo "$hits"
