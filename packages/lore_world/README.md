@@ -17,7 +17,7 @@ dart pub get && dart analyze && dart test     # 355개
 
 | | |
 |---|---|
-| **독립** | 다른 패키지를 하나도 import 하지 않는다(`dart:math` 뿐). 전투(`lore_battle`)도 모른다 |
+| **독립** | Dart 표준 라이브러리 `dart:math`와 `dart:collection`만 쓴다 |
 | **던지지 않는다** | 모든 명령이 `Outcome` 을 돌려준다. 거절은 닫힌 열거 `RefusalReason` 이다 |
 | **파생값은 저장하지 않는다** | 최대 HP·MP, 방어력, 무기 공격력, 방패 방어력, 무기 계통, 상태 표시는 읽을 때 계산한다 |
 | **난수는 주입한다** | `Random` 을 만들지 않는다. 필요한 명령이 `rng` 를 받는다 |
@@ -147,6 +147,9 @@ final back = LoreWorld.load(save);                    // .world, .issues
 상태: `episode` · `seats`(6) · `gold` · `food` · `arrows` · `consumables` · `crystals` ·
 `backpack`(장착 중인 것은 없다) · `calendar` · `torch` · `buffs` · `options` ·
 `espTrainingUnlocked` · `specialMagicUnlocked`.
+
+`seats`와 인벤토리 맵은 최신 값을 보여 주는 읽기 전용 컬렉션이다. 자리 변경은 일행 명령을 쓴다.
+대본에서 보조 일원을 내보낼 때는 `removeAssistant()`를 쓴다.
 
 | 읽기 | |
 |---|---|

@@ -61,8 +61,11 @@ class Member {
     this.mindControlImmune = false,
     this.hidden = false,
     this.weaponBlessed = false,
-  }) : abilities = List<int>.of(abilities),
-       skills = List<int>.of(skills ?? const [0, 0, 0, 0, 0, 0]) {
+  }) : abilities = List<int>.of(abilities, growable: false),
+       skills = List<int>.of(
+         skills ?? const [0, 0, 0, 0, 0, 0],
+         growable: false,
+       ) {
     assert(this.abilities.length == 8);
     assert(this.skills.length == 6);
   }

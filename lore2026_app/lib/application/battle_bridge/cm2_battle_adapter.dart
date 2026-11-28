@@ -78,8 +78,8 @@ class HDCm2BattleAdapter with ChangeNotifier {
   List<String> get enemyKeys => List.unmodifiable(_enemyKeys);
 
   /// 지금 도는 전투. 없으면 null — 화면이 이것으로 전투 창을 켜고 끈다.
-  lb.Battle? get active => _active;
-  lb.Battle? _active;
+  lb.BattleView? get active => _active;
+  lb.BattleView? _active;
   bool get isBattleActive => _active != null;
 
   /// 마지막 전투의 결과 (`BATTLERESULT_*`).

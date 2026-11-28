@@ -4,20 +4,45 @@ import '../rules/condition.dart';
 import '../rules/position.dart';
 import '../rules/weapon.dart';
 
+/// Read-only state of a party member during a battle.
+abstract interface class CombatantView {
+  CombatantSnapshot get snapshot;
+  int get slot;
+  String get name;
+  int get hp;
+  int get mp;
+  int get ac;
+  int get acLoss;
+  int get poison;
+  int get unconscious;
+  int get dead;
+  int get rank;
+  bool get joinedInBattle;
+  int get experienceGained;
+  bool get departed;
+  bool get isPresent;
+  bool get isConscious;
+  Condition get condition;
+  WeaponProfile get weapon;
+}
+
 /// A party member for the duration of one battle.
 ///
 /// Built from a [CombatantSnapshot] and thrown away when the battle
 /// ends. Nothing here reaches back into the RPG's own party object;
 /// what changed comes out through `BattleOutcome`.
-class Combatant {
-  Combatant.fromSnapshot(this.snapshot, {this.joinedInBattle = false})
-    : hp = snapshot.hp,
-      mp = snapshot.mp,
-      ac = snapshot.ac,
-      poison = snapshot.poison,
-      unconscious = snapshot.unconscious,
-      dead = snapshot.dead,
-      rank = clampRank(snapshot.rank);
+final class Combatant implements CombatantView {
+  Combatant.fromSnapshot(
+    CombatantSnapshot snapshot, {
+    this.joinedInBattle = false,
+  }) : snapshot = _copySnapshot(snapshot),
+       hp = snapshot.hp,
+       mp = snapshot.mp,
+       ac = snapshot.ac,
+       poison = snapshot.poison,
+       unconscious = snapshot.unconscious,
+       dead = snapshot.dead,
+       rank = clampRank(snapshot.rank);
 
   final CombatantSnapshot snapshot;
 
@@ -99,8 +124,28 @@ class Combatant {
 
   /// Where they stand now, as a snapshot — what the RPG seats when the
   /// battle created them.
-  CombatantSnapshot toSnapshot() => CombatantSnapshot(
-    slot: slot,
+  CombatantSnapshot toSnapshot() => _copySnapshot(
+    snapshot,
+    hp: hp,
+    mp: mp,
+    ac: ac,
+    poison: poison,
+    unconscious: unconscious,
+    dead: dead,
+    rank: rank,
+  );
+
+  static CombatantSnapshot _copySnapshot(
+    CombatantSnapshot snapshot, {
+    int? hp,
+    int? mp,
+    int? ac,
+    int? poison,
+    int? unconscious,
+    int? dead,
+    int? rank,
+  }) => CombatantSnapshot(
+    slot: snapshot.slot,
     name: snapshot.name,
     nameKey: snapshot.nameKey,
     family: snapshot.family,
@@ -114,27 +159,27 @@ class Combatant {
     agility: snapshot.agility,
     accuracy: snapshot.accuracy,
     luck: snapshot.luck,
-    skills: snapshot.skills,
-    hp: hp,
+    skills: List.unmodifiable(snapshot.skills),
+    hp: hp ?? snapshot.hp,
     maxHp: snapshot.maxHp,
-    mp: mp,
+    mp: mp ?? snapshot.mp,
     maxMp: snapshot.maxMp,
-    ac: ac,
+    ac: ac ?? snapshot.ac,
     weaponPower: snapshot.weaponPower,
     weaponKind: snapshot.weaponKind,
     shieldPower: snapshot.shieldPower,
-    poison: poison,
-    unconscious: unconscious,
-    dead: dead,
-    rank: rank,
+    poison: poison ?? snapshot.poison,
+    unconscious: unconscious ?? snapshot.unconscious,
+    dead: dead ?? snapshot.dead,
+    rank: rank ?? snapshot.rank,
     weaponKey: snapshot.weaponKey,
     weaponName: snapshot.weaponName,
     weaponNameKey: snapshot.weaponNameKey,
     attacksAll: snapshot.attacksAll,
     immuneToMindControl: snapshot.immuneToMindControl,
-    weakTo: snapshot.weakTo,
+    weakTo: Set.unmodifiable(snapshot.weakTo),
     dodgesBack: snapshot.dodgesBack,
     preset: snapshot.preset,
-    knownPresets: snapshot.knownPresets,
+    knownPresets: Set.unmodifiable(snapshot.knownPresets),
   );
 }

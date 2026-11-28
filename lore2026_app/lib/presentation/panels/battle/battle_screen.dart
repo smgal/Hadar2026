@@ -37,7 +37,7 @@ Widget _panel({required Widget child, EdgeInsets? padding}) => Container(
 class HDFormationStrip extends StatelessWidget {
   const HDFormationStrip({super.key, required this.battle});
 
-  final lb.Battle battle;
+  final lb.BattleView battle;
 
   String _side(Map<int, int> countByRank, {required bool enemySide}) {
     final parts = <String>[];
@@ -76,7 +76,7 @@ class HDFormationStrip extends StatelessWidget {
 class HDEnemyPane extends StatelessWidget {
   const HDEnemyPane({super.key, required this.battle});
 
-  final lb.Battle battle;
+  final lb.BattleView battle;
 
   @override
   Widget build(BuildContext context) {
@@ -119,9 +119,9 @@ class HDEnemyPane extends StatelessWidget {
 class HDPartyPane extends StatelessWidget {
   const HDPartyPane({super.key, required this.battle});
 
-  final lb.Battle battle;
+  final lb.BattleView battle;
 
-  String _reach(lb.Combatant c) {
+  String _reach(lb.CombatantView c) {
     if (!c.isConscious) return '';
     final reachable = <String>[];
     for (var i = 0; i < battle.enemies.length; i++) {

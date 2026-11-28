@@ -1,0 +1,7 @@
+analyzer:
+  errors:
+    implementation_imports: error
+
+linter:
+  rules:
+    - implementation_imports

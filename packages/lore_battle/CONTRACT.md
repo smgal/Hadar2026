@@ -163,7 +163,9 @@ const CombatantSnapshot({
 ## 2. `BattleCommand` / `BattleEvent` — 진행 계약
 
 model 은 `pendingDecision` 으로 물을 것을 내놓고, `applyCommand` 로 답을 받고, `advance()` 로 한 걸음
-나아간다. 물어보는 것 여섯 가지:
+나아간다. 화면에는 `Battle.view`를 넘긴다. 이 `BattleView`에서 현재 일행, 적, 대열 간격과 리더를 읽는다.
+
+물어보는 것 여섯 가지:
 
 | 질문 | 답 |
 |---|---|

@@ -167,7 +167,7 @@ class HDDevJump {
 
     if (state.gold != null) world.gold = state.gold!;
     if (state.food != null) world.food = state.food!.clamp(0, foodLimit);
-    world.torch = state.torch.clamp(0, LoreWorld.torchLimit);
+    world.setTorch(state.torch);
     state.items.forEach((key, count) => world.give(key, count));
     if (state.unlock.contains('esp')) world.espTrainingUnlocked = true;
     if (state.unlock.contains('special_magic')) world.specialMagicUnlocked = true;

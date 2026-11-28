@@ -52,6 +52,21 @@ void main() {
       expect(w.assistant!.name, 'Two');
     });
 
+    test('the seat view stays current when a hidden assistant is removed', () {
+      final w = worldWith(fighter());
+      final seats = w.seats;
+      final assistant = fighter()..hidden = true;
+      w.setAssistant(assistant);
+
+      expect(seats[Seat.assistant], same(assistant));
+      expect(() => seats[Seat.protagonist] = null, throwsUnsupportedError);
+
+      w.removeAssistant();
+      w.removeAssistant();
+      expect(seats[Seat.assistant], isNull);
+      expect(seats[Seat.protagonist], isNotNull);
+    });
+
     test('dismissal is for seats 1..5 and is permanent', () {
       final w = worldWith(fighter());
       w.join(mage(name: 'Vega'));

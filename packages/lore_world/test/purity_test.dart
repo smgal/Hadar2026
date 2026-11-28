@@ -42,7 +42,7 @@ void main() {
 
   test('nothing imports another package at all', () {
     // 이 레포의 패키지는 물론이고, 바깥 패키지도 쓰지 않는다. 허용되는
-    // 것은 자기 자신과 dart:math 뿐이다.
+    // 것은 자체 라이브러리와 순수 Dart 표준 라이브러리뿐이다.
     final import = RegExp(
       r'''^\s*(?:import|export)\s+['"]([^'"]+)['"]''',
       multiLine: true,
@@ -52,6 +52,7 @@ void main() {
         final target = m.group(1)!;
         final ok =
             target == 'dart:math' ||
+            target == 'dart:collection' ||
             target.startsWith('package:lore_world/') ||
             !target.contains(':');
         expect(ok, isTrue, reason: '${file.path} imports $target');

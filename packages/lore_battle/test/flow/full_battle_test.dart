@@ -4,6 +4,39 @@ import 'package:test/test.dart';
 import '../support/party.dart';
 
 void main() {
+  test('the live battle view isolates mutable setup collections', () {
+    final skills = [50, 10, 10, 0, 30, 0];
+    final supplies = {'hp_potion': 2};
+    final battle = Battle(
+      BattleSetup(
+        party: [knight(skills: skills)],
+        enemyKeys: const ['orc_soldier'],
+        seed: 1,
+        consumables: supplies,
+      ),
+    );
+    final view = battle.view;
+    skills[0] = 1;
+    supplies.clear();
+
+    expect(view, isNot(isA<Battle>()));
+    expect(view.party.single.snapshot.skills.first, 50);
+    expect(battle.consumables['hp_potion'], 2);
+    expect(view.party.clear, throwsUnsupportedError);
+    expect(view.enemies.clear, throwsUnsupportedError);
+    expect(view.party.single.snapshot.skills.clear, throwsUnsupportedError);
+    expect(view.enemies.single.abilities.clear, throwsUnsupportedError);
+  });
+
+  test('the cached outcome keeps its combatant results read-only', () {
+    final battle = Battle(setupFor(party: [knight()], enemyKeys: const []));
+    battle.advance();
+
+    final outcome = battle.outcome!;
+    expect(outcome.combatants.clear, throwsUnsupportedError);
+    expect(battle.outcome!.combatants.single.slot, 0);
+  });
+
   group('a whole battle', () {
     test('five against four orc soldiers is won and pays out', () {
       final battle = Battle(

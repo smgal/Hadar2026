@@ -91,7 +91,7 @@ String weaponDisplayName(CombatantSnapshot member) {
 ///
 /// 정신 지배로 넘어간 보조 일원은 `summon.…` 같은 이름 키를 그대로 들고
 /// 적 목록에 서므로, 점이 든 키는 [resolveNameKey] 로 푼다.
-String enemyDisplayName(EnemyInstance enemy) {
+String enemyDisplayName(EnemyView enemy) {
   final literal = enemy.displayName;
   if (literal != null && literal.isNotEmpty) return literal;
   return enemy.nameKey.contains('.')
@@ -135,12 +135,12 @@ abstract interface class BattleNarration {
 class LoreBattleNames implements BattleNames, BattleNarration {
   LoreBattleNames(this.battle, {this.pronounOf});
 
-  final Battle battle;
+  final BattleView battle;
 
   /// 슬롯 → "그"/"그녀". null 을 돌려주면 이름을 쓴다.
   final String? Function(int slot)? pronounOf;
 
-  Combatant? _member(int slot) {
+  CombatantView? _member(int slot) {
     for (final c in battle.party) {
       if (c.slot == slot) return c;
     }

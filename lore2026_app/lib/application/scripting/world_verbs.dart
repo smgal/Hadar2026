@@ -277,7 +277,7 @@ void registerWorldVerbs(ScriptEngine e, HDScriptEngine host) {
   });
 
   e.registerCommand('Party::RemoveAssistant', (_, _) async {
-    world().seats[Seat.assistant] = null;
+    world().removeAssistant();
     changed();
   });
 

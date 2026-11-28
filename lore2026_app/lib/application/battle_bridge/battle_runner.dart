@@ -22,7 +22,7 @@ class HDBattleRunner {
   /// 「적이 출현했다」를 이미 냈으면(교전 앞 물음) 전투가 다시 내지 않게 한다.
   final bool suppressAppearance;
 
-  final void Function(lb.Battle battle)? onBattleStarted;
+  final void Function(lb.BattleView battle)? onBattleStarted;
 
   /// 한 걸음마다 — 화면(적 목록 · 일행)을 다시 그리라는 신호.
   final void Function()? onStep;
@@ -37,8 +37,8 @@ class HDBattleRunner {
 
   Future<lb.BattleOutcome> run(lb.BattleSetup setup) async {
     final battle = lb.Battle(setup);
-    final names = bt.LoreBattleNames(battle, pronounOf: pronounOf);
-    onBattleStarted?.call(battle);
+    final names = bt.LoreBattleNames(battle.view, pronounOf: pronounOf);
+    onBattleStarted?.call(battle.view);
 
     var steps = 0;
     _unread = false;

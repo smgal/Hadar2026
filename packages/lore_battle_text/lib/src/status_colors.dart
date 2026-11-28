@@ -28,7 +28,7 @@ import 'battle_lines.dart' show TextColor;
 /// 적의 HP 가 열 배 작아서 기준도 따로다(부록 E.11).
 ///
 /// [alwaysBright] 는 분신과 분신 능력자다 — 얼마나 다쳤는지로 진짜를
-/// 가려낼 수 없도록 **항상 밝은 초록**이다. `EnemyInstance.showsAsClone`
+/// 가려낼 수 없도록 **항상 밝은 초록**이다. `EnemyView.showsAsClone`
 /// 을 그대로 넘기면 된다.
 int enemyNameColor({
   required int hp,

@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import '../contract/battle_setup.dart';
 import '../data/enemy_data.dart';
 import '../rules/affinity.dart';
@@ -5,13 +7,57 @@ import '../rules/condition.dart';
 import '../rules/position.dart';
 import '../rules/weapon.dart';
 
+/// Read-only state of an enemy registered in a battle.
+abstract interface class EnemyView {
+  EnemyData get data;
+  String get key;
+  int get episode;
+  String get nameKey;
+  String? get displayName;
+  int get level;
+  int get strength;
+  int get mentality;
+  int get endurance;
+  int get physicalResistance;
+  int get magicResistance;
+  int get agility;
+  int get accuracyPhysical;
+  int get accuracyMagic;
+  int get ac;
+  EnemySpecial get special;
+  int get castLevel;
+  Set<EnemyAbility> get abilities;
+  int get superLevel;
+  bool get persuadable;
+  int get hp;
+  int get poison;
+  int get unconscious;
+  int get dead;
+  int get rank;
+  bool get isClone;
+  bool get summoned;
+  bool get fled;
+  bool get recruited;
+  bool get wasAssistant;
+  bool get isConscious;
+  bool get isPresent;
+  bool get acts;
+  bool get showsAsClone;
+  int get experienceLevel;
+  int get goldAc;
+  int get levelForPersuasion;
+  bool get paysGold;
+  bool get paysExperience;
+  EnemyState toState();
+}
+
 /// One enemy in one battle.
 ///
 /// Stats are copied out of the table rather than read through it: the
 /// special spells and ESP change them for the rest of the fight
 /// (ch.9.5, ch.9.6), and an [EnemyOverride] may have changed them
 /// before it began.
-class EnemyInstance {
+final class EnemyInstance implements EnemyView {
   EnemyInstance(
     this.data, {
     required this.episode,
@@ -32,7 +78,7 @@ class EnemyInstance {
        ac = override?.ac ?? data.ac,
        special = override?.special ?? data.special,
        castLevel = override?.castLevel ?? data.castLevel,
-       abilities = {...(override?.abilities ?? data.abilities)},
+       _abilities = {...(override?.abilities ?? data.abilities)},
        superLevel = override?.superLevel ?? data.superLevel,
        persuadable = override?.persuadable ?? data.persuadable,
        persuadeLevel = override?.persuadeLevel ?? data.persuadeLevel,
@@ -75,7 +121,7 @@ class EnemyInstance {
     clone
       ..isClone = true
       ..cloneOwner = real
-      ..abilities.clear()
+      .._abilities.clear()
       ..superLevel = 0
       ..hp = 1
       ..poison = 0
@@ -106,7 +152,8 @@ class EnemyInstance {
   int ac;
   EnemySpecial special;
   int castLevel;
-  final Set<EnemyAbility> abilities;
+  final Set<EnemyAbility> _abilities;
+  late final Set<EnemyAbility> abilities = UnmodifiableSetView(_abilities);
   int superLevel;
   bool persuadable;
   int? persuadeLevel;
@@ -203,6 +250,8 @@ class EnemyInstance {
   Condition get condition =>
       conditionOf(hp: hp, poison: poison, unconscious: unconscious, dead: dead);
 
+  void removeAbility(EnemyAbility ability) => _abilities.remove(ability);
+
   /// Puts an image back the way it was made.
   void resetClone() {
     hp = 1;
@@ -228,7 +277,7 @@ class EnemyInstance {
     ac: ac,
     special: special,
     castLevel: castLevel,
-    abilities: {...abilities},
+    abilities: Set.unmodifiable(abilities),
     superLevel: superLevel,
     persuadable: persuadable,
     persuadeLevel: persuadeLevel,

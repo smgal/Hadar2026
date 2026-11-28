@@ -54,7 +54,7 @@ class HDStatusPanel extends StatelessWidget {
         builder: (context, child) {
           final world = HDGameMain().party.world;
           final battle = HDCm2BattleAdapter().active;
-          final live = <int, lb.Combatant>{
+          final live = <int, lb.CombatantView>{
             if (battle != null)
               for (final c in battle.party)
                 if (!c.joinedInBattle) c.snapshot.slot: c,
@@ -107,7 +107,7 @@ class HDStatusPanel extends StatelessWidget {
 
   Widget _row(
     Member? m, {
-    lb.Combatant? live,
+    lb.CombatantView? live,
     required Episode episode,
     required bool isAssistant,
   }) {
@@ -159,7 +159,7 @@ class HDStatusPanel extends StatelessWidget {
   }
 
   /// [Member.condition] 과 같은 순서 — 죽음 > 의식 불명 > 중독 > 좋음.
-  static Condition _conditionOf(lb.Combatant c) {
+  static Condition _conditionOf(lb.CombatantView c) {
     if (c.dead > 0) return Condition.dead;
     if (c.unconscious > 0) return Condition.unconscious;
     if (c.poison > 0) return Condition.poisoned;

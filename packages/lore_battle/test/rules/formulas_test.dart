@@ -1,4 +1,9 @@
 import 'package:lore_battle/lore_battle.dart';
+import 'package:lore_battle/src/model/enemy_instance.dart' show EnemyInstance;
+import 'package:lore_battle/src/rules/esp.dart'
+    show castAstral, castFear, castIllusion, castMetabolism;
+import 'package:lore_battle/src/rules/special_magic.dart' show castSpecial;
+import 'package:lore_battle/src/rules/summon.dart' show recruitFromEnemy;
 import 'package:test/test.dart';
 
 /// Every formula of design chapters 8 and 9, pinned against chosen

@@ -12,7 +12,7 @@ LoreWorld busyWorld() {
     ..gold = 123456
     ..food = 77
     ..arrows = 4321
-    ..torch = 9;
+    ..setTorch(9);
   w.join(rosterEp3['canopus']!.build());
   w.join(rosterEp3['vega']!.build()..hidden = true);
   w.join(

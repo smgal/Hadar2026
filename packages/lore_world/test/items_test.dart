@@ -8,6 +8,29 @@ import 'support.dart';
 void main() {
   final rng = Random(1);
 
+  test('inventory views and torch respect the world limits', () {
+    final w = LoreWorld(
+      episode: Episode.ep3,
+      torch: -1,
+      consumables: {
+        ItemKey.hpPotion: stackLimit + 1,
+        ItemKey.mpPotion: -1,
+        'unregistered_item': 1,
+      },
+    );
+    final inventory = w.consumables;
+
+    expect(w.torch, 0);
+    expect(inventory, {ItemKey.hpPotion: stackLimit});
+    expect(() => inventory[ItemKey.hpPotion] = -1, throwsUnsupportedError);
+    expect(w.crystals.clear, throwsUnsupportedError);
+    expect(w.backpack.clear, throwsUnsupportedError);
+    expect(w.take(ItemKey.hpPotion), isTrue);
+    expect(inventory[ItemKey.hpPotion], stackLimit - 1);
+    w.setTorch(LoreWorld.torchLimit + 1);
+    expect(w.torch, LoreWorld.torchLimit);
+  });
+
   group('herbs and potions', () {
     test('the HP potion gives up to 1000 to the user', () {
       final m = fighter(level: 20)..hp = 100;
@@ -160,7 +183,7 @@ void main() {
       expect(w.torch, 4);
       final out = w.useConsumable(ItemKey.bigTorch, user: 0, rng: rng);
       expect(out.first<TorchChanged>()!.value, 14);
-      w.torch = 250;
+      w.setTorch(250);
       w.useConsumable(ItemKey.bigTorch, user: 0, rng: rng);
       expect(w.torch, 255);
     });

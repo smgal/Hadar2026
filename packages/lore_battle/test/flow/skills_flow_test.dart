@@ -9,7 +9,7 @@ import '../support/party.dart';
 Battle zeroBattle(BattleSetup setup) =>
     Battle(setup, rng: ScriptedRng(const [0], repeat: true));
 
-Combatant seat(Battle battle, int slot) =>
+CombatantView seat(Battle battle, int slot) =>
     battle.party.firstWhere((c) => c.slot == slot);
 
 void main() {
